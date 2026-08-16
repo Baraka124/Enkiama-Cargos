@@ -2,6 +2,9 @@
 import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import AppHeader from '../components/AppHeader.vue'
+import Icon from '../components/Icon.vue'
+import Spinner from '../components/Spinner.vue'
 
 const router = useRouter()
 const toast = inject('toast')
@@ -9,23 +12,23 @@ const { session, profile, emailVerified, updateMyProfile, updatePassword, resend
 
 const name = ref(''); const phone = ref('')
 const newPw = ref(''); const newPw2 = ref('')
-const busy = ref(false)
+const savingProfile = ref(false); const savingPw = ref(false)
 
 onMounted(() => { name.value = profile.value?.name || ''; phone.value = profile.value?.phone || '' })
 
 async function saveProfile() {
-  busy.value = true
+  savingProfile.value = true
   try { await updateMyProfile(name.value, phone.value); toast('Profile updated', 'ok') }
   catch (e) { toast(e.message, 'warn') }
-  busy.value = false
+  savingProfile.value = false
 }
 async function changePw() {
   if (newPw.value.length < 8) { toast('Use at least 8 characters', 'warn'); return }
   if (newPw.value !== newPw2.value) { toast('Passwords don\u2019t match', 'warn'); return }
-  busy.value = true
+  savingPw.value = true
   try { await updatePassword(newPw.value); toast('Password changed', 'ok'); newPw.value=''; newPw2.value='' }
   catch (e) { toast(e.message, 'warn') }
-  busy.value = false
+  savingPw.value = false
 }
 async function resend() {
   try { await resendVerification(session.value.user.email); toast('Verification email sent', 'ok') }
@@ -33,46 +36,93 @@ async function resend() {
 }
 async function logout() { await signOut(); router.push('/login') }
 async function logoutAll() { await signOutEverywhere(); toast('Signed out on all devices', 'ok'); router.push('/login') }
+function initials(n) { return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase() }
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
-    <button class="btn btn-ghost" @click="router.back()">← Back</button>
-    <div class="tb-spacer"></div>
-    <div class="tb-name">Account</div>
-  </div></div>
+  <AppHeader title="Account" :subtitle="profile?.role ? profile.role.replace('_',' ') : 'Settings'">
+    <button class="btn btn-ghost" @click="router.back()"><Icon name="arrow" :size="15" style="transform:rotate(180deg)" /> Back</button>
+  </AppHeader>
 
-  <div class="wrap" style="max-width:640px">
-    <!-- email verification banner -->
-    <div v-if="session?.user?.email && !emailVerified" class="panel" style="border-color:var(--owed-soft);background:var(--owed-soft)">
-      <h2>Verify your email</h2>
-      <div class="sub" style="color:var(--owed-ink)">We sent a link to {{ session.user.email }}. Verify to secure your account.</div>
-      <button class="btn btn-ghost" @click="resend">Resend verification email</button>
+  <div class="wrap acct">
+    <!-- identity summary -->
+    <div class="acct-hero">
+      <div class="acct-avatar">{{ initials(profile?.name) }}</div>
+      <div>
+        <div class="acct-name">{{ profile?.name || 'Your account' }}</div>
+        <div class="acct-email">{{ session?.user?.email || session?.user?.phone }}</div>
+      </div>
+      <span v-if="emailVerified" class="acct-verified"><Icon name="check" :size="13" /> Verified</span>
     </div>
 
-    <div class="panel">
-      <h2>Your profile</h2>
-      <div class="sub">This is how you appear across the platform.</div>
-      <div class="fg"><label>Name</label><input v-model="name" /></div>
-      <div class="fg"><label>Phone</label><input v-model="phone" placeholder="+255…" /></div>
-      <button class="btn btn-accent" :disabled="busy" @click="saveProfile">Save profile</button>
+    <!-- email verification -->
+    <div v-if="session?.user?.email && !emailVerified" class="acct-card warn">
+      <div class="acct-card-ic warn"><Icon name="alert" :size="18" /></div>
+      <div style="flex:1">
+        <div class="acct-card-h">Verify your email</div>
+        <p class="acct-card-p">We sent a link to {{ session.user.email }}. Verify to secure your account.</p>
+        <button class="btn btn-ghost" @click="resend">Resend verification email</button>
+      </div>
     </div>
 
-    <div class="panel">
-      <h2>Change password</h2>
-      <div class="sub">Use at least 8 characters.</div>
-      <div class="fg"><label>New password</label><input v-model="newPw" type="password" /></div>
-      <div class="fg"><label>Confirm</label><input v-model="newPw2" type="password" /></div>
-      <button class="btn btn-accent" :disabled="busy" @click="changePw">Change password</button>
+    <!-- profile -->
+    <div class="acct-card">
+      <div class="acct-card-ic"><Icon name="user" :size="18" /></div>
+      <div style="flex:1">
+        <div class="acct-card-h">Your profile</div>
+        <p class="acct-card-p">How you appear across the platform.</p>
+        <div class="row2">
+          <div class="fg"><label>Name</label><input v-model="name" placeholder="Your name" /></div>
+          <div class="fg"><label>Phone</label><input v-model="phone" type="tel" inputmode="tel" placeholder="+255…" /></div>
+        </div>
+        <button class="btn btn-accent" :disabled="savingProfile" @click="saveProfile"><Spinner v-if="savingProfile" :size="15" /><span v-else>Save profile</span></button>
+      </div>
     </div>
 
-    <div class="panel">
-      <h2>Sessions</h2>
-      <div class="sub">Signed in as {{ session?.user?.email || session?.user?.phone }}.</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-ghost" @click="logout">Sign out</button>
-        <button class="btn btn-owed" @click="logoutAll">Sign out everywhere</button>
+    <!-- password -->
+    <div class="acct-card">
+      <div class="acct-card-ic"><Icon name="lock" :size="18" /></div>
+      <div style="flex:1">
+        <div class="acct-card-h">Change password</div>
+        <p class="acct-card-p">At least 8 characters. Choose something private.</p>
+        <div class="row2">
+          <div class="fg"><label>New password</label><input v-model="newPw" type="password" placeholder="••••••••" /></div>
+          <div class="fg"><label>Confirm</label><input v-model="newPw2" type="password" placeholder="••••••••" /></div>
+        </div>
+        <button class="btn btn-accent" :disabled="savingPw" @click="changePw"><Spinner v-if="savingPw" :size="15" /><span v-else>Change password</span></button>
+      </div>
+    </div>
+
+    <!-- sessions -->
+    <div class="acct-card">
+      <div class="acct-card-ic"><Icon name="phone" :size="18" /></div>
+      <div style="flex:1">
+        <div class="acct-card-h">Sessions & sign out</div>
+        <p class="acct-card-p">Signed in as {{ session?.user?.email || session?.user?.phone }}.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" @click="logout">Sign out</button>
+          <button class="btn btn-ghost acct-danger" @click="logoutAll">Sign out everywhere</button>
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.acct{max-width:680px}
+.acct-hero{display:flex;align-items:center;gap:var(--s4);padding:var(--s6) 0 var(--s7)}
+.acct-avatar{width:60px;height:60px;border-radius:var(--r-lg);background:linear-gradient(135deg,var(--accent),var(--accent-ink));color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-xl);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadow-md)}
+.acct-name{font-family:'Space Grotesk',sans-serif;font-size:var(--t-2xl);font-weight:700;color:var(--ink)}
+.acct-email{font-size:var(--t-base);color:var(--ink-faint);margin-top:2px}
+.acct-verified{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:var(--t-sm);font-weight:600;color:var(--go-ink);background:var(--go-soft);padding:5px 12px;border-radius:var(--r-full)}
+.acct-card{display:flex;gap:var(--s4);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:var(--s6);margin-bottom:var(--s4);box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease)}
+.acct-card:hover{box-shadow:var(--shadow-md)}
+.acct-card.warn{border-color:var(--warn-soft);background:var(--warn-soft)}
+.acct-card-ic{width:44px;height:44px;border-radius:var(--r-sm);background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.acct-card-ic.warn{background:#fff;color:var(--warn-ink)}
+.acct-card-h{font-family:'Space Grotesk',sans-serif;font-size:var(--t-lg);font-weight:650;color:var(--ink);margin-bottom:4px}
+.acct-card-p{font-size:var(--t-sm);color:var(--ink-faint);margin-bottom:var(--s4);line-height:1.5}
+.acct-danger{color:var(--owed-ink)}
+.acct-danger:hover{border-color:var(--owed);background:var(--owed-soft)}
+@media(max-width:560px){.acct-card{flex-direction:column;gap:var(--s3)}}
+</style>

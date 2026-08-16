@@ -6,6 +6,7 @@ import { useConsignments } from '../composables/useConsignments'
 import { fmtTZS, supabase } from '../lib/supabase'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import Icon from '../components/Icon.vue'
+import AppHeader from '../components/AppHeader.vue'
 import EmptyState from '../components/EmptyState.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -122,12 +123,9 @@ async function logout(){ await signOut(); router.push('/login') }
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
-    <div class="tb-mark">{{ carrier?.mark || 'EC' }}</div>
-    <div><div class="tb-name">{{ carrier?.name || 'Enkiama Cargos' }}</div><div class="tb-role">Driver · {{ profile?.name }}</div></div>
-    <div class="tb-spacer"></div>
+  <AppHeader :title="carrier?.name || 'Enkiama Cargos'" :subtitle="'Driver · ' + (profile?.name || '')" :carrier="carrier" live>
     <button class="btn btn-ghost" @click="logout">Sign out</button>
-  </div></div>
+  </AppHeader>
 
   <div class="wrap">
     <div id="drvmap" class="map"></div>
