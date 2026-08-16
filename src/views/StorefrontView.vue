@@ -1,0 +1,183 @@
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { supabase } from '../lib/supabase'
+import Icon from '../components/Icon.vue'
+import BrandMark from '../components/BrandMark.vue'
+import EmptyState from '../components/EmptyState.vue'
+import Spinner from '../components/Spinner.vue'
+
+const route = useRoute()
+const data = ref(null)
+const loading = ref(true)
+
+const store = computed(() => data.value?.store)
+const products = computed(() => data.value?.products || [])
+const reviews = computed(() => data.value?.reviews || [])
+
+async function load() {
+  loading.value = true
+  const { data: res } = await supabase.rpc('get_storefront', { p_slug: route.params.slug })
+  data.value = res
+  loading.value = false
+}
+function tzs(n) { return n ? 'TZS ' + Number(n).toLocaleString() : '' }
+
+// ── order → auto-booking ──
+const orderProduct = ref(null)
+const orderForm = ref({ name: '', phone: '', addr: '', qty: 1 })
+const ordering = ref(false)
+const orderCode = ref('')
+function openOrder(p) { orderProduct.value = p; orderCode.value = ''; orderForm.value = { name:'', phone:'', addr:'', qty:1 } }
+async function placeOrder() {
+  if (!orderForm.value.name || !orderForm.value.phone || !orderForm.value.addr) return
+  ordering.value = true
+  try {
+    const { data: code, error } = await supabase.rpc('place_order', {
+      p_store_slug: route.params.slug, p_product_id: orderProduct.value.id,
+      p_buyer_name: orderForm.value.name, p_buyer_phone: orderForm.value.phone,
+      p_buyer_addr: orderForm.value.addr, p_qty: Number(orderForm.value.qty) || 1,
+    })
+    if (error) throw error
+    orderCode.value = code
+  } catch (e) { alert(e.message || 'Could not place order') }
+  ordering.value = false
+}
+onMounted(load)
+</script>
+
+<template>
+  <div class="sf" v-if="!loading && store" :style="{'--sf': store.accent}">
+    <div class="sf-banner">
+      <RouterLink to="/market" class="sf-back"><Icon name="arrow" :size="16" style="transform:rotate(180deg)" /> Marketplace</RouterLink>
+      <div class="sf-id">
+        <div class="sf-avatar" :style="{background:store.accent}">{{ store.name.slice(0,2).toUpperCase() }}</div>
+        <div>
+          <h1 class="sf-name">{{ store.name }}
+            <span v-if="store.verified_delivery" class="sf-verified"><Icon name="check" :size="14" /> Verified delivery</span>
+          </h1>
+          <p class="sf-tag">{{ store.tagline }}</p>
+          <div class="sf-meta">
+            <span v-if="data.avg_rating" class="sf-rating"><Icon name="star" :size="14" /> {{ data.avg_rating }} <span class="sf-rc">· {{ data.review_count }} reviews</span></span>
+            <span v-if="store.region" class="sf-region"><Icon name="pin" :size="13" /> {{ store.region }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sf-body">
+      <div class="sf-main">
+        <p v-if="store.about" class="sf-about">{{ store.about }}</p>
+        <div v-if="store.delivers_to" class="sf-delivers"><Icon name="truck" :size="15" /> Delivers to {{ store.delivers_to }} — tracked via Enkiama Cargos</div>
+
+        <h2 class="sf-h2">Products</h2>
+        <EmptyState v-if="!products.length" icon="package" title="No products listed yet" />
+        <div v-else class="sf-products">
+          <div v-for="p in products" :key="p.id" class="sf-prod">
+            <div style="flex:1;min-width:0">
+              <div class="sf-prod-name">{{ p.name }}</div>
+              <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
+            </div>
+            <div class="sf-prod-price">{{ tzs(p.price_tzs) }}</div>
+            <button class="btn btn-accent sf-order" @click="openOrder(p)">Order</button>
+          </div>
+        </div>
+
+        <template v-if="reviews.length">
+          <h2 class="sf-h2">Delivery reviews</h2>
+          <div class="sf-reviews">
+            <div v-for="(r,i) in reviews" :key="i" class="sf-review">
+              <div class="sf-stars"><Icon v-for="n in r.rating" :key="n" name="star" :size="13" /></div>
+              <p v-if="r.comment" class="sf-rev-text">"{{ r.comment }}"</p>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <aside class="sf-aside">
+        <div class="sf-order-card">
+          <div class="sf-trust"><Icon name="check" :size="18" /></div>
+          <div class="sf-trust-h">Every order tracked</div>
+          <p class="sf-trust-p">Orders from {{ store.name }} ship through platform carriers with end-to-end tracking and cash-on-delivery — you see every step.</p>
+          <a v-if="store.phone" :href="`tel:${store.phone}`" class="btn btn-accent btn-block btn-lg"><Icon name="phone" :size="16" /> Contact shop</a>
+          <RouterLink to="/track" class="btn btn-ghost btn-block">Track an order</RouterLink>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="sf-foot"><BrandMark variant="full" :height="36" /><p>Powered by Enkiama Cargos · One parcel, one truth.</p></footer>
+
+    <!-- ORDER MODAL -->
+    <div v-if="orderProduct" class="overlay" @click.self="orderProduct=null">
+      <div class="modal" style="max-width:440px">
+        <div v-if="orderCode" class="book-success">
+          <div class="book-success-ic"><Icon name="check" :size="30" /></div>
+          <div class="book-success-code">{{ orderCode }}</div>
+          <div class="book-success-sub">Order placed! {{ store.name }} will ship your {{ orderProduct.name }} via {{ store.name }}'s carrier — tracked all the way. Pay {{ tzs(orderProduct.price_tzs * orderForm.qty) }} on delivery.</div>
+          <RouterLink :to="`/track/${orderCode}`" class="btn btn-accent btn-block btn-lg"><Icon name="pin" :size="16" /> Track my order</RouterLink>
+          <button class="btn btn-ghost btn-block" @click="orderProduct=null">Done</button>
+        </div>
+        <template v-else>
+          <h3>Order {{ orderProduct.name }}</h3>
+          <p>{{ tzs(orderProduct.price_tzs) }} · cash on delivery. Where should we deliver it?</p>
+          <div class="fg"><label>Your name <span class="req">*</span></label><input v-model="orderForm.name" placeholder="Full name" /></div>
+          <div class="row2">
+            <div class="fg"><label>Phone <span class="req">*</span></label><input v-model="orderForm.phone" type="tel" inputmode="tel" placeholder="+255…" /></div>
+            <div class="fg"><label>Quantity</label><input v-model="orderForm.qty" type="number" inputmode="numeric" min="1" /></div>
+          </div>
+          <div class="fg"><label>Delivery address <span class="req">*</span></label><input v-model="orderForm.addr" placeholder="Where to deliver" /></div>
+          <div class="sf-order-total">Total on delivery: <strong>{{ tzs((orderProduct.price_tzs||0) * (orderForm.qty||1)) }}</strong></div>
+          <div class="confirm-actions">
+            <button class="btn btn-ghost" @click="orderProduct=null">Cancel</button>
+            <button class="btn btn-accent" :disabled="ordering" @click="placeOrder"><Spinner v-if="ordering" :size="15" /><span v-else>Place order</span></button>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <div v-else-if="loading" class="sf-loading"><p>Loading shop…</p></div>
+  <EmptyState v-else icon="search" title="Shop not found" hint="This storefront doesn't exist or was removed." />
+</template>
+
+<style scoped>
+.sf{max-width:1000px;margin:0 auto;padding:0 20px 50px}
+.sf-banner{padding:22px 0 26px;border-bottom:1px solid var(--hairline);margin-bottom:26px}
+.sf-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-faint);text-decoration:none;margin-bottom:20px}
+.sf-back:hover{color:var(--accent-ink)}
+.sf-id{display:flex;gap:16px;align-items:flex-start}
+.sf-avatar{width:64px;height:64px;border-radius:17px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sf-name{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sf-verified{font-size:12px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.sf-tag{font-size:14.5px;color:var(--ink-soft);margin-top:3px}
+.sf-meta{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
+.sf-rating{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;font-weight:600;color:#B5791E}
+.sf-rc{color:var(--ink-faint);font-weight:400}
+.sf-region{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-faint)}
+.sf-body{display:grid;grid-template-columns:1fr 300px;gap:28px}
+@media(max-width:800px){.sf-body{grid-template-columns:1fr}}
+.sf-about{font-size:14.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:16px}
+.sf-delivers{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--go-ink);background:var(--go-soft);padding:11px 14px;border-radius:12px;margin-bottom:24px}
+.sf-h2{font-size:18px;font-weight:700;margin:24px 0 14px}
+.sf-products{display:flex;flex-direction:column;gap:10px}
+.sf-prod{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--hairline);border-radius:13px;padding:14px 16px}
+.sf-prod-name{font-weight:650;font-size:14.5px;color:var(--ink)}
+.sf-prod-desc{font-size:12.5px;color:var(--ink-faint);margin-top:2px}
+.sf-prod-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:var(--ink);white-space:nowrap}
+.sf-order{padding:8px 16px !important;font-size:13px}
+.sf-reviews{display:flex;flex-direction:column;gap:10px}
+.sf-review{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:14px 16px}
+.sf-stars{display:flex;gap:2px;color:#E8A33D;margin-bottom:6px}
+.sf-rev-text{font-size:13.5px;color:var(--ink-soft);font-style:italic}
+.sf-aside{position:sticky;top:20px;align-self:start}
+.sf-order-card{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:22px;text-align:center;box-shadow:var(--shadow-sm)}
+.sf-trust{width:48px;height:48px;border-radius:13px;background:var(--go-soft);color:var(--go-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.sf-trust-h{font-weight:700;font-size:16px;margin-bottom:8px}
+.sf-trust-p{font-size:13px;color:var(--ink-soft);line-height:1.55;margin-bottom:18px}
+.sf-order-card .btn{margin-bottom:10px}
+.sf-foot{text-align:center;margin-top:50px;padding-top:30px;border-top:1px solid var(--hairline)}
+.sf-foot p{font-size:12.5px;color:var(--ink-faint);margin-top:10px}
+.sf-loading{text-align:center;padding:80px 20px;color:var(--ink-faint)}
+.sf-order-total{font-size:14px;color:var(--ink-soft);margin:14px 0;padding:12px;background:var(--surface-2);border-radius:10px;text-align:center}
+.sf-order-total strong{color:var(--owed-ink);font-family:'Space Grotesk',sans-serif}
+</style>
