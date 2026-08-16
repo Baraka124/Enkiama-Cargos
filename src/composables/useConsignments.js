@@ -67,8 +67,15 @@ async function advance(p, toStage, note) {
   const prevStage = target?.stage
   if (target) target.stage = toStage
   try {
-    const { error } = await supabase.from('consignment').update({ stage: toStage }).eq('id', p.id)
+    // marking delivered records proof-of-delivery time (required to later confirm)
+    const patch = { stage: toStage }
+    if (toStage === 'delivered') patch.pod_at = new Date().toISOString()
+    const { error } = await supabase.from('consignment').update(patch).eq('id', p.id)
     if (error) throw error
+    // if delivered with cash, mark cash collected
+    if (toStage === 'delivered' && p.payMode === 'cash') {
+      await supabase.from('payment').update({ state: 'collected' }).eq('consignment_id', p.id)
+    }
     await logCustody(p.id, toStage, note)
     await fetchAll()
   } catch (e) {
