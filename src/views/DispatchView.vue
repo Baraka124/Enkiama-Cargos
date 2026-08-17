@@ -165,12 +165,26 @@ async function sendStaffInvite() {
 }
 function switchToPlatform() { setHat('platform'); router.push('/platform') }
 
+// ── carrier notifications (seller selected you / new order) ──
+const notifs = ref([])
+const notifsOpen = ref(false)
+const unreadNotifs = computed(() => notifs.value.filter(n => !n.read).length)
+async function loadNotifs() {
+  try { const { data } = await supabase.rpc('my_notifications'); notifs.value = data || [] } catch (e) {}
+}
+async function openNotifs() {
+  notifsOpen.value = true
+  await supabase.rpc('mark_notifications_read').catch(()=>{})
+  await loadNotifs()
+}
+
 onMounted(async () => {
   try { await fetchAll() } catch (e) {}
   try { subscribe() } catch (e) {}
   try { await loadDrivers() } catch (e) {}
   try { await loadCash() } catch (e) {}
   try { await loadCustomers() } catch (e) {}
+  try { await loadNotifs() } catch (e) {}
   window.addEventListener('keydown', onKey)
   maybeOnboard()
 })
@@ -385,6 +399,9 @@ function fmtWhen(ts) {
     <!-- desktop actions inline -->
     <div class="tb-actions-desktop">
       <button v-if="isPlatformAdmin" class="btn btn-ghost" style="margin-right:8px" @click="switchToPlatform">↔ Platform console</button>
+      <button class="btn btn-ghost tb-icon-btn" style="position:relative;margin-right:8px" @click="openNotifs">
+        <Icon name="bell" :size="18" /><span v-if="unreadNotifs" class="notif-dot">{{ unreadNotifs }}</span>
+      </button>
       <button class="btn btn-ghost lang-toggle" style="margin-right:8px" :title="isSwahili ? 'Switch to English' : 'Badilisha kwa Kiswahili'" @click="setLang(isSwahili?'en':'sw')"><Icon name="globe" :size="14" /> {{ isSwahili ? 'EN' : 'SW' }}</button>
       <button class="btn btn-ghost" style="margin-right:8px" :title="theme==='dark'?'Light mode':'Dark mode'" @click="toggleTheme"><Icon :name="theme==='dark'?'sun':'moon'" :size="15" /></button>
       <button class="btn btn-ghost" @click="logout">Sign out</button>
@@ -629,6 +646,24 @@ function fmtWhen(ts) {
         <button class="btn btn-ghost" @click="confirmDialog=null">Cancel</button>
         <button class="btn btn-accent" @click="runConfirm">Confirm</button>
       </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS PANEL -->
+  <div v-if="notifsOpen" class="overlay" @click.self="notifsOpen=false">
+    <div class="modal" style="max-width:440px">
+      <h3>Notifications</h3>
+      <EmptyState v-if="!notifs.length" icon="bell" title="Nothing yet" hint="When a seller selects you or an order comes in, it appears here." />
+      <div v-else class="notif-list">
+        <div v-for="n in notifs" :key="n.id" class="notif-item" :class="{unread:!n.read}">
+          <div class="notif-ic" :class="n.kind"><Icon :name="n.kind==='new_order'?'box':'truck'" :size="15" /></div>
+          <div style="flex:1;min-width:0">
+            <div class="notif-title">{{ n.title }}</div>
+            <div v-if="n.body" class="notif-body">{{ n.body }}</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px" @click="notifsOpen=false">Close</button>
     </div>
   </div>
 

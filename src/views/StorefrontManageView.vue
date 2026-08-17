@@ -7,6 +7,8 @@ import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
+import PhotoUpload from '../components/PhotoUpload.vue'
+import CarrierMark from '../components/CarrierMark.vue'
 import Skeleton from '../components/Skeleton.vue'
 
 const router = useRouter()
@@ -19,7 +21,21 @@ const loading = ref(true)
 const saving = ref(false)
 
 const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#C08A2D' })
-const newProd = ref({ name:'', description:'', price_tzs:'' })
+const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'' })
+const carriers = ref([])
+const selectedCarrier = ref(null)
+async function loadCarriers() {
+  const { data } = await supabase.from('carrier').select('id,name,slug,mark,accent,region').eq('status','active').order('name')
+  carriers.value = data || []
+}
+async function pickCarrier(c) {
+  try {
+    const { error } = await supabase.rpc('select_storefront_carrier', { p_slug: store.value.slug, p_carrier: c.id })
+    if (error) throw error
+    selectedCarrier.value = c.id
+    toast(`${c.name} will deliver your orders — they've been notified`, 'ok')
+  } catch (e) { toast(e.message || 'Could not select carrier', 'warn') }
+}
 
 async function load() {
   loading.value = true
@@ -52,11 +68,11 @@ async function addProduct() {
   if (!store.value) { toast('Save your storefront first', 'warn'); return }
   const { error } = await supabase.from('product').insert({
     storefront_id: store.value.id, name: newProd.value.name,
-    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null,
+    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, image_url: newProd.value.image_url || null,
   })
   if (error) { toast(error.message, 'warn'); return }
   toast('Product added', 'ok')
-  newProd.value = { name:'', description:'', price_tzs:'' }
+  newProd.value = { name:'', description:'', price_tzs:'', image_url:'' }
   await load()
 }
 async function delProduct(id) {
@@ -64,7 +80,7 @@ async function delProduct(id) {
   toast('Product removed', 'ok'); await load()
 }
 async function logout() { await signOut(); router.push('/login') }
-onMounted(load)
+onMounted(async () => { await load(); await loadCarriers(); selectedCarrier.value = store.value?.carrier_id })
 </script>
 
 <template>
@@ -100,6 +116,18 @@ onMounted(load)
 
       <template v-if="store">
         <div class="mgr-card">
+          <div class="form-section-h"><Icon name="truck" :size="13" /> Who delivers your orders</div>
+          <p class="mgr-hint">Pick the carrier that ships your goods. They'll be notified you chose them. Always powered by Enkiama Cargos.</p>
+          <div class="carrier-pick">
+            <button v-for="c in carriers" :key="c.id" class="carrier-opt" :class="{on:selectedCarrier===c.id}" @click="pickCarrier(c)">
+              <CarrierMark :slug="c.slug" :mark="c.mark" :name="c.name" :accent="c.accent" :size="30" />
+              <div class="carrier-opt-info"><div class="carrier-opt-name">{{ c.name }}</div><div class="carrier-opt-region">{{ c.region || '—' }}</div></div>
+              <Icon v-if="selectedCarrier===c.id" name="check" :size="16" class="carrier-opt-check" />
+            </button>
+          </div>
+        </div>
+
+        <div class="mgr-card">
           <div class="form-section-h"><Icon name="package" :size="13" /> Products</div>
           <EmptyState v-if="!products.length" icon="package" title="No products yet" hint="Add your first product below." />
           <div v-else class="mgr-prods">
@@ -115,6 +143,7 @@ onMounted(load)
               <div class="fg"><label>Price (TZS)</label><input v-model="newProd.price_tzs" type="number" inputmode="numeric" placeholder="45000" /></div>
             </div>
             <div class="fg"><label>Description</label><input v-model="newProd.description" placeholder="Premium wax print" /></div>
+            <div class="fg"><label>Photo</label><PhotoUpload v-model="newProd.image_url" /></div>
             <button class="btn btn-accent" @click="addProduct"><Icon name="plus" :size="15" /> Add product</button>
           </div>
         </div>

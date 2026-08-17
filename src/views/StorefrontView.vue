@@ -68,12 +68,14 @@ onMounted(load)
     <div class="sf-body">
       <div class="sf-main">
         <p v-if="store.about" class="sf-about">{{ store.about }}</p>
+        <div v-if="store.ships_what" class="sf-ships"><Icon name="package" :size="14" /> Usually ships: {{ store.ships_what }}<span v-if="store.since_year"> · since {{ store.since_year }}</span></div>
         <div v-if="store.delivers_to" class="sf-delivers"><Icon name="truck" :size="15" /> Delivers to {{ store.delivers_to }} — tracked via Enkiama Cargos</div>
 
         <h2 class="sf-h2">Products</h2>
         <EmptyState v-if="!products.length" icon="package" title="No products listed yet" />
         <div v-else class="sf-products">
           <div v-for="p in products" :key="p.id" class="sf-prod">
+            <div v-if="p.image_url" class="sf-prod-img" :style="{backgroundImage:`url(${p.image_url})`}"></div>
             <div style="flex:1;min-width:0">
               <div class="sf-prod-name">{{ p.name }}</div>
               <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
@@ -159,6 +161,8 @@ onMounted(load)
 .sf-about{font-size:14.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:16px}
 .sf-delivers{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--go-ink);background:var(--go-soft);padding:11px 14px;border-radius:12px;margin-bottom:24px}
 .sf-h2{font-size:18px;font-weight:700;margin:24px 0 14px}
+.sf-prod-img{width:56px;height:56px;border-radius:11px;background-size:cover;background-position:center;flex-shrink:0;border:1px solid var(--hairline)}
+.sf-ships{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);margin-bottom:12px;flex-wrap:wrap}
 .sf-products{display:flex;flex-direction:column;gap:10px}
 .sf-prod{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--hairline);border-radius:13px;padding:14px 16px}
 .sf-prod-name{font-weight:650;font-size:14.5px;color:var(--ink)}

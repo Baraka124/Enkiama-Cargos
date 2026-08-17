@@ -46,7 +46,29 @@ async function confirm() {
     return
   }
   confirmStep.value = false
-  toast('Receipt confirmed — asante!', 'ok'); track()
+  toast('Receipt confirmed — asante!', 'ok')
+  reviewStep.value = true   // now invite a review — best moment, parcel in hand
+  track()
+}
+
+// ── review at confirmation (two-sided: delivery + product) ──
+const reviewStep = ref(false)
+const rvDelivery = ref(0); const rvProduct = ref(0)
+const rvComment = ref(''); const rvName = ref('')
+const reviewDone = ref(false)
+async function submitReview() {
+  if (!rvDelivery.value) { toast('Tap a star to rate the delivery', 'warn'); return }
+  busy.value = true
+  try {
+    const { error } = await supabase.rpc('leave_review', {
+      p_code: code.value, p_delivery_rating: rvDelivery.value, p_delivery_comment: rvComment.value || null,
+      p_product_rating: rvProduct.value || null, p_product_comment: null, p_name: rvName.value || null,
+    })
+    if (error) throw error
+    reviewDone.value = true
+    setTimeout(() => { reviewStep.value = false }, 1800)
+  } catch (e) { toast(e.message || 'Could not save review', 'warn') }
+  busy.value = false
 }
 
 // ── receiver agency: reschedule / report ──
@@ -224,5 +246,42 @@ onMounted(() => { if (code.value) track() })
       <BrandMark variant="full" :height="44" />
       <p>One parcel, one truth. · The trusted freight ledger.</p>
     </footer>
+
+    <!-- REVIEW MODAL — captured right after confirming (best moment) -->
+    <div v-if="reviewStep" class="overlay" @click.self="reviewStep=false">
+      <div class="modal rv-modal">
+        <div v-if="reviewDone" class="rv-thanks">
+          <div class="rv-thanks-ic"><Icon name="check" :size="30" /></div>
+          <h3>Asante for your review!</h3>
+          <p>Your feedback helps other buyers trust this seller and carrier.</p>
+        </div>
+        <template v-else>
+          <h3>How was it?</h3>
+          <p>Your rating builds trust for the next buyer. Takes 10 seconds.</p>
+
+          <div class="rv-block">
+            <label>The delivery</label>
+            <div class="rv-stars">
+              <button v-for="n in 5" :key="n" class="rv-star" :class="{on:n<=rvDelivery}" @click="rvDelivery=n"><Icon name="star" :size="30" /></button>
+            </div>
+          </div>
+
+          <div class="rv-block">
+            <label>The product <span class="rv-opt">optional</span></label>
+            <div class="rv-stars">
+              <button v-for="n in 5" :key="n" class="rv-star" :class="{on:n<=rvProduct}" @click="rvProduct=n"><Icon name="star" :size="30" /></button>
+            </div>
+          </div>
+
+          <div class="fg"><input v-model="rvComment" placeholder="Add a comment (optional)" /></div>
+          <div class="fg"><input v-model="rvName" placeholder="Your name (optional)" /></div>
+
+          <div class="confirm-actions">
+            <button class="btn btn-ghost" @click="reviewStep=false">Skip</button>
+            <button class="btn btn-accent" :disabled="busy" @click="submitReview"><Spinner v-if="busy" :size="15" /><span v-else>Submit review</span></button>
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
