@@ -7,6 +7,7 @@ import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
+import Skeleton from '../components/Skeleton.vue'
 
 const router = useRouter()
 const toast = inject('toast')
@@ -76,7 +77,7 @@ onMounted(load)
   </div></div>
 
   <div class="wrap" style="max-width:760px">
-    <div v-if="loading" class="empty"><p>Loading…</p></div>
+    <Skeleton v-if="loading" variant="line" :count="6" />
     <template v-else>
       <div class="psec-head"><div><h2 class="psec-title">{{ store ? 'Edit your storefront' : 'Open your storefront' }}</h2><span class="psec-sub">Your public page on the marketplace — products shipped with tracked delivery.</span></div></div>
 

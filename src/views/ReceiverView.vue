@@ -6,6 +6,7 @@ import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
+import Skeleton from '../components/Skeleton.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import BrandMark from '../components/BrandMark.vue'
 
@@ -73,7 +74,7 @@ onMounted(load)
     <!-- deliveries list -->
     <template v-else>
       <div class="psec-head"><div><h2 class="psec-title">Incoming to {{ claimedPhone }}</h2><span class="psec-sub">Every parcel addressed to you, across all carriers</span></div></div>
-      <div v-if="loading" class="empty"><p>Loading…</p></div>
+      <Skeleton v-if="loading" variant="card" :count="2" />
       <EmptyState v-else-if="!deliveries.length" icon="inbox" title="Nothing incoming yet" hint="When a sender ships to your number, it appears here automatically." />
       <div v-else class="ship-list">
         <router-link v-for="d in deliveries" :key="d.id" :to="`/track/${d.code}`" class="ship-card">

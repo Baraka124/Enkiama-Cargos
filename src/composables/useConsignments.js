@@ -25,6 +25,7 @@ function shape(row) {
     driverId: row.driver_id,
     payMode: pay.mode || 'prepaid', payState: pay.state || 'none',
     cod: pay.cod_amount || 0, fee: pay.fee_amount || 0,
+    deliveryFee: row.delivery_fee || 0, feePayer: row.fee_payer || 'sender_prepaid', feeStatus: row.fee_status || 'agreed',
     momoConfirmed: !!pay.momo_confirmed,
     attemptCount: row.attempt_count || 0, lastReason: row.last_reason || '',
     createdAt: row.created_at || null, updatedAt: row.updated_at || null,
@@ -38,27 +39,34 @@ async function fetchAll() {
     .from('consignment')
     .select('*, payment(*), driver(name,vehicle)')
     .order('created_at', { ascending: false })
-  // A platform admin has RLS access to ALL carriers' parcels. When acting
-  // as a carrier (carrier hat), scope explicitly to their own carrier so
-  // the dispatch board shows only that carrier's consignments — and so a
-  // driver can't be mis-assigned across carriers.
   const activeCarrier = profile.value?.carrier_id
   if (activeCarrier && !(isPlatformAdmin.value && hat.value === 'platform')) {
     q = q.eq('carrier_id', activeCarrier)
   }
   const { data, error } = await q
-  if (!error && data) consignments.value = data.map(shape)
+  if (error) { console.warn('[fetchAll]', error.message); loading.value = false; return }
+  // always replace with a fresh array so Vue reactivity fires (even when empty)
+  consignments.value = (data || []).map(shape)
   loading.value = false
 }
 
+let pollTimer = null
 function subscribe() {
   if (channel) return
+  let realtimeWorking = false
   channel = supabase.channel('cargos-live')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'consignment' }, fetchAll)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'consignment' }, () => { realtimeWorking = true; fetchAll() })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'payment' }, fetchAll)
-    .subscribe()
+    .subscribe((status) => { if (status === 'SUBSCRIBED') realtimeWorking = true })
+  // Fallback: if realtime isn't delivering (WebSocket blocked, etc.), poll so
+  // the board stays live without the user having to refresh the page.
+  if (pollTimer) clearInterval(pollTimer)
+  pollTimer = setInterval(() => { if (document.visibilityState === 'visible') fetchAll() }, 8000)
 }
-function unsubscribe() { if (channel) { supabase.removeChannel(channel); channel = null } }
+function unsubscribe() {
+  if (channel) { supabase.removeChannel(channel); channel = null }
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
 
 // ── mutations ──────────────────────────────────────────────────────
 async function advance(p, toStage, note) {
@@ -67,19 +75,18 @@ async function advance(p, toStage, note) {
   const prevStage = target?.stage
   if (target) target.stage = toStage
   try {
-    // marking delivered records proof-of-delivery time (required to later confirm)
-    const patch = { stage: toStage }
-    if (toStage === 'delivered') patch.pod_at = new Date().toISOString()
-    const { error } = await supabase.from('consignment').update(patch).eq('id', p.id)
-    if (error) throw error
-    // if delivered with cash, mark cash collected
-    if (toStage === 'delivered' && p.payMode === 'cash') {
-      await supabase.from('payment').update({ state: 'collected' }).eq('consignment_id', p.id)
+    if (toStage === 'delivered') {
+      // atomic: stage + POD + cash-collected + custody log in one transaction
+      const { error } = await supabase.rpc('deliver_parcel', { p_code: p.code, p_note: note || 'Delivered' })
+      if (error) throw error
+    } else {
+      const { error } = await supabase.from('consignment').update({ stage: toStage }).eq('id', p.id)
+      if (error) throw error
+      await logCustody(p.id, toStage, note)
     }
-    await logCustody(p.id, toStage, note)
     await fetchAll()
   } catch (e) {
-    // rollback on failure
+    // rollback optimistic state on failure
     if (target && prevStage) target.stage = prevStage
     throw e
   }

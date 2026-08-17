@@ -543,3 +543,95 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 .detail-act-row .btn{flex:1;min-width:140px}
 .detail-await{font-size:13px;color:var(--ink-faint);padding:10px 0;text-align:center;width:100%}
 .detail-done{display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600;color:var(--go-ink);padding:10px 0;width:100%}
+
+/* driver self-service: available-to-claim parcels */
+.avail-hint{font-size:var(--t-sm);color:var(--ink-faint);margin:-6px 2px 14px}
+.avail-list{display:flex;flex-direction:column;gap:10px}
+.avail-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow-sm)}
+.avail-main{flex:1;min-width:0}
+.avail-code{font-weight:700;font-size:var(--t-base);color:var(--accent-ink)}
+.avail-to{font-size:var(--t-base);color:var(--ink);font-weight:550;margin-top:2px}
+.avail-meta{font-size:var(--t-sm);color:var(--ink-faint);margin-top:2px}
+
+/* delivery fee block in parcel detail */
+.fee-block{background:var(--surface-2);border-radius:var(--r);padding:14px 16px;margin-top:16px;border:1px solid var(--hairline)}
+.fee-block.pending{background:var(--warn-soft);border-color:var(--warn-soft)}
+.fee-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.fee-edit-btn{background:none;border:none;color:var(--accent-ink);font-size:var(--t-sm);font-weight:600;cursor:pointer;font-family:inherit}
+.fee-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fee-amt{font-weight:700;font-size:var(--t-lg);color:var(--ink)}
+.fee-payer{font-size:var(--t-sm);color:var(--ink-soft)}
+.fee-status{font-size:var(--t-xs);font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:6px;margin-left:auto}
+.fee-status.agreed{background:var(--go-soft);color:var(--go-ink)}
+.fee-status.pending{background:#fff;color:var(--warn-ink)}
+.fee-status.settled{background:var(--accent-soft);color:var(--accent-ink)}
+.fee-warn{display:flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--warn-ink);margin-top:10px}
+.fee-edit .row2{margin-bottom:12px}
+.fee-edit-actions{display:flex;gap:10px;justify-content:flex-end}
+
+/* premium stat cards (dispatch) — match Platform Console's tiled cards */
+.statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s6)}
+.statcard{display:flex;align-items:center;gap:var(--s3);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:var(--s5);text-align:left;font-family:inherit;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);cursor:pointer}
+.statcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.statcard.alert{border-color:var(--owed-soft)}
+.statcard-ic{width:44px;height:44px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.statcard-ic.accent{background:var(--accent-soft);color:var(--accent-ink)}
+.statcard-ic.owed{background:var(--owed-soft);color:var(--owed-ink)}
+.statcard-ic.go{background:var(--go-soft);color:var(--go-ink)}
+.statcard-ic.muted{background:var(--surface-2);color:var(--ink-faint)}
+.statcard-body{min-width:0}
+.statcard-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-2xl);line-height:1.05;color:var(--ink);letter-spacing:-.02em}
+.statcard-v.owed-ink{color:var(--owed-ink)} .statcard-v.go-ink{color:var(--go-ink)}
+.statcard-l{font-size:var(--t-sm);color:var(--ink-faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:820px){.statrow{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.statcard-v{font-size:var(--t-xl)}}
+
+/* driver money split (goods + delivery fee breakdown) */
+.money-split{display:flex;justify-content:space-between;gap:12px;font-size:var(--t-sm);color:var(--ink-faint);padding:8px 14px 0;font-variant-numeric:tabular-nums}
+
+/* track: light phone verification for confirm-receipt */
+.confirm-verify{width:100%;background:var(--surface);border:1px solid var(--go-soft);border-radius:var(--r);padding:var(--s4);text-align:center;animation:cvIn .3s var(--ease)}
+@keyframes cvIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.confirm-verify label{display:block;font-size:var(--t-sm);color:var(--ink-soft);margin-bottom:var(--s3);font-weight:550}
+.confirm-verify-row{display:flex;gap:var(--s2)}
+.confirm-last4{flex:1;text-align:center;font-size:var(--t-xl);font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:.3em}
+.confirm-cancel{background:none;border:none;color:var(--ink-faint);font-size:var(--t-sm);margin-top:var(--s3);cursor:pointer;font-family:inherit}
+
+/* driver: negotiate & record delivery fee (freelancer model) */
+.drv-fee{margin-top:14px;background:var(--surface-2);border-radius:var(--r);padding:14px 16px}
+.drv-fee-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drv-fee-lab{display:flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--ink-soft);font-weight:550}
+.drv-fee-val{font-weight:700;font-size:var(--t-base);color:var(--ink);display:flex;align-items:center;gap:8px;margin-left:auto}
+.drv-fee-status{font-size:var(--t-xs);font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:5px}
+.drv-fee-status.agreed{background:var(--go-soft);color:var(--go-ink)}
+.drv-fee-status.pending{background:var(--warn-soft);color:var(--warn-ink)}
+.drv-fee-status.settled{background:var(--accent-soft);color:var(--accent-ink)}
+.drv-fee-edit{background:none;border:none;color:var(--accent-ink);font-weight:600;font-size:var(--t-sm);cursor:pointer;font-family:inherit}
+.drv-fee-warn{display:flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--warn-ink);margin-top:10px}
+.drv-fee-edit-box label{display:block;font-size:var(--t-sm);color:var(--ink-soft);margin-bottom:8px;font-weight:550}
+.drv-fee-input-row{display:flex;gap:8px}
+.drv-fee-input-row input{flex:1}
+.drv-fee-cancel{background:none;border:none;color:var(--ink-faint);font-size:var(--t-sm);margin-top:8px;cursor:pointer;font-family:inherit}
+
+/* platform revenue tab */
+.rev-list{display:flex;flex-direction:column;gap:10px}
+.rev-row{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow-sm)}
+.rev-info{flex:1;min-width:0}
+.rev-name{font-weight:650;font-size:var(--t-base);color:var(--ink)}
+.rev-plan{display:flex;align-items:center;gap:10px;margin-top:3px}
+.rev-badge{font-size:var(--t-xs);font-weight:700;padding:2px 8px;border-radius:6px}
+.rev-badge.free{background:var(--surface-2);color:var(--ink-faint)}
+.rev-badge.monthly{background:var(--go-soft);color:var(--go-ink)}
+.rev-through{font-size:var(--t-xs);color:var(--ink-faint)}
+.rev-actions{display:flex;gap:8px;flex-shrink:0}
+
+/* admin parcel intervention tool */
+.intervene-tool{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:18px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.intervene-head{display:flex;align-items:center;gap:7px;font-size:var(--t-sm);font-weight:650;color:var(--ink-soft);margin-bottom:12px}
+.intervene-row{display:flex;gap:8px}
+.intervene-row input{flex:1}
+.intervene-result{margin-top:14px;padding:14px;background:var(--surface-2);border-radius:var(--r)}
+.ir-top{font-size:var(--t-base);color:var(--ink);margin-bottom:4px}
+.ir-detail{font-size:var(--t-sm);color:var(--ink-soft)}
+.ir-note{display:flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--warn-ink);margin-top:8px}
+.intervene-empty{margin-top:12px;font-size:var(--t-sm);color:var(--ink-faint)}

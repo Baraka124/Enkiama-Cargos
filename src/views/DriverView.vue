@@ -8,6 +8,7 @@ import ConsignmentCard from '../components/ConsignmentCard.vue'
 import Icon from '../components/Icon.vue'
 import AppHeader from '../components/AppHeader.vue'
 import EmptyState from '../components/EmptyState.vue'
+import Spinner from '../components/Spinner.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -35,10 +36,49 @@ const mine = computed(() => consignments.value.filter(p => ['with_driver','deliv
 const pending = computed(() => mine.value.filter(p => p.stage === 'with_driver'))
 const nextStop = computed(() => pending.value[0] || null)
 const nextMoney = computed(() => {
-  const p = nextStop.value; if (!p) return { owed: 0 }
-  if (p.payMode==='cash' && !['collected','remitted','settled'].includes(p.payState)) return { owed: p.cod }
-  return { owed: 0 }
+  const p = nextStop.value; if (!p) return { owed: 0, goods: 0, fee: 0 }
+  const goods = (p.payMode==='cash' && !['collected','remitted','settled'].includes(p.payState)) ? p.cod : 0
+  // receiver-paid delivery fee is collected at handover too
+  const fee = (p.feePayer==='receiver_on_delivery' && p.feeStatus!=='settled') ? (p.deliveryFee || 0) : 0
+  return { owed: goods + fee, goods, fee }
 })
+
+// ── driver self-service: parcels available to claim at my office ──
+const available = ref([])
+const claiming = ref('')
+async function loadAvailable() {
+  try {
+    const { data } = await supabase.rpc('available_parcels')
+    available.value = (data || []).map(r => ({
+      id: r.id, code: r.code, receiver: r.receiver_name, addr: r.dest_address,
+      item: r.item, weight: Number(r.weight_kg), fee: r.delivery_fee, feePayer: r.fee_payer, cod: r.cod_amount,
+    }))
+  } catch (e) { available.value = [] }
+}
+async function claim(p) {
+  claiming.value = p.code
+  try {
+    const { error } = await supabase.rpc('claim_parcel', { p_code: p.code })
+    if (error) throw error
+    toast(`You claimed ${p.code}`, 'ok')
+    await fetchAll(); await loadAvailable()
+  } catch (e) { toast(e.message || 'Could not claim', 'warn') }
+  claiming.value = ''
+}
+
+// freelancer driver records the fee they negotiated with the receiver
+const feeEditFor = ref(null)
+const feeAmt = ref('')
+function startFeeEdit(p) { feeEditFor.value = p.code; feeAmt.value = p.deliveryFee || '' }
+async function saveFee(p) {
+  try {
+    const { error } = await supabase.rpc('set_delivery_fee', { p_code: p.code, p_fee: Number(feeAmt.value)||0, p_payer: 'receiver_on_delivery', p_note: 'Negotiated by driver' })
+    if (error) throw error
+    toast(`Delivery fee set: ${fmtTZS(Number(feeAmt.value)||0)}`, 'ok')
+    feeEditFor.value = null
+    await fetchAll()
+  } catch (e) { toast(e.message || 'Could not set fee', 'warn') }
+}
 
 // ── map (Leaflet) ──────────────────────────────────────────────────
 let map, markers = []
@@ -74,7 +114,7 @@ function navigateTo(p) {
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank')
 }
 
-onMounted(async () => { await fetchAll(); subscribe(); await nextTick(); renderMap() })
+onMounted(async () => { await fetchAll(); await loadAvailable(); subscribe(); await nextTick(); renderMap() })
 onUnmounted(() => { unsubscribe(); if (map) { map.remove(); map = null } })
 watch(pending, async () => { await nextTick(); renderMap() })
 
@@ -140,11 +180,37 @@ async function logout(){ await signOut(); router.push('/login') }
         <a :href="'tel:'+nextStop.receiverPhone" class="ns-call"><Icon name="phone" :size="13" /> {{ nextStop.receiverPhone }}</a>
       </div>
       <div v-if="nextMoney.owed>0" class="money-bar owed" style="margin-top:16px">
-        <Icon name="cash" :size="16" /><span class="m-txt">Collect cash on handover</span><span class="m-amt mono">{{ fmtTZS(nextMoney.owed) }}</span>
+        <Icon name="cash" :size="16" /><span class="m-txt">Collect on handover</span><span class="m-amt mono">{{ fmtTZS(nextMoney.owed) }}</span>
       </div>
-      <div v-else class="money-bar done" style="margin-top:16px">
+      <div v-if="nextMoney.goods>0 && nextMoney.fee>0" class="money-split">
+        <span>Goods {{ fmtTZS(nextMoney.goods) }}</span><span>+ delivery fee {{ fmtTZS(nextMoney.fee) }}</span>
+      </div>
+      <div v-if="nextMoney.owed===0" class="money-bar done" style="margin-top:16px">
         <Icon name="check" :size="16" /><span class="m-txt">Nothing to collect — just deliver</span><span class="m-amt mono">{{ nextStop.payMode==='prepaid'?'Prepaid':'Free' }}</span>
       </div>
+
+      <!-- freelancer driver records the delivery fee they negotiated with the receiver -->
+      <div class="drv-fee">
+        <template v-if="!feeEditFor">
+          <div class="drv-fee-row">
+            <span class="drv-fee-lab"><Icon name="cash" :size="13" /> Your delivery fee</span>
+            <span class="drv-fee-val">{{ nextStop.deliveryFee ? fmtTZS(nextStop.deliveryFee) : 'Not set' }}
+              <span class="drv-fee-status" :class="nextStop.feeStatus">{{ nextStop.feeStatus }}</span>
+            </span>
+            <button class="drv-fee-edit" @click="startFeeEdit(nextStop)">{{ nextStop.deliveryFee ? 'Edit' : 'Set fee' }}</button>
+          </div>
+          <div v-if="nextStop.feeStatus==='pending'" class="drv-fee-warn"><Icon name="alert" :size="12" /> Agree your fee before you can mark delivered.</div>
+        </template>
+        <div v-else class="drv-fee-edit-box">
+          <label>What did you agree with the receiver?</label>
+          <div class="drv-fee-input-row">
+            <input v-model="feeAmt" type="number" inputmode="numeric" placeholder="Fee in TZS" @keyup.enter="saveFee(nextStop)" />
+            <button class="btn btn-accent" @click="saveFee(nextStop)">Agree</button>
+          </div>
+          <button class="drv-fee-cancel" @click="feeEditFor=null">Cancel</button>
+        </div>
+      </div>
+
       <div class="ns-actions">
         <button class="btn btn-go btn-lg ns-primary" @click="openProof(nextStop)">
           <Icon name="check" :size="18" /> Deliver &amp; {{ nextMoney.owed>0?'collect':'sign' }}
@@ -156,6 +222,24 @@ async function logout(){ await signOut(); router.push('/login') }
       </div>
     </div>
     <EmptyState v-else icon="truck" title="No pending stops" hint="When dispatch hands you a consignment, it appears here for your run." />
+
+    <!-- AVAILABLE AT MY OFFICE — driver self-service (pull) -->
+    <template v-if="available.length">
+      <div class="sec"><h2>Available at your office</h2><span class="ln"></span></div>
+      <div class="avail-hint">Parcels ready for pickup at your carrier. Claim one to add it to your run.</div>
+      <div class="avail-list">
+        <div v-for="p in available" :key="p.id" class="avail-card">
+          <div class="avail-main">
+            <div class="avail-code mono">{{ p.code }}</div>
+            <div class="avail-to">{{ p.receiver }} · {{ p.addr }}</div>
+            <div class="avail-meta">{{ p.item }} · {{ p.weight }}kg<span v-if="p.fee"> · fee {{ fmtTZS(p.fee) }}</span></div>
+          </div>
+          <button class="btn btn-accent" :disabled="claiming===p.code" @click="claim(p)">
+            <Spinner v-if="claiming===p.code" :size="15" /><span v-else>Claim</span>
+          </button>
+        </div>
+      </div>
+    </template>
 
     <div class="sec"><h2>Your run today</h2><span class="ln"></span></div>
     <ConsignmentCard v-for="p in mine" :key="p.id" :p="p" />

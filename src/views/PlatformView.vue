@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject } from 'vue'
+import { ref, onMounted, onUnmounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { supabase, fmtTZS } from '../lib/supabase'
@@ -24,6 +24,7 @@ const problems = ref([])        // failed parcels + cash gaps across all carrier
 const analytics = ref({ byStage: [], byCarrier: [], topCorridors: [] })
 const people = ref([])          // all staff + drivers across carriers
 const applications = ref([])    // pending carrier applications
+const revenue = ref({ mrr: 0, paying_carriers: 0, overdue_carriers: 0, free_carriers: 0 })
 
 // onboarding form
 const showForm = ref(false)
@@ -31,6 +32,9 @@ const f = ref({ name: '', slug: '', mark: '', accent: '#3E5BD6', region: '', adm
 const busy = ref(false)
 
 onMounted(load)
+let platPoll = null
+onMounted(() => { platPoll = setInterval(() => { if (document.visibilityState === 'visible') load() }, 10000) })
+onUnmounted(() => { if (platPoll) clearInterval(platPoll) })
 async function load() {
   loading.value = true
   const { data: cs } = await supabase.from('carrier').select('*').order('created_at', { ascending: true })
@@ -127,6 +131,9 @@ async function load() {
     .select('*').order('created_at', { ascending: false })
   applications.value = apps || []
 
+  const { data: rev } = await supabase.rpc('platform_revenue')
+  if (rev && rev[0]) revenue.value = rev[0]
+
   loading.value = false
 }
 
@@ -213,6 +220,47 @@ async function rejectApp(app) {
   } catch (e) { toast(e.message || 'Could not reject', 'warn') }
 }
 const pendingApps = computed(() => applications.value.filter(a => a.status === 'pending'))
+
+// ── billing (dormant/free now, but the machinery is ready) ──
+const billingFor = ref(null)   // carrier open in billing editor
+const billPlan = ref('free'); const billFee = ref(0)
+function openBilling(c) { billingFor.value = c; billPlan.value = c.billing_plan || 'free'; billFee.value = c.monthly_fee || 0 }
+async function saveBilling() {
+  try {
+    const { error } = await supabase.rpc('set_carrier_billing', { p_carrier: billingFor.value.id, p_plan: billPlan.value, p_monthly: Number(billFee.value)||0 })
+    if (error) throw error
+    toast(`${billingFor.value.name} set to ${billPlan.value}${billPlan.value==='monthly'?' · '+fmtTZS(Number(billFee.value)||0)+'/mo':''}`, 'ok')
+    billingFor.value = null; await load()
+  } catch (e) { toast(e.message || 'Could not update billing', 'warn') }
+}
+async function recordPayment(c) {
+  try {
+    const { error } = await supabase.rpc('record_carrier_payment', { p_carrier: c.id })
+    if (error) throw error
+    toast(`Payment recorded for ${c.name}`, 'ok'); await load()
+  } catch (e) { toast(e.message || 'Could not record', 'warn') }
+}
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString() : '—' }
+
+// ── admin: find & intervene on any parcel ──
+const findCode = ref(''); const foundParcel = ref(null); const findTried = ref(false); const interveneNote = ref('')
+async function findParcel() {
+  if (!findCode.value.trim()) return
+  findTried.value = true
+  try {
+    const { data } = await supabase.rpc('admin_find_parcel', { p_code: findCode.value.trim() })
+    foundParcel.value = (data && data[0]) || null
+  } catch (e) { foundParcel.value = null }
+}
+async function doIntervene() {
+  if (!interveneNote.value.trim()) { toast('Add a note first', 'warn'); return }
+  try {
+    const { error } = await supabase.rpc('admin_intervene', { p_code: foundParcel.value.code, p_note: interveneNote.value.trim() })
+    if (error) throw error
+    toast(`Intervention recorded on ${foundParcel.value.code}`, 'ok')
+    interveneNote.value = ''; await findParcel()
+  } catch (e) { toast(e.message || 'Could not intervene', 'warn') }
+}
 
 // ── CARRIER DRILL-DOWN (platform admin sees a carrier's full operation) ──
 const drill = ref(null)          // the carrier being inspected
@@ -304,6 +352,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
       <button class="ptab" :class="{on:ptab==='analytics'}" @click="ptab='analytics'"><Icon name="chart" :size="15" /> Analytics</button>
       <button class="ptab" :class="{on:ptab==='people'}" @click="ptab='people'"><Icon name="users" :size="15" /> People <span class="ptab-n">{{ people.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='applications'}" @click="ptab='applications'"><Icon name="inbox" :size="15" /> Applications <span v-if="pendingApps.length" class="ptab-n owed">{{ pendingApps.length }}</span></button>
+      <button class="ptab" :class="{on:ptab==='revenue'}" @click="ptab='revenue'"><Icon name="cash" :size="15" /> Revenue</button>
     </div>
 
     <!-- ══ CARRIERS TAB ══ -->
@@ -378,6 +427,26 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
     <!-- ══ PROBLEMS TAB ══ -->
     <template v-if="ptab==='problems'">
       <div class="psec-head"><div><h2 class="psec-title">Problems everywhere</h2><span class="psec-sub">Failed deliveries and cash gaps across all carriers</span></div></div>
+
+      <!-- admin: find & act on ANY parcel (e.g. a receiver complained to the platform) -->
+      <div class="intervene-tool">
+        <div class="intervene-head"><Icon name="search" :size="14" /> Look up any parcel</div>
+        <div class="intervene-row">
+          <input v-model="findCode" placeholder="Enter a tracking code (e.g. ENK-2918)" @keyup.enter="findParcel" />
+          <button class="btn btn-accent" @click="findParcel">Find</button>
+        </div>
+        <div v-if="foundParcel" class="intervene-result">
+          <div class="ir-top"><span class="mono">{{ foundParcel.code }}</span> · <b>{{ foundParcel.carrier_name }}</b> · {{ foundParcel.stage }}</div>
+          <div class="ir-detail">{{ foundParcel.item }} → {{ foundParcel.receiver_name }} ({{ foundParcel.receiver_phone }}) · {{ foundParcel.dest_address }}</div>
+          <div v-if="foundParcel.admin_note" class="ir-note"><Icon name="alert" :size="12" /> {{ foundParcel.admin_note }}</div>
+          <div class="intervene-row" style="margin-top:10px">
+            <input v-model="interveneNote" placeholder="Add an intervention note…" @keyup.enter="doIntervene" />
+            <button class="btn btn-ghost" @click="doIntervene">Flag & note</button>
+          </div>
+        </div>
+        <div v-else-if="findTried" class="intervene-empty">No parcel found with that code.</div>
+      </div>
+
       <EmptyState v-if="!problems.length" icon="check" title="Nothing needs attention" hint="Failed deliveries and unremitted cash across the platform will surface here." />
       <div v-else class="prob-list">
         <div v-for="(p,i) in problems" :key="i" class="prob-row" :class="p.type">
@@ -471,6 +540,54 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
         </div>
       </div>
     </template>
+
+    <!-- ══ REVENUE TAB ══ -->
+    <template v-if="ptab==='revenue'">
+      <div class="psec-head"><div><h2 class="psec-title">Platform revenue</h2><span class="psec-sub">Carriers use it free for now — billing is ready to switch on anytime.</span></div></div>
+      <div class="statrow" style="margin-bottom:24px">
+        <div class="statcard"><div class="statcard-ic go"><Icon name="cash" :size="18" /></div><div class="statcard-body"><div class="statcard-v go-ink mono">{{ fmtTZS(revenue.mrr) }}</div><div class="statcard-l">Monthly recurring</div></div></div>
+        <div class="statcard"><div class="statcard-ic accent"><Icon name="building" :size="18" /></div><div class="statcard-body"><div class="statcard-v">{{ revenue.paying_carriers }}</div><div class="statcard-l">Paying carriers</div></div></div>
+        <div class="statcard" :class="{alert:revenue.overdue_carriers}"><div class="statcard-ic" :class="revenue.overdue_carriers?'owed':'muted'"><Icon name="alert" :size="18" /></div><div class="statcard-body"><div class="statcard-v">{{ revenue.overdue_carriers }}</div><div class="statcard-l">Overdue</div></div></div>
+        <div class="statcard"><div class="statcard-ic muted"><Icon name="users" :size="18" /></div><div class="statcard-body"><div class="statcard-v">{{ revenue.free_carriers }}</div><div class="statcard-l">On free plan</div></div></div>
+      </div>
+      <div class="rev-list">
+        <div v-for="c in carriers" :key="c.id" class="rev-row">
+          <CarrierMark :slug="c.slug" :mark="c.mark" :name="c.name" :accent="c.accent" :size="34" />
+          <div class="rev-info">
+            <div class="rev-name">{{ c.name }}</div>
+            <div class="rev-plan">
+              <span class="rev-badge" :class="c.billing_plan">{{ c.billing_plan==='monthly' ? fmtTZS(c.monthly_fee)+'/mo' : 'Free' }}</span>
+              <span v-if="c.billing_plan==='monthly'" class="rev-through">paid through {{ fmtDate(c.paid_through) }}</span>
+            </div>
+          </div>
+          <div class="rev-actions">
+            <button v-if="c.billing_plan==='monthly'" class="btn btn-ghost" @click="recordPayment(c)">Record payment</button>
+            <button class="btn btn-ghost" @click="openBilling(c)">Plan</button>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- BILLING MODAL -->
+  <div v-if="billingFor" class="overlay" @click.self="billingFor=null">
+    <div class="modal" style="max-width:420px">
+      <h3>Billing · {{ billingFor.name }}</h3>
+      <p>Set how this carrier is billed. Free means no charge — the machinery stays ready to switch on later.</p>
+      <div class="fg"><label>Plan</label>
+        <select v-model="billPlan">
+          <option value="free">Free (no charge)</option>
+          <option value="monthly">Monthly subscription</option>
+        </select>
+      </div>
+      <div v-if="billPlan==='monthly'" class="fg"><label>Monthly fee (TZS)</label>
+        <input v-model="billFee" type="number" inputmode="numeric" placeholder="30000" />
+      </div>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" @click="billingFor=null">Cancel</button>
+        <button class="btn btn-accent" @click="saveBilling">Save plan</button>
+      </div>
+    </div>
   </div>
 
   <!-- APPROVE APPLICATION MODAL -->

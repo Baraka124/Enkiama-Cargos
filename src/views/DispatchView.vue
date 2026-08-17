@@ -350,6 +350,21 @@ async function refreshDetail(p) {
   if (fresh) { detail.value = fresh; const { data } = await supabase.from('custody_event').select('*').eq('consignment_id', p.id).order('at', { ascending: true }); detailEvents.value = data || [] }
   else detail.value = null
 }
+// ── delivery fee (dispatcher sets who pays + amount → enables delivery) ──
+const feeEdit = ref(false)
+const feeAmt = ref(0)
+const feePayer = ref('sender_prepaid')
+function openFeeEdit(p) { feeEdit.value = true; feeAmt.value = p.deliveryFee || 0; feePayer.value = p.feePayer || 'sender_prepaid' }
+async function saveFee(p) {
+  try {
+    const { error } = await supabase.rpc('set_delivery_fee', { p_code: p.code, p_fee: Number(feeAmt.value)||0, p_payer: feePayer.value, p_note: null })
+    if (error) throw error
+    toast(`Delivery fee agreed: ${fmtTZS(Number(feeAmt.value)||0)}`, 'ok')
+    feeEdit.value = false
+    await refreshDetail(p)
+  } catch (e) { toast(e.message || 'Could not set fee', 'warn') }
+}
+const FEE_PAYER_LABEL = { sender_prepaid:'Sender prepaid', receiver_on_delivery:'Receiver pays on delivery', negotiated:'Negotiated' }
 function fmtWhen(ts) {
   if (!ts) return ''
   const d = new Date(ts)
@@ -389,11 +404,23 @@ function fmtWhen(ts) {
   </div></div>
 
   <div class="wrap">
-    <div class="strip">
-      <div class="cell clickable" @click="tab='ledger'"><div class="cl">Active consignments</div><div class="cv">{{ active.length }}</div></div>
-      <div class="cell owed clickable" @click="tab='action'"><div class="cl">Needs action</div><div class="cv">{{ actionList.length }}</div></div>
-      <div class="cell owed money clickable" @click="tab='action'"><div class="cl">Cash to collect</div><div class="cv mono">{{ fmtTZS(owedTotal) }}</div></div>
-      <div class="cell go money clickable" @click="tab='cash'"><div class="cl">Collected · unremitted</div><div class="cv mono">{{ fmtTZS(heldTotal) }}</div></div>
+    <div class="statrow">
+      <button class="statcard clickable" @click="tab='ledger'">
+        <div class="statcard-ic accent"><Icon name="box" :size="18" /></div>
+        <div class="statcard-body"><div class="statcard-v">{{ active.length }}</div><div class="statcard-l">Active consignments</div></div>
+      </button>
+      <button class="statcard clickable" :class="{alert: actionList.length}" @click="tab='action'">
+        <div class="statcard-ic" :class="actionList.length ? 'owed' : 'muted'"><Icon name="alert" :size="18" /></div>
+        <div class="statcard-body"><div class="statcard-v">{{ actionList.length }}</div><div class="statcard-l">Needs action</div></div>
+      </button>
+      <button class="statcard clickable" @click="tab='action'">
+        <div class="statcard-ic owed"><Icon name="cash" :size="18" /></div>
+        <div class="statcard-body"><div class="statcard-v mono owed-ink">{{ fmtTZS(owedTotal) }}</div><div class="statcard-l">Cash to collect</div></div>
+      </button>
+      <button class="statcard clickable" @click="tab='cash'">
+        <div class="statcard-ic go"><Icon name="check" :size="18" /></div>
+        <div class="statcard-body"><div class="statcard-v mono go-ink">{{ fmtTZS(heldTotal) }}</div><div class="statcard-l">Collected · unremitted</div></div>
+      </button>
     </div>
 
     <div class="dtabs" style="align-items:center">
@@ -403,8 +430,7 @@ function fmtWhen(ts) {
       <button class="dtab" :class="{on:tab==='customers'}" @click="tab='customers'">Customers <span class="tb-count">{{ customers.length }}</span></button>
       <button class="dtab" :class="{on:tab==='cash'}" @click="tab='cash'">Cash <span class="tb-count">{{ cashLedger.length }}</span></button>
       <button v-if="isAdmin" class="dtab" :class="{on:tab==='team'}" @click="tab='team'">Team <span class="tb-count">{{ drivers.length }}</span></button>
-      <span class="kbd-hint">press <kbd>n</kbd> new · <kbd>/</kbd> search · <kbd>1–6</kbd> tabs</span>
-      <button class="btn btn-accent" style="margin-left:auto" @click="bookModal=true">+ New consignment</button>
+      <button class="btn btn-accent" style="margin-left:auto" @click="bookModal=true"><Icon name="plus" :size="15" /> New consignment</button>
     </div>
 
     <!-- ACTION -->
@@ -657,6 +683,38 @@ function fmtWhen(ts) {
             <div class="tl-stage">{{ STAGE_CAP[e.stage] || e.stage }}</div>
             <div class="tl-note">{{ e.note }}</div>
             <div class="tl-when">{{ fmtWhen(e.at) }}<span v-if="e.actor_name"> · {{ e.actor_name }}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DELIVERY FEE — who pays, how much (must be agreed before delivery) -->
+      <div class="fee-block" :class="{pending: detail.feeStatus==='pending'}">
+        <div class="fee-head">
+          <div class="trk-lab"><Icon name="cash" :size="12" /> Delivery fee</div>
+          <button class="fee-edit-btn" @click="openFeeEdit(detail)">{{ detail.feeStatus==='pending' ? 'Set fee' : 'Edit' }}</button>
+        </div>
+        <template v-if="!feeEdit">
+          <div class="fee-row">
+            <span class="fee-amt mono">{{ detail.deliveryFee ? fmtTZS(detail.deliveryFee) : 'No fee' }}</span>
+            <span class="fee-payer">{{ FEE_PAYER_LABEL[detail.feePayer] }}</span>
+            <span class="fee-status" :class="detail.feeStatus">{{ detail.feeStatus }}</span>
+          </div>
+          <div v-if="detail.feeStatus==='pending'" class="fee-warn"><Icon name="alert" :size="12" /> Agree the fee before this parcel can be delivered.</div>
+        </template>
+        <div v-else class="fee-edit">
+          <div class="row2">
+            <div class="fg"><label>Fee (TZS)</label><input v-model="feeAmt" type="number" inputmode="numeric" placeholder="0" /></div>
+            <div class="fg"><label>Who pays</label>
+              <select v-model="feePayer">
+                <option value="sender_prepaid">Sender prepaid</option>
+                <option value="receiver_on_delivery">Receiver on delivery</option>
+                <option value="negotiated">Negotiated</option>
+              </select>
+            </div>
+          </div>
+          <div class="fee-edit-actions">
+            <button class="btn btn-ghost" @click="feeEdit=false">Cancel</button>
+            <button class="btn btn-accent" @click="saveFee(detail)">Agree fee</button>
           </div>
         </div>
       </div>

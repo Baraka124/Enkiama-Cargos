@@ -33,11 +33,19 @@ async function track() {
   }
   if (r.carrier_accent) document.documentElement.style.setProperty('--accent', r.carrier_accent)
 }
+const confirmStep = ref(false)   // showing the phone-check input
+const last4 = ref('')
+function startConfirm() { confirmStep.value = true; last4.value = '' }
 async function confirm() {
+  if (last4.value.replace(/\D/g,'').length < 4) { toast('Enter the last 4 digits of your phone', 'warn'); return }
   busy.value = true
-  const { error } = await supabase.rpc('confirm_receipt', { p_code: code.value })
+  const { error } = await supabase.rpc('confirm_receipt_verified', { p_code: code.value, p_last4: last4.value })
   busy.value = false
-  if (error) { toast('Not able to confirm yet', 'warn'); return }
+  if (error) {
+    toast(error.message?.includes('phone') ? 'That doesn\u2019t match the phone on this parcel' : 'Not able to confirm yet', 'warn')
+    return
+  }
+  confirmStep.value = false
   toast('Receipt confirmed — asante!', 'ok'); track()
 }
 
@@ -135,9 +143,19 @@ onMounted(() => { if (code.value) track() })
         </div>
 
         <div class="cons-actions">
-          <button v-if="parcel.stage==='delivered'" class="btn btn-go btn-block btn-lg" :disabled="busy" @click="confirm">
-            <Icon name="check" :size="18" /> Confirm I received it
-          </button>
+          <template v-if="parcel.stage==='delivered'">
+            <button v-if="!confirmStep" class="btn btn-go btn-block btn-lg" @click="startConfirm">
+              <Icon name="check" :size="18" /> Confirm I received it
+            </button>
+            <div v-else class="confirm-verify">
+              <label>Enter the last 4 digits of your phone to confirm</label>
+              <div class="confirm-verify-row">
+                <input v-model="last4" inputmode="numeric" maxlength="4" placeholder="0000" class="confirm-last4" @keyup.enter="confirm" />
+                <button class="btn btn-go btn-lg" :disabled="busy" @click="confirm"><Spinner v-if="busy" :size="16" /><span v-else>Confirm</span></button>
+              </div>
+              <button class="confirm-cancel" @click="confirmStep=false">Cancel</button>
+            </div>
+          </template>
           <div v-else-if="parcel.stage==='confirmed'" class="money-bar done" style="width:100%">
             <Icon name="check" :size="16" /><span class="m-txt">Delivery confirmed — asante!</span>
           </div>

@@ -6,7 +6,7 @@ const session = ref(null)
 const profile = ref(null)
 const carrier = ref(null)
 const isPlatformAdmin = ref(false)
-const hat = ref('platform')
+const hat = ref(localStorage.getItem('enk-hat') || 'platform')
 const loading = ref(true)
 let initialized = false
 
@@ -30,7 +30,9 @@ async function loadProfile() {
     const { data: car } = await supabase.from('carrier').select('*').eq('id', prof.carrier_id).maybeSingle()
     carrier.value = car || null
   } else { carrier.value = null }
-  hat.value = isPlatformAdmin.value ? 'platform' : 'carrier'
+  // respect the stored hat choice; only default when none stored or user isn't a platform admin
+  if (!isPlatformAdmin.value) hat.value = 'carrier'
+  else if (!localStorage.getItem('enk-hat')) hat.value = 'platform'
 }
 
 async function init() {
@@ -113,7 +115,7 @@ async function signOutEverywhere() {
   session.value = null; profile.value = null; carrier.value = null; isPlatformAdmin.value = false
 }
 
-function setHat(h) { hat.value = h }
+function setHat(h) { hat.value = h; localStorage.setItem('enk-hat', h) }
 
 // friendlier auth error messages
 function humanizeAuthError(error) {
