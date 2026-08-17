@@ -612,7 +612,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
           <div class="drill-name">{{ drill.name }}</div>
           <div class="drill-meta">{{ drill.region || '—' }} · <span class="mono">{{ drill.slug }}</span></div>
         </div>
-        <button class="btn btn-ghost" @click="drill=null"><Icon name="plus" :size="16" style="transform:rotate(45deg)" /></button>
+        <button aria-label="Close" class="btn btn-ghost" @click="drill=null"><Icon name="plus" :size="16" style="transform:rotate(45deg)" /></button>
       </div>
 
       <div v-if="drillData.loading" class="empty"><p>Loading {{ drill.name }}…</p></div>

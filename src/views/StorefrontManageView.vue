@@ -155,7 +155,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
           <div class="form-section-h"><Icon name="grid" :size="13" /> Shop sections</div>
           <p class="mgr-hint">Organise your shop into named sections — like "New Arrivals" or "Wedding Fabrics".</p>
           <div v-if="sections.length" class="section-chips">
-            <span v-for="s in sections" :key="s.id" class="section-chip">{{ s.name }}<button @click="removeSection(s)"><Icon name="plus" :size="11" style="transform:rotate(45deg)" /></button></span>
+            <span v-for="s in sections" :key="s.id" class="section-chip">{{ s.name }}<button aria-label="Close" @click="removeSection(s)"><Icon name="plus" :size="11" style="transform:rotate(45deg)" /></button></span>
           </div>
           <div class="section-add">
             <input v-model="newSection" placeholder="New section name…" @keyup.enter="addSection" />
@@ -170,7 +170,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
             <div v-for="p in products" :key="p.id" class="mgr-prod">
               <div style="flex:1"><div class="mgr-prod-name">{{ p.name }}</div><div v-if="p.description" class="p-sub">{{ p.description }}</div></div>
               <div class="mgr-prod-price">{{ p.price_tzs ? 'TZS '+p.price_tzs.toLocaleString() : '—' }}</div>
-              <button class="btn btn-ghost" @click="delProduct(p.id)"><Icon name="plus" :size="14" style="transform:rotate(45deg)" /></button>
+              <button aria-label="Close" class="btn btn-ghost" @click="delProduct(p.id)"><Icon name="plus" :size="14" style="transform:rotate(45deg)" /></button>
             </div>
           </div>
           <div class="mgr-add">

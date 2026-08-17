@@ -401,7 +401,7 @@ function fmtWhen(ts) {
     <div class="tb-actions-desktop">
       <button v-if="isPlatformAdmin" class="btn btn-ghost" style="margin-right:8px" @click="switchToPlatform">↔ Platform console</button>
       <RouterLink to="/market" class="btn btn-ghost tb-icon-btn" style="margin-right:8px" title="Marketplace"><Icon name="box" :size="18" /></RouterLink>
-      <button class="btn btn-ghost tb-icon-btn" style="position:relative;margin-right:8px" @click="openNotifs">
+      <button aria-label="Notifications" class="btn btn-ghost tb-icon-btn" style="position:relative;margin-right:8px" @click="openNotifs">
         <Icon name="bell" :size="18" /><span v-if="unreadNotifs" class="notif-dot">{{ unreadNotifs }}</span>
       </button>
       <button class="btn btn-ghost lang-toggle" style="margin-right:8px" :title="isSwahili ? 'Switch to English' : 'Badilisha kwa Kiswahili'" @click="setLang(isSwahili?'en':'sw')"><Icon name="globe" :size="14" /> {{ isSwahili ? 'EN' : 'SW' }}</button>
@@ -411,7 +411,7 @@ function fmtWhen(ts) {
     <!-- mobile: theme quick-toggle + overflow menu -->
     <div class="tb-actions-mobile">
       <button class="btn btn-ghost tb-icon-btn" @click="toggleTheme"><Icon :name="theme==='dark'?'sun':'moon'" :size="17" /></button>
-      <button class="btn btn-ghost tb-icon-btn" @click="menuOpen=!menuOpen"><Icon name="menu" :size="18" /></button>
+      <button aria-label="Menu" class="btn btn-ghost tb-icon-btn" @click="menuOpen=!menuOpen"><Icon name="menu" :size="18" /></button>
     </div>
     <div v-if="menuOpen" class="tb-menu-scrim" @click="menuOpen=false"></div>
     <div v-if="menuOpen" class="tb-menu">

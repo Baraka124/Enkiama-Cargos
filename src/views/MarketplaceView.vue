@@ -43,12 +43,11 @@ onMounted(load)
     <EmptyState v-else-if="!stores.length" icon="search" title="No shops here yet" :hint="corridor ? `No storefronts delivering to ${corridor} yet.` : 'Be the first business on the marketplace.'" />
     <div v-else class="mk-grid">
       <RouterLink v-for="s in stores" :key="s.id" :to="`/shop/${s.slug}`" class="mk-card" :style="{'--sf': s.accent}">
+        <span v-if="s.featured" class="mk-badge feat"><Icon name="star" :size="10" /> Featured</span>
         <div class="mk-card-top">
           <div class="mk-avatar" :style="{background:s.accent}">{{ s.name.slice(0,2).toUpperCase() }}</div>
           <div style="flex:1;min-width:0">
-            <div class="mk-name">{{ s.name }}
-              <span v-if="s.featured" class="mk-badge feat"><Icon name="star" :size="11" /> Featured</span>
-            </div>
+            <div class="mk-name">{{ s.name }}</div>
             <div class="mk-tag">{{ s.tagline }}</div>
           </div>
         </div>
@@ -58,7 +57,7 @@ onMounted(load)
         </div>
         <div class="mk-foot">
           <span class="mk-prods">{{ s.product_count }} product{{ s.product_count===1?'':'s' }}</span>
-          <span v-if="s.delivers_to" class="mk-delivers"><Icon name="pin" :size="12" /> {{ s.delivers_to.split(',')[0] }}…</span>
+          <span v-if="s.delivers_to" class="mk-delivers"><Icon name="pin" :size="12" /> {{ s.delivers_to }}</span>
         </div>
       </RouterLink>
     </div>
@@ -84,8 +83,8 @@ onMounted(load)
 .mk-corr{padding:7px 14px;border:1px solid var(--hairline);background:var(--surface);border-radius:20px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit}
 .mk-corr:hover{border-color:var(--accent)}
 .mk-corr.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.mk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:10px}
-.mk-card{display:block;background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:20px;text-decoration:none;transition:.18s;box-shadow:var(--shadow-sm);border-top:3px solid var(--sf,var(--accent))}
+.mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:10px}
+.mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:20px;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm);border-top:3px solid var(--sf,var(--accent))}
 .mk-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
 .mk-card.sk{height:180px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--hairline) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:mksh 1.4s infinite}
 @keyframes mksh{0%{background-position:100% 0}100%{background-position:-100% 0}}
@@ -104,4 +103,12 @@ onMounted(load)
 .mk-cta{text-align:center;margin-top:50px;padding:40px 24px;background:var(--surface);border:1px solid var(--hairline);border-radius:22px}
 .mk-cta h3{font-size:22px;font-weight:700;margin-bottom:8px}
 .mk-cta p{font-size:14.5px;color:var(--ink-soft);margin-bottom:22px}
+
+.mk-badge.feat{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:4px;background:var(--warn-soft);color:var(--warn-ink);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:var(--r-full)}
+.mk-name{font-family:'Space Grotesk',sans-serif;font-weight:650;font-size:var(--t-md);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:60px}
+.mk-tag{font-size:var(--t-sm);color:var(--ink-faint);margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.mk-meta{margin:14px 0}
+.mk-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mk-delivers{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.mk-prods{font-size:var(--t-sm);color:var(--ink-soft);font-weight:550;white-space:nowrap}
 </style>

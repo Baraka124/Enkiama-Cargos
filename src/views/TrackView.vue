@@ -264,14 +264,14 @@ onMounted(() => { if (code.value) track() })
           <div class="rv-block">
             <label>The delivery</label>
             <div class="rv-stars">
-              <button v-for="n in 5" :key="n" class="rv-star" :class="{on:n<=rvDelivery}" @click="rvDelivery=n"><Icon name="star" :size="30" /></button>
+              <button aria-label="Rate" v-for="n in 5" :key="n" class="rv-star" :class="{on:n<=rvDelivery}" @click="rvDelivery=n"><Icon name="star" :size="30" /></button>
             </div>
           </div>
 
           <div class="rv-block">
             <label>The product <span class="rv-opt">optional</span></label>
             <div class="rv-stars">
-              <button v-for="n in 5" :key="n" class="rv-star" :class="{on:n<=rvProduct}" @click="rvProduct=n"><Icon name="star" :size="30" /></button>
+              <button aria-label="Rate" v-for="n in 5" :key="n" class="rv-star" :class="{on:n<=rvProduct}" @click="rvProduct=n"><Icon name="star" :size="30" /></button>
             </div>
           </div>
 

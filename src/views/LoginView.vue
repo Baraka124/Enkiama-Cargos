@@ -193,15 +193,15 @@ async function sendFleetApplication() {
           <!-- EMAIL flow (carrier / sender) -->
           <template v-if="mode==='email'">
             <template v-if="showReset">
-              <label class="fld">Email<input v-model="email" type="email" inputmode="email" placeholder="you@carrier.co.tz" /></label>
+              <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@carrier.co.tz" /></label>
               <p class="auth-note">We'll email you a link to reset your password.</p>
               <button class="auth-btn" :disabled="busy" @click="doReset"><Spinner v-if="busy" :size="16" /><span v-else>Send reset link</span></button>
               <button class="auth-link" @click="showReset=false">← Back to sign in</button>
             </template>
             <template v-else>
               <label v-if="signupMode && role==='sender'" class="fld">Your name<input v-model="senderName" placeholder="e.g. Grace M." /></label>
-              <label class="fld">Email<input v-model="email" type="email" inputmode="email" placeholder="you@carrier.co.tz" @keyup.enter="doEmail" /></label>
-              <label class="fld">Password<input v-model="password" type="password" placeholder="••••••••" @keyup.enter="doEmail" /></label>
+              <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@carrier.co.tz" @keyup.enter="doEmail" /></label>
+              <label class="fld">Password<input v-model="password" type="password" autocomplete="current-password" placeholder="••••••••" @keyup.enter="doEmail" /></label>
               <button class="auth-btn" :disabled="busy" @click="doEmail">
                 <Spinner v-if="busy" :size="16" /><span v-else>{{ signupMode ? 'Create account' : 'Sign in' }}</span>
               </button>
@@ -215,12 +215,12 @@ async function sendFleetApplication() {
           <!-- PHONE flow (driver) -->
           <template v-else>
             <template v-if="!otpSent">
-              <label class="fld">Phone number<input v-model="phone" type="tel" inputmode="tel" placeholder="+255 7XX XXX XXX" @keyup.enter="doSendOtp" /></label>
+              <label class="fld">Phone number<input v-model="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+255 7XX XXX XXX" @keyup.enter="doSendOtp" /></label>
               <button class="auth-btn" :disabled="busy" @click="doSendOtp"><Spinner v-if="busy" :size="16" /><span v-else>Send code</span></button>
               <p class="auth-note">We'll text you a one-time code to sign in.</p>
             </template>
             <template v-else>
-              <label class="fld">Enter the 6-digit code<input v-model="otp" inputmode="numeric" maxlength="6" placeholder="000000" class="otp-input mono" @keyup.enter="doVerify" /></label>
+              <label class="fld">Enter the 6-digit code<input v-model="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" class="otp-input mono" @keyup.enter="doVerify" /></label>
               <button class="auth-btn" :disabled="busy" @click="doVerify"><Spinner v-if="busy" :size="16" /><span v-else>Verify & sign in</span></button>
               <button class="auth-link" @click="otpSent=false">← Change number</button>
             </template>
