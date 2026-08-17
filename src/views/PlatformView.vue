@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import { usePlatform } from '../composables/usePlatform'
 import { supabase, fmtTZS } from '../lib/supabase'
 import Icon from '../components/Icon.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -12,6 +13,7 @@ import Spinner from '../components/Spinner.vue'
 const router = useRouter()
 const toast = inject('toast')
 const { profile, isPlatformAdmin, setHat, signOut } = useAuth()
+const plat = usePlatform()
 
 const carriers = ref([])
 const stats = ref({ carriers: 0, consignments: 0, onRoad: 0, settledToday: 0 })
@@ -37,12 +39,12 @@ onMounted(() => { platPoll = setInterval(() => { if (document.visibilityState ==
 onUnmounted(() => { if (platPoll) clearInterval(platPoll) })
 async function load() {
   loading.value = true
-  const { data: cs } = await supabase.from('carrier').select('*').order('created_at', { ascending: true })
+  const { data: cs } = await plat.listCarriers()
   carriers.value = cs || []
-  const { data: cons } = await supabase.from('consignment').select('id,stage,carrier_id')
+  const { data: cons } = await plat.listConsignmentsLite()
   const all = cons || []
   // platform cash: pull payments for money view
-  const { data: pays } = await supabase.from('payment').select('consignment_id,mode,state,cod_amount')
+  const { data: pays } = await plat.listPaymentsLite()
   const payByCons = {}; (pays||[]).forEach(p => { payByCons[p.consignment_id] = p })
   const consById = {}; all.forEach(c => consById[c.id] = c)
 
@@ -71,8 +73,7 @@ async function load() {
   })
 
   // ── richer data for money / problems / analytics / people ──
-  const { data: fullCons } = await supabase.from('consignment')
-    .select('id,code,stage,carrier_id,receiver_name,dest_address,created_at')
+  const { data: fullCons } = await plat.listConsignmentsFull()
   const cons2 = fullCons || []
   const carrierName = {}; carriers.value.forEach(c => carrierName[c.id] = c)
 
@@ -119,19 +120,18 @@ async function load() {
   }
 
   // PEOPLE: all drivers + staff across carriers
-  const { data: drivers } = await supabase.from('driver').select('id,name,vehicle,active,carrier_id')
-  const { data: profiles } = await supabase.from('profile').select('user_id,name,role,carrier_id')
+  const { data: drivers } = await plat.listDrivers()
+  const { data: profiles } = await plat.listProfiles()
   const ppl = []
   ;(profiles||[]).forEach(p => ppl.push({ kind:'staff', name:p.name||'—', role:p.role, carrier:carrierName[p.carrier_id] }))
   ;(drivers||[]).forEach(d => ppl.push({ kind:'driver', name:d.name, role:d.active?'driver (active)':'driver (off)', carrier:carrierName[d.carrier_id], vehicle:d.vehicle }))
   people.value = ppl
 
   // carrier applications (pending first)
-  const { data: apps } = await supabase.from('carrier_application')
-    .select('*').order('created_at', { ascending: false })
+  const { data: apps } = await plat.listApplications()
   applications.value = apps || []
 
-  const { data: rev } = await supabase.rpc('platform_revenue')
+  const { data: rev } = await plat.revenue()
   if (rev && rev[0]) revenue.value = rev[0]
 
   loading.value = false
@@ -146,7 +146,7 @@ async function onboard() {
   const v = f.value
   if (!v.name || !v.slug || !v.adminEmail) { toast('Name, slug and admin email are required', 'warn'); return }
   busy.value = true
-  const { error } = await supabase.rpc('create_carrier_with_admin', {
+  const { error } = await plat.createCarrier({
     p_slug: v.slug, p_name: v.name, p_mark: v.mark || v.name.slice(0,2).toUpperCase(),
     p_accent: v.accent, p_region: v.region, p_admin_email: v.adminEmail,
   })
@@ -171,7 +171,7 @@ async function flagProblem(p) {
   actingOn.value = p.id
   try {
     const note = p.type === 'cash' ? 'Cash gap — follow up on remittance' : 'Failed delivery — needs follow-up'
-    const { error } = await supabase.rpc('admin_flag_consignment', { p_consignment: p.id, p_note: note, p_flag: true })
+    const { error } = await plat.flagConsignment(p.id, note)
     if (error) throw error
     toast(`${p.code} flagged for follow-up — ${p.carrier?.name || 'carrier'} will see it`, 'ok')
     p._flagged = true
@@ -200,7 +200,7 @@ async function confirmApprove() {
   if (!appSlug.value.trim()) { toast('Pick a slug (short handle)', 'warn'); return }
   appBusy.value = true
   try {
-    const { error } = await supabase.rpc('approve_carrier_application', {
+    const { error } = await plat.approveApplication({
       p_app: reviewApp.value.id, p_slug: appSlug.value.trim(), p_accent: appAccent.value })
     if (error) throw error
     toast(`${reviewApp.value.company_name} approved — now a live carrier`, 'ok')
@@ -213,7 +213,7 @@ async function rejectApp(app) {
   const reason = prompt(`Reject ${app.company_name}? Optional reason:`, '')
   if (reason === null) return
   try {
-    const { error } = await supabase.rpc('reject_carrier_application', { p_app: app.id, p_reason: reason || null })
+    const { error } = await plat.rejectApplication(app.id, reason)
     if (error) throw error
     toast(`${app.company_name} declined`, 'ok')
     await load()
@@ -227,7 +227,7 @@ const billPlan = ref('free'); const billFee = ref(0)
 function openBilling(c) { billingFor.value = c; billPlan.value = c.billing_plan || 'free'; billFee.value = c.monthly_fee || 0 }
 async function saveBilling() {
   try {
-    const { error } = await supabase.rpc('set_carrier_billing', { p_carrier: billingFor.value.id, p_plan: billPlan.value, p_monthly: Number(billFee.value)||0 })
+    const { error } = await plat.setBilling(billingFor.value.id, billPlan.value, Number(billFee.value)||0)
     if (error) throw error
     toast(`${billingFor.value.name} set to ${billPlan.value}${billPlan.value==='monthly'?' · '+fmtTZS(Number(billFee.value)||0)+'/mo':''}`, 'ok')
     billingFor.value = null; await load()
@@ -235,7 +235,7 @@ async function saveBilling() {
 }
 async function recordPayment(c) {
   try {
-    const { error } = await supabase.rpc('record_carrier_payment', { p_carrier: c.id })
+    const { error } = await plat.recordPayment(c.id)
     if (error) throw error
     toast(`Payment recorded for ${c.name}`, 'ok'); await load()
   } catch (e) { toast(e.message || 'Could not record', 'warn') }
@@ -248,14 +248,14 @@ async function findParcel() {
   if (!findCode.value.trim()) return
   findTried.value = true
   try {
-    const { data } = await supabase.rpc('admin_find_parcel', { p_code: findCode.value.trim() })
+    const { data } = await plat.findParcel(findCode.value.trim())
     foundParcel.value = (data && data[0]) || null
   } catch (e) { foundParcel.value = null }
 }
 async function doIntervene() {
   if (!interveneNote.value.trim()) { toast('Add a note first', 'warn'); return }
   try {
-    const { error } = await supabase.rpc('admin_intervene', { p_code: foundParcel.value.code, p_note: interveneNote.value.trim() })
+    const { error } = await plat.intervene(foundParcel.value.code, interveneNote.value.trim())
     if (error) throw error
     toast(`Intervention recorded on ${foundParcel.value.code}`, 'ok')
     interveneNote.value = ''; await findParcel()
@@ -269,11 +269,7 @@ async function openDrill(c) {
   drill.value = c
   drillData.value = { parcels: [], drivers: [], loading: true }
   try {
-    const [{ data: parcels }, { data: drivers }, { data: pays }] = await Promise.all([
-      supabase.from('consignment').select('*').eq('carrier_id', c.id).order('created_at', { ascending: false }),
-      supabase.from('driver').select('*').eq('carrier_id', c.id),
-      supabase.from('payment').select('consignment_id,mode,state,cod_amount'),
-    ])
+    const [{ data: parcels }, { data: drivers }, { data: pays }] = await plat.carrierDrill(c.id)
     const payBy = {}; (pays||[]).forEach(p => payBy[p.consignment_id] = p)
     const list = (parcels||[]).map(p => ({ ...p, _pay: payBy[p.id] || {} }))
     drillData.value = {
@@ -297,7 +293,7 @@ function openManage(c) {
 }
 async function saveCarrier() {
   const c = manageModal.value
-  const { error } = await supabase.rpc('update_carrier', {
+  const { error } = await plat.updateCarrier({
     p_carrier: c.id, p_name: m.value.name, p_mark: m.value.mark,
     p_accent: m.value.accent, p_region: m.value.region,
   })
@@ -306,7 +302,7 @@ async function saveCarrier() {
 }
 async function toggleStatus(c) {
   const next = c.status === 'active' ? 'suspended' : 'active'
-  const { error } = await supabase.rpc('set_carrier_status', { p_carrier: c.id, p_status: next })
+  const { error } = await plat.setCarrierStatus(c.id, next)
   if (error) { toast(error.message, 'warn'); return }
   toast(`${c.name} ${next}`, 'ok'); manageModal.value = null; load()
 }
@@ -570,7 +566,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
   </div>
 
   <!-- BILLING MODAL -->
-  <div v-if="billingFor" class="overlay" @click.self="billingFor=null">
+  <div v-if="billingFor" class="overlay" v-escape="() => { billingFor=null }" @click.self="billingFor=null">
     <div class="modal" style="max-width:420px">
       <h3>Billing · {{ billingFor.name }}</h3>
       <p>Set how this carrier is billed. Free means no charge — the machinery stays ready to switch on later.</p>
@@ -591,7 +587,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
   </div>
 
   <!-- APPROVE APPLICATION MODAL -->
-  <div v-if="reviewApp" class="overlay" @click.self="reviewApp=null">
+  <div v-if="reviewApp" class="overlay" v-escape="() => { reviewApp=null }" @click.self="reviewApp=null">
     <div class="modal" style="max-width:440px">
       <h3>Approve {{ reviewApp.company_name }}</h3>
       <p>This creates a live carrier on the platform. They'll be able to operate immediately.</p>
@@ -608,7 +604,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
       </div>
     </div>
   </div>
-  <div v-if="drill" class="drill-scrim" @click.self="drill=null">
+  <div v-if="drill" class="drill-scrim" v-escape="() => { drill=null }" @click.self="drill=null">
     <div class="drill-panel">
       <div class="drill-head">
         <CarrierMark :slug="drill.slug" :mark="drill.mark" :name="drill.name" :accent="drill.accent" :size="42" />
@@ -655,7 +651,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
   </div>
 
   <!-- MANAGE CARRIER MODAL -->
-  <div v-if="manageModal" class="overlay" @click.self="manageModal=null">
+  <div v-if="manageModal" class="overlay" v-escape="() => { manageModal=null }" @click.self="manageModal=null">
     <div class="modal">
       <h3>Manage {{ manageModal.name }}</h3>
       <p>Edit the carrier's brand, or suspend them from operating.</p>
@@ -676,7 +672,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
   </div>
 
   <!-- ONBOARD MODAL -->
-  <div v-if="showForm" class="overlay" @click.self="showForm=false">
+  <div v-if="showForm" class="overlay" v-escape="() => { showForm=false }" @click.self="showForm=false">
     <div class="modal">
       <h3>Onboard a carrier</h3>
       <p>Create the company and invite its admin. They set their own password by signing up with this email.</p>

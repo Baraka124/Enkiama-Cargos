@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase'
+import { useStorefront } from '../composables/useStorefront'
 import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
@@ -14,6 +14,7 @@ import Skeleton from '../components/Skeleton.vue'
 const router = useRouter()
 const toast = inject('toast')
 const { profile, signOut } = useAuth()
+const sf = useStorefront()
 
 const store = ref(null)
 const products = ref([])
@@ -21,16 +22,39 @@ const loading = ref(true)
 const saving = ref(false)
 
 const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#C08A2D' })
-const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'' })
+const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'', section_id:'' })
+const sections = ref([])
+const newSection = ref('')
+async function loadSections() {
+  if (!store.value?.id) return
+  const { data } = await sf.listSections(store.value.id)
+  sections.value = data || []
+}
+async function addSection() {
+  if (!newSection.value.trim()) return
+  try {
+    const { error } = await sf.addSection(store.value.id, newSection.value.trim(), sections.value.length)
+    if (error) throw error
+    newSection.value = ''; await loadSections()
+    toast('Section added', 'ok')
+  } catch (e) { toast(e.message || 'Could not add section', 'warn') }
+}
+async function removeSection(s) {
+  try {
+    await sf.deleteSection(s.id)
+    await loadSections(); await loadProducts?.()
+    toast('Section removed', 'ok')
+  } catch (e) { toast(e.message || 'Could not remove', 'warn') }
+}
 const carriers = ref([])
 const selectedCarrier = ref(null)
 async function loadCarriers() {
-  const { data } = await supabase.from('carrier').select('id,name,slug,mark,accent,region').eq('status','active').order('name')
+  const { data } = await sf.activeCarriers()
   carriers.value = data || []
 }
 async function pickCarrier(c) {
   try {
-    const { error } = await supabase.rpc('select_storefront_carrier', { p_slug: store.value.slug, p_carrier: c.id })
+    const { error } = await sf.selectCarrier(store.value.slug, c.id)
     if (error) throw error
     selectedCarrier.value = c.id
     toast(`${c.name} will deliver your orders — they've been notified`, 'ok')
@@ -39,11 +63,11 @@ async function pickCarrier(c) {
 
 async function load() {
   loading.value = true
-  const { data } = await supabase.from('storefront').select('*').eq('owner_id', profile.value?.user_id).maybeSingle()
+  const { data } = await sf.myStore(profile.value?.user_id)
   if (data) {
     store.value = data
     form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#C08A2D' }
-    const { data: prods } = await supabase.from('product').select('*').eq('storefront_id', data.id).order('created_at')
+    const { data: prods } = await sf.listProducts(data.id)
     products.value = prods || []
   }
   loading.value = false
@@ -52,7 +76,7 @@ async function saveStore() {
   if (!form.value.slug || !form.value.name) { toast('Handle and name are required', 'warn'); return }
   saving.value = true
   try {
-    const { error } = await supabase.rpc('upsert_storefront', {
+    const { error } = await sf.upsertStore({
       p_slug: form.value.slug, p_name: form.value.name, p_tagline: form.value.tagline || null,
       p_about: form.value.about || null, p_region: form.value.region || null,
       p_delivers_to: form.value.delivers_to || null, p_phone: form.value.phone || null, p_accent: form.value.accent,
@@ -66,21 +90,21 @@ async function saveStore() {
 async function addProduct() {
   if (!newProd.value.name) { toast('Product name required', 'warn'); return }
   if (!store.value) { toast('Save your storefront first', 'warn'); return }
-  const { error } = await supabase.from('product').insert({
+  const { error } = await sf.addProduct({
     storefront_id: store.value.id, name: newProd.value.name,
-    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, image_url: newProd.value.image_url || null,
+    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, image_url: newProd.value.image_url || null, section_id: newProd.value.section_id || null,
   })
   if (error) { toast(error.message, 'warn'); return }
   toast('Product added', 'ok')
-  newProd.value = { name:'', description:'', price_tzs:'', image_url:'' }
+  newProd.value = { name:"", description:"", price_tzs:"", image_url:"", section_id:"" }
   await load()
 }
 async function delProduct(id) {
-  await supabase.from('product').delete().eq('id', id)
+  await sf.deleteProduct(id)
   toast('Product removed', 'ok'); await load()
 }
 async function logout() { await signOut(); router.push('/login') }
-onMounted(async () => { await load(); await loadCarriers(); selectedCarrier.value = store.value?.carrier_id })
+onMounted(async () => { await load(); await loadCarriers(); await loadSections(); selectedCarrier.value = store.value?.carrier_id })
 </script>
 
 <template>
@@ -128,6 +152,18 @@ onMounted(async () => { await load(); await loadCarriers(); selectedCarrier.valu
         </div>
 
         <div class="mgr-card">
+          <div class="form-section-h"><Icon name="grid" :size="13" /> Shop sections</div>
+          <p class="mgr-hint">Organise your shop into named sections — like "New Arrivals" or "Wedding Fabrics".</p>
+          <div v-if="sections.length" class="section-chips">
+            <span v-for="s in sections" :key="s.id" class="section-chip">{{ s.name }}<button @click="removeSection(s)"><Icon name="plus" :size="11" style="transform:rotate(45deg)" /></button></span>
+          </div>
+          <div class="section-add">
+            <input v-model="newSection" placeholder="New section name…" @keyup.enter="addSection" />
+            <button class="btn btn-ghost" @click="addSection">Add section</button>
+          </div>
+        </div>
+
+        <div class="mgr-card">
           <div class="form-section-h"><Icon name="package" :size="13" /> Products</div>
           <EmptyState v-if="!products.length" icon="package" title="No products yet" hint="Add your first product below." />
           <div v-else class="mgr-prods">
@@ -143,6 +179,12 @@ onMounted(async () => { await load(); await loadCarriers(); selectedCarrier.valu
               <div class="fg"><label>Price (TZS)</label><input v-model="newProd.price_tzs" type="number" inputmode="numeric" placeholder="45000" /></div>
             </div>
             <div class="fg"><label>Description</label><input v-model="newProd.description" placeholder="Premium wax print" /></div>
+            <div v-if="sections.length" class="fg"><label>Section</label>
+              <select v-model="newProd.section_id">
+                <option value="">No section</option>
+                <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option>
+              </select>
+            </div>
             <div class="fg"><label>Photo</label><PhotoUpload v-model="newProd.image_url" /></div>
             <button class="btn btn-accent" @click="addProduct"><Icon name="plus" :size="15" /> Add product</button>
           </div>

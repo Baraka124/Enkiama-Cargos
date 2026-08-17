@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, inject, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { supabase, fmtTZS } from '../lib/supabase'
+import { fmtTZS } from '../lib/supabase'
+import { usePublic } from '../composables/usePublic'
 import Icon from '../components/Icon.vue'
 import BrandMark from '../components/BrandMark.vue'
 import Spinner from '../components/Spinner.vue'
@@ -13,6 +14,7 @@ const code = ref((route.params.code || '').toString().toUpperCase())
 const parcel = ref(null)
 const notFound = ref(false)
 const busy = ref(false)
+const pub = usePublic()
 const searched = ref(false)
 
 const STAGE_ORDER = ['booked','collected','linehaul','with_driver','delivered','confirmed']
@@ -21,7 +23,7 @@ const STAGE_CAP = { booked:'Booked', collected:'Carrier has it', linehaul:'On ro
 async function track() {
   if (!code.value) return
   busy.value = true; notFound.value = false
-  const { data, error } = await supabase.rpc('track_parcel', { p_code: code.value })
+  const { data, error } = await pub.track(code.value)
   busy.value = false; searched.value = true
   if (error || !data || !data.length) { notFound.value = true; parcel.value = null; return }
   const r = data[0]
@@ -39,7 +41,7 @@ function startConfirm() { confirmStep.value = true; last4.value = '' }
 async function confirm() {
   if (last4.value.replace(/\D/g,'').length < 4) { toast('Enter the last 4 digits of your phone', 'warn'); return }
   busy.value = true
-  const { error } = await supabase.rpc('confirm_receipt_verified', { p_code: code.value, p_last4: last4.value })
+  const { error } = await pub.confirmReceipt(code.value, last4.value)
   busy.value = false
   if (error) {
     toast(error.message?.includes('phone') ? 'That doesn\u2019t match the phone on this parcel' : 'Not able to confirm yet', 'warn')
@@ -60,7 +62,7 @@ async function submitReview() {
   if (!rvDelivery.value) { toast('Tap a star to rate the delivery', 'warn'); return }
   busy.value = true
   try {
-    const { error } = await supabase.rpc('leave_review', {
+    const { error } = await pub.leaveReview({
       p_code: code.value, p_delivery_rating: rvDelivery.value, p_delivery_comment: rvComment.value || null,
       p_product_rating: rvProduct.value || null, p_product_comment: null, p_name: rvName.value || null,
     })
@@ -85,7 +87,7 @@ function openReport() { showReport.value = true }
 
 async function submitReschedule() {
   busy.value = true
-  const { error } = await supabase.rpc('receiver_reschedule', { p_code: code.value, p_when: reschedWhen.value, p_note: reschedNote.value || null })
+  const { error } = await pub.reschedule(code.value, reschedWhen.value, reschedNote.value)
   busy.value = false
   if (error) { toast(error.message || 'Could not send request', 'warn'); return }
   showReschedule.value = false
@@ -95,7 +97,7 @@ async function submitReschedule() {
 async function submitReport() {
   const issue = reportIssue.value === 'Other' ? (reportOther.value || 'Other issue') : reportIssue.value
   busy.value = true
-  const { error } = await supabase.rpc('receiver_report', { p_code: code.value, p_issue: issue })
+  const { error } = await pub.report(code.value, issue)
   busy.value = false
   if (error) { toast(error.message || 'Could not send report', 'warn'); return }
   showReport.value = false
@@ -200,7 +202,7 @@ onMounted(() => { if (code.value) track() })
     </div>
 
     <!-- RESCHEDULE MODAL -->
-    <div v-if="showReschedule" class="overlay" @click.self="showReschedule=false">
+    <div v-if="showReschedule" class="overlay" v-escape="() => { showReschedule=false }" @click.self="showReschedule=false">
       <div class="modal" style="max-width:420px">
         <h3>Reschedule delivery</h3>
         <p>Tell {{ parcel.carrier }} when works better. They'll see your request.</p>
@@ -221,7 +223,7 @@ onMounted(() => { if (code.value) track() })
     </div>
 
     <!-- REPORT MODAL -->
-    <div v-if="showReport" class="overlay" @click.self="showReport=false">
+    <div v-if="showReport" class="overlay" v-escape="() => { showReport=false }" @click.self="showReport=false">
       <div class="modal" style="max-width:420px">
         <h3>Report a problem</h3>
         <p>Let {{ parcel.carrier }} know what's wrong with parcel {{ parcel.code }}.</p>
@@ -248,7 +250,7 @@ onMounted(() => { if (code.value) track() })
     </footer>
 
     <!-- REVIEW MODAL — captured right after confirming (best moment) -->
-    <div v-if="reviewStep" class="overlay" @click.self="reviewStep=false">
+    <div v-if="reviewStep" class="overlay" v-escape="() => { reviewStep=false }" @click.self="reviewStep=false">
       <div class="modal rv-modal">
         <div v-if="reviewDone" class="rv-thanks">
           <div class="rv-thanks-ic"><Icon name="check" :size="30" /></div>

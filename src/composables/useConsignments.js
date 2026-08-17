@@ -39,13 +39,14 @@ async function fetchAll() {
     .from('consignment')
     .select('*, payment(*), driver(name,vehicle)')
     .order('created_at', { ascending: false })
+    .limit(500)   // cap the live fetch — a busy carrier could have thousands;
+                  // the board only needs recent/active parcels, not full history.
   const activeCarrier = profile.value?.carrier_id
   if (activeCarrier && !(isPlatformAdmin.value && hat.value === 'platform')) {
     q = q.eq('carrier_id', activeCarrier)
   }
   const { data, error } = await q
   if (error) { console.warn('[fetchAll]', error.message); loading.value = false; return }
-  // always replace with a fresh array so Vue reactivity fires (even when empty)
   consignments.value = (data || []).map(shape)
   loading.value = false
 }

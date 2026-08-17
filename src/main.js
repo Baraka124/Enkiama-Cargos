@@ -23,4 +23,19 @@ import './style.css'
   }
 })()
 
-createApp(App).use(router).mount('#app')
+const app = createApp(App)
+
+// v-escape: call the bound handler when Escape is pressed while the element
+// is in the DOM. Lets any modal close on Esc (accessibility + expected feel)
+// without each view wiring its own key listener.
+app.directive('escape', {
+  mounted(el, binding) {
+    el._escHandler = (e) => { if (e.key === 'Escape') binding.value?.(e) }
+    document.addEventListener('keydown', el._escHandler)
+  },
+  unmounted(el) {
+    if (el._escHandler) document.removeEventListener('keydown', el._escHandler)
+  },
+})
+
+app.use(router).mount('#app')

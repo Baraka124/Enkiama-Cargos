@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase'
+import { usePublic } from '../composables/usePublic'
 import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
@@ -18,6 +18,7 @@ const claimedPhone = ref('')
 const phoneInput = ref('')
 const deliveries = ref([])
 const loading = ref(true)
+const pub = usePublic()
 const claiming = ref(false)
 
 const STAGE_LABELS = { booked:'Booked', collected:'Collected', linehaul:'On road', with_driver:'Out for delivery', delivered:'Delivered', confirmed:'Confirmed', failed:'Attempted', cancelled:'Cancelled' }
@@ -28,7 +29,7 @@ async function load() {
   loading.value = true
   claimedPhone.value = profile.value?.claimed_phone || ''
   if (claimedPhone.value) {
-    const { data } = await supabase.rpc('my_deliveries')
+    const { data } = await pub.myDeliveries()
     deliveries.value = (data || [])
   }
   loading.value = false
@@ -37,7 +38,7 @@ async function claimPhone() {
   if (!phoneInput.value.trim()) { toast('Enter your phone number', 'warn'); return }
   claiming.value = true
   try {
-    const { error } = await supabase.rpc('claim_receiver_phone', { p_phone: phoneInput.value.trim() })
+    const { error } = await pub.claimReceiverPhone(phoneInput.value.trim())
     if (error) throw error
     toast('Phone linked — showing your deliveries', 'ok')
     if (profile.value) profile.value.claimed_phone = phoneInput.value.trim()

@@ -3,8 +3,9 @@ import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useConsignments } from '../composables/useConsignments'
+import { useDispatch } from '../composables/useDispatch'
 import { useI18n } from '../composables/useI18n'
-import { fmtTZS, supabase } from '../lib/supabase'
+import { fmtTZS } from '../lib/supabase'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import EmptyState from '../components/EmptyState.vue'
 import Skeleton from '../components/Skeleton.vue'
@@ -21,6 +22,7 @@ const menuOpen = ref(false)
 const { carrier, profile, signOut, isPlatformAdmin, setHat } = useAuth()
 const { setLang, isSwahili } = useI18n()
 const { consignments, loading, STAGE_CAP, STAGE_ORDER, fetchAll, subscribe, unsubscribe, advance, assignDriver, markDelivered, remitCash, confirmMomo, book } = useConsignments()
+const disp = useDispatch()
 
 const tab = ref('action')
 const drivers = ref([])
@@ -134,16 +136,16 @@ const savingTeam = ref(false)
 async function loadDrivers() {
   try {
     const cid = profile.value?.carrier_id
-    const { data } = await supabase.from('driver').select('*').eq('carrier_id', cid)
+    const { data } = await disp.listDrivers(cid)
     drivers.value = data || []
-    const { data: led } = await supabase.rpc('my_cash_ledger')
+    const { data: led } = await disp.cashLedger()
     ledger.value = led || []
   } catch (e) { ledger.value = [] }
 }
 async function addDriver() {
   if (!newDriver.value.name || !newDriver.value.phone) { toast('Name and phone required', 'warn'); return }
   savingTeam.value = true
-  const { error } = await supabase.from('driver').insert({
+  const { error } = await disp.addDriver({
     carrier_id: profile.value.carrier_id, name: newDriver.value.name,
     phone: newDriver.value.phone, vehicle: newDriver.value.vehicle,
   })
@@ -152,13 +154,13 @@ async function addDriver() {
   toast('Driver added', 'ok'); newDriver.value = { name: '', phone: '', vehicle: 'bajaji' }; loadDrivers()
 }
 async function toggleDriver(d) {
-  const { error } = await supabase.rpc('set_driver_active', { p_driver: d.id, p_active: !d.active })
+  const { error } = await disp.setDriverActive(d.id, !d.active)
   if (error) { toast(error.message, 'warn'); return }
   toast(d.active ? 'Driver deactivated' : 'Driver reactivated', 'ok'); loadDrivers()
 }
 async function sendStaffInvite() {
   if (!newStaff.value.email) { toast('Staff email required', 'warn'); return }
-  const { error } = await supabase.rpc('invite_staff', { p_email: newStaff.value.email, p_role: 'dispatch' })
+  const { error } = await disp.inviteStaff(newStaff.value.email)
   if (error) { toast(error.message, 'warn'); return }
   toast(`Invite created for ${newStaff.value.email} — they join by signing up with it`, 'ok')
   newStaff.value = { email: '' }
@@ -170,11 +172,11 @@ const notifs = ref([])
 const notifsOpen = ref(false)
 const unreadNotifs = computed(() => notifs.value.filter(n => !n.read).length)
 async function loadNotifs() {
-  try { const { data } = await supabase.rpc('my_notifications'); notifs.value = data || [] } catch (e) {}
+  try { const { data } = await disp.notifications(); notifs.value = data || [] } catch (e) {}
 }
 async function openNotifs() {
   notifsOpen.value = true
-  await supabase.rpc('mark_notifications_read').catch(()=>{})
+  await disp.markNotificationsRead().catch(()=>{})
   await loadNotifs()
 }
 
@@ -233,7 +235,7 @@ const filteredAction = computed(() => {
 
 const customers = ref([])
 async function loadCustomers() {
-  const { data } = await supabase.rpc('my_customers')
+  const { data } = await disp.customers()
   customers.value = data || []
 }
 
@@ -261,7 +263,7 @@ async function logout(){ await signOut(); router.push('/login') }
 const cashLedger = ref([])
 async function loadCash() {
   try {
-    const { data } = await supabase.rpc('my_cash_ledger')
+    const { data } = await disp.cashLedger()
     cashLedger.value = data || []
   } catch (e) { cashLedger.value = [] }
 }
@@ -275,7 +277,7 @@ function askSettle(r) {
     async () => {
       settling.value = r.driver_id
       try {
-        const { data, error } = await supabase.rpc('settle_driver_cash', { p_driver: r.driver_id })
+        const { data, error } = await disp.settleDriverCash(r.driver_id)
         if (error) throw error
         const res = Array.isArray(data) ? data[0] : data
         toast(`Settled ${fmtTZS(res?.total_settled || r.cash_holding)} from ${r.driver_name} (${res?.parcels_settled || r.parcels_holding} parcels)`, 'ok')
@@ -339,8 +341,7 @@ const detailLoading = ref(false)
 async function openDetail(p) {
   detail.value = p; detailEvents.value = []; detailLoading.value = true
   try {
-    const { data } = await supabase.from('custody_event')
-      .select('*').eq('consignment_id', p.id).order('at', { ascending: true })
+    const { data } = await disp.custodyEvents(p.id)
     detailEvents.value = data || []
   } catch (e) { /* non-fatal */ }
   detailLoading.value = false
@@ -361,7 +362,7 @@ async function detailRemit(p) {
 async function refreshDetail(p) {
   await fetchAll()
   const fresh = consignments.value.find(c => c.id === p.id)
-  if (fresh) { detail.value = fresh; const { data } = await supabase.from('custody_event').select('*').eq('consignment_id', p.id).order('at', { ascending: true }); detailEvents.value = data || [] }
+  if (fresh) { detail.value = fresh; const { data } = await disp.custodyEvents(p.id); detailEvents.value = data || [] }
   else detail.value = null
 }
 // ── delivery fee (dispatcher sets who pays + amount → enables delivery) ──
@@ -371,7 +372,7 @@ const feePayer = ref('sender_prepaid')
 function openFeeEdit(p) { feeEdit.value = true; feeAmt.value = p.deliveryFee || 0; feePayer.value = p.feePayer || 'sender_prepaid' }
 async function saveFee(p) {
   try {
-    const { error } = await supabase.rpc('set_delivery_fee', { p_code: p.code, p_fee: Number(feeAmt.value)||0, p_payer: feePayer.value, p_note: null })
+    const { error } = await disp.setDeliveryFee(p.code, Number(feeAmt.value)||0, feePayer.value)
     if (error) throw error
     toast(`Delivery fee agreed: ${fmtTZS(Number(feeAmt.value)||0)}`, 'ok')
     feeEdit.value = false
@@ -399,6 +400,7 @@ function fmtWhen(ts) {
     <!-- desktop actions inline -->
     <div class="tb-actions-desktop">
       <button v-if="isPlatformAdmin" class="btn btn-ghost" style="margin-right:8px" @click="switchToPlatform">↔ Platform console</button>
+      <RouterLink to="/market" class="btn btn-ghost tb-icon-btn" style="margin-right:8px" title="Marketplace"><Icon name="box" :size="18" /></RouterLink>
       <button class="btn btn-ghost tb-icon-btn" style="position:relative;margin-right:8px" @click="openNotifs">
         <Icon name="bell" :size="18" /><span v-if="unreadNotifs" class="notif-dot">{{ unreadNotifs }}</span>
       </button>
@@ -638,7 +640,7 @@ function fmtWhen(ts) {
   </div>
 
   <!-- #6 CONFIRM DIALOG -->
-  <div v-if="confirmDialog" class="overlay" @click.self="confirmDialog=null">
+  <div v-if="confirmDialog" class="overlay" v-escape="() => { confirmDialog=null }" @click.self="confirmDialog=null">
     <div class="modal" style="max-width:400px">
       <h3>{{ confirmDialog.title }}</h3>
       <p>{{ confirmDialog.body }}</p>
@@ -650,7 +652,7 @@ function fmtWhen(ts) {
   </div>
 
   <!-- NOTIFICATIONS PANEL -->
-  <div v-if="notifsOpen" class="overlay" @click.self="notifsOpen=false">
+  <div v-if="notifsOpen" class="overlay" v-escape="() => { notifsOpen=false }" @click.self="notifsOpen=false">
     <div class="modal" style="max-width:440px">
       <h3>Notifications</h3>
       <EmptyState v-if="!notifs.length" icon="bell" title="Nothing yet" hint="When a seller selects you or an order comes in, it appears here." />
@@ -668,7 +670,7 @@ function fmtWhen(ts) {
   </div>
 
   <!-- BULK ASSIGN MODAL -->
-  <div v-if="bulkAssignModal" class="overlay" @click.self="bulkAssignModal=false">
+  <div v-if="bulkAssignModal" class="overlay" v-escape="() => { bulkAssignModal=false }" @click.self="bulkAssignModal=false">
     <div class="modal">
       <h3>Assign {{ selected.size }} parcels</h3>
       <p>Pick a driver to hand all selected consignments to at once.</p>
@@ -680,7 +682,7 @@ function fmtWhen(ts) {
   </div>
 
   <!-- CONSIGNMENT DETAIL MODAL -->
-  <div v-if="detail" class="overlay" @click.self="detail=null">
+  <div v-if="detail" class="overlay" v-escape="() => { detail=null }" @click.self="detail=null">
     <div class="modal" style="max-width:520px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <h3 class="mono" style="margin:0">{{ detail.code }}</h3>
@@ -782,7 +784,7 @@ function fmtWhen(ts) {
   </div>
 
   <!-- NEW CONSIGNMENT MODAL -->
-  <div v-if="bookModal" class="overlay" @click.self="closeBooking">
+  <div v-if="bookModal" class="overlay" v-escape="() => { closeBooking }" @click.self="closeBooking">
     <div class="modal">
       <!-- SUCCESS STATE -->
       <div v-if="bookedCode" class="book-success">
@@ -875,7 +877,7 @@ function fmtWhen(ts) {
   </div>
 
   <!-- ASSIGN MODAL -->
-  <div v-if="assignModal" class="overlay" @click.self="assignModal=null">
+  <div v-if="assignModal" class="overlay" v-escape="() => { assignModal=null }" @click.self="assignModal=null">
     <div class="modal">
       <h3>Assign a local driver</h3>
       <p>Hand the last mile to a rider on your fleet — {{ assignModal.code }}.</p>

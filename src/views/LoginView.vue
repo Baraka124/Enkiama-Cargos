@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
+import { usePublic } from '../composables/usePublic'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
@@ -8,6 +9,7 @@ import BrandMark from '../components/BrandMark.vue'
 
 const router = useRouter()
 const toast = inject('toast')
+const pub = usePublic()
 const { signInEmail, signUpEmail, signUpSender, signUpReceiver, sendPhoneOtp, verifyPhoneOtp, sendPasswordReset, reloadProfile } = useAuth()
 
 // ── auth state (all logic preserved) ──
@@ -129,8 +131,7 @@ async function submitFleet() {
   busy.value = false
 }
 async function sendFleetApplication() {
-  const { supabase } = await import('../lib/supabase')
-  return supabase.rpc('apply_as_carrier', {
+  return pub.applyAsCarrier({
     p_company: fleet.value.company, p_contact: fleet.value.contact,
     p_phone: fleet.value.phone, p_email: fleet.value.email || null,
     p_region: fleet.value.region || null, p_fleet: fleet.value.note || null,
@@ -233,7 +234,7 @@ async function sendFleetApplication() {
     </div>
 
     <!-- FLEET OPERATOR APPLICATION -->
-    <div v-if="showFleet" class="overlay" @click.self="showFleet=false">
+    <div v-if="showFleet" class="overlay" v-escape="() => { showFleet=false }" @click.self="showFleet=false">
       <div class="modal" style="max-width:460px">
         <div v-if="fleetSent" class="book-success">
           <div class="book-success-ic"><Icon name="check" :size="30" /></div>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { supabase } from '../lib/supabase'
+import { usePublic } from '../composables/usePublic'
 import Icon from '../components/Icon.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -10,14 +10,30 @@ import Spinner from '../components/Spinner.vue'
 const route = useRoute()
 const data = ref(null)
 const loading = ref(true)
+const pub = usePublic()
 
 const store = computed(() => data.value?.store)
 const products = computed(() => data.value?.products || [])
 const reviews = computed(() => data.value?.reviews || [])
+const sections = computed(() => data.value?.sections || [])
+// group products by section for a curated shop layout
+const grouped = computed(() => {
+  const secs = sections.value
+  const byId = {}
+  secs.forEach(s => { byId[s.id] = { name: s.name, items: [] } })
+  const noSection = []
+  products.value.forEach(p => {
+    if (p.section_id && byId[p.section_id]) byId[p.section_id].items.push(p)
+    else noSection.push(p)
+  })
+  const out = secs.filter(s => byId[s.id].items.length).map(s => byId[s.id])
+  if (noSection.length) out.push({ name: secs.length ? 'More' : '', items: noSection })
+  return out
+})
 
 async function load() {
   loading.value = true
-  const { data: res } = await supabase.rpc('get_storefront', { p_slug: route.params.slug })
+  const { data: res } = await pub.getStorefront(route.params.slug)
   data.value = res
   loading.value = false
 }
@@ -33,7 +49,7 @@ async function placeOrder() {
   if (!orderForm.value.name || !orderForm.value.phone || !orderForm.value.addr) return
   ordering.value = true
   try {
-    const { data: code, error } = await supabase.rpc('place_order', {
+    const { data: code, error } = await pub.placeOrder({
       p_store_slug: route.params.slug, p_product_id: orderProduct.value.id,
       p_buyer_name: orderForm.value.name, p_buyer_phone: orderForm.value.phone,
       p_buyer_addr: orderForm.value.addr, p_qty: Number(orderForm.value.qty) || 1,
@@ -73,17 +89,22 @@ onMounted(load)
 
         <h2 class="sf-h2">Products</h2>
         <EmptyState v-if="!products.length" icon="package" title="No products listed yet" />
-        <div v-else class="sf-products">
-          <div v-for="p in products" :key="p.id" class="sf-prod">
-            <div v-if="p.image_url" class="sf-prod-img" :style="{backgroundImage:`url(${p.image_url})`}"></div>
-            <div style="flex:1;min-width:0">
-              <div class="sf-prod-name">{{ p.name }}</div>
-              <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
+        <template v-else>
+          <div v-for="(g,gi) in grouped" :key="gi" class="sf-section">
+            <h3 v-if="g.name" class="sf-section-h">{{ g.name }}</h3>
+            <div class="sf-products">
+              <div v-for="p in g.items" :key="p.id" class="sf-prod">
+                <div v-if="p.image_url" class="sf-prod-img" :style="{backgroundImage:`url(${p.image_url})`}"></div>
+                <div style="flex:1;min-width:0">
+                  <div class="sf-prod-name">{{ p.name }}</div>
+                  <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
+                </div>
+                <div class="sf-prod-price">{{ tzs(p.price_tzs) }}</div>
+                <button class="btn btn-accent sf-order" @click="openOrder(p)">Order</button>
+              </div>
             </div>
-            <div class="sf-prod-price">{{ tzs(p.price_tzs) }}</div>
-            <button class="btn btn-accent sf-order" @click="openOrder(p)">Order</button>
           </div>
-        </div>
+        </template>
 
         <template v-if="reviews.length">
           <h2 class="sf-h2">Delivery reviews</h2>
@@ -110,7 +131,7 @@ onMounted(load)
     <footer class="sf-foot"><BrandMark variant="full" :height="36" /><p>Powered by Enkiama Cargos · One parcel, one truth.</p></footer>
 
     <!-- ORDER MODAL -->
-    <div v-if="orderProduct" class="overlay" @click.self="orderProduct=null">
+    <div v-if="orderProduct" class="overlay" v-escape="() => { orderProduct=null }" @click.self="orderProduct=null">
       <div class="modal" style="max-width:440px">
         <div v-if="orderCode" class="book-success">
           <div class="book-success-ic"><Icon name="check" :size="30" /></div>

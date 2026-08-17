@@ -3,10 +3,12 @@ import { ref, computed, onMounted, onUnmounted, inject, watch, nextTick } from '
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useConsignments } from '../composables/useConsignments'
-import { fmtTZS, supabase } from '../lib/supabase'
+import { useDriver } from '../composables/useDriver'
+import { fmtTZS } from '../lib/supabase'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import Icon from '../components/Icon.vue'
 import AppHeader from '../components/AppHeader.vue'
+import CodeScanner from '../components/CodeScanner.vue'
 import EmptyState from '../components/EmptyState.vue'
 import Spinner from '../components/Spinner.vue'
 import L from 'leaflet'
@@ -16,9 +18,28 @@ const router = useRouter()
 const toast = inject('toast')
 const { carrier, profile, signOut } = useAuth()
 const { consignments, fetchAll, subscribe, unsubscribe, markDelivered, reportFailed } = useConsignments()
+const drv = useDriver()
 
 const exceptionFor = ref(null)
 const proofFor = ref(null)      // parcel being delivered with proof
+const proofBusy = ref(false)
+// ── OCR waybill scan ──
+const scanOpen = ref(false)
+async function onCodeScanned(code) {
+  scanOpen.value = false
+  // is it already in this driver's list?
+  const mine = consignments.value.find(c => c.code?.toUpperCase() === code.toUpperCase())
+  if (mine) { toast(`Found ${code} in your run`, 'ok'); openProof(mine); return }
+  // otherwise try to claim it from the office
+  try {
+    const { error } = await drv.claimParcel(code)
+    if (error) throw error
+    toast(`Claimed ${code}`, 'ok')
+    await fetchAll(); await loadAvailable()
+  } catch (e) { toast(e.message || `Couldn't find ${code} at your office`, 'warn') }
+}
+const rcvBy = ref('')          // who actually received it (if not the receiver)
+const rcvRelation = ref('self')
 const sigCanvas = ref(null)
 const photoData = ref('')
 let drawing = false
@@ -48,7 +69,7 @@ const available = ref([])
 const claiming = ref('')
 async function loadAvailable() {
   try {
-    const { data } = await supabase.rpc('available_parcels')
+    const { data } = await drv.availableParcels()
     available.value = (data || []).map(r => ({
       id: r.id, code: r.code, receiver: r.receiver_name, addr: r.dest_address,
       item: r.item, weight: Number(r.weight_kg), fee: r.delivery_fee, feePayer: r.fee_payer, cod: r.cod_amount,
@@ -58,12 +79,35 @@ async function loadAvailable() {
 async function claim(p) {
   claiming.value = p.code
   try {
-    const { error } = await supabase.rpc('claim_parcel', { p_code: p.code })
+    const { error } = await drv.claimParcel(p.code)
     if (error) throw error
     toast(`You claimed ${p.code}`, 'ok')
     await fetchAll(); await loadAvailable()
   } catch (e) { toast(e.message || 'Could not claim', 'warn') }
   claiming.value = ''
+}
+
+// ── OCR: snap a waybill, auto-extract the ENK-#### code ──
+const scanning = ref(false)
+async function scanWaybill(e) {
+  const file = e.target.files?.[0]; if (!file) return
+  scanning.value = true
+  try {
+    const Tesseract = (await import('tesseract.js')).default
+    const { data } = await Tesseract.recognize(file, 'eng')
+    const text = (data.text || '').toUpperCase()
+    // find an ENK-#### style code
+    const m = text.match(/ENK[\s-]?(\d{3,5})/)
+    if (m) {
+      const code = 'ENK-' + m[1]
+      const match = available.value.find(a => a.code.toUpperCase() === code)
+      if (match) { toast(`Found ${code} — claiming…`, 'ok'); await claim(match) }
+      else { toast(`Read ${code}, but it's not available at your office`, 'warn') }
+    } else {
+      toast('Couldn\u2019t read a code — try a clearer photo', 'warn')
+    }
+  } catch (err) { toast('Scan failed — enter the code manually', 'warn') }
+  scanning.value = false
 }
 
 // freelancer driver records the fee they negotiated with the receiver
@@ -72,7 +116,7 @@ const feeAmt = ref('')
 function startFeeEdit(p) { feeEditFor.value = p.code; feeAmt.value = p.deliveryFee || '' }
 async function saveFee(p) {
   try {
-    const { error } = await supabase.rpc('set_delivery_fee', { p_code: p.code, p_fee: Number(feeAmt.value)||0, p_payer: 'receiver_on_delivery', p_note: 'Negotiated by driver' })
+    const { error } = await drv.setNegotiatedFee(p.code, Number(feeAmt.value)||0)
     if (error) throw error
     toast(`Delivery fee set: ${fmtTZS(Number(feeAmt.value)||0)}`, 'ok')
     feeEditFor.value = null
@@ -118,7 +162,7 @@ onMounted(async () => { await fetchAll(); await loadAvailable(); subscribe(); aw
 onUnmounted(() => { unsubscribe(); if (map) { map.remove(); map = null } })
 watch(pending, async () => { await nextTick(); renderMap() })
 
-function openProof(p) { proofFor.value = p; photoData.value = ''; nextTickClearSig() }
+function openProof(p) { proofFor.value = p; photoData.value = ''; rcvBy.value = ''; rcvRelation.value = 'self'; nextTickClearSig() }
 function nextTickClearSig() { setTimeout(() => { const c = sigCanvas.value; if (c) { const x = c.getContext('2d'); x.fillStyle = '#FFFFFF'; x.fillRect(0,0,c.width,c.height) } }, 50) }
 function sigStart(e){ drawing = true; sigDraw(e) }
 function sigEnd(){ drawing = false; const c = sigCanvas.value; if (c) c.getContext('2d').beginPath() }
@@ -138,21 +182,24 @@ function onPhoto(e){
 }
 async function submitProof() {
   const p = proofFor.value; if (!p) return
-  let photoUrl = ''
+  proofBusy.value = true
   try {
     if (photoData.value) {
       const blob = await (await fetch(photoData.value)).blob()
-      const path = `${p.id}-${Date.now()}.jpg`
-      const { error: upErr } = await supabase.storage.from('pod').upload(path, blob, { contentType: 'image/jpeg', upsert: true })
-      if (!upErr) { photoUrl = supabase.storage.from('pod').getPublicUrl(path).data.publicUrl }
+      const url = await drv.uploadPodPhoto(p.id, blob)
+      const { error: aErr } = await drv.attachPodPhoto(p.code, url)
+      if (aErr) throw aErr
     }
-    const sig = sigCanvas.value ? sigCanvas.value.toDataURL('image/png') : ''
-    const { error } = await supabase.rpc('deliver_with_proof', { p_consignment: p.id, p_photo_url: photoUrl, p_signature: sig })
+    // then mark delivered (atomic), recording who received it if not the named receiver
+    const receivedBy = (rcvRelation.value !== 'self' && rcvBy.value.trim()) ? rcvBy.value.trim() : null
+    const relation = receivedBy ? rcvRelation.value : null
+    const { error } = await drv.deliverParcel(p.code, 'Delivered with photo proof', receivedBy, relation)
     if (error) throw error
     toast(`${p.code} delivered with proof`, 'ok')
     proofFor.value = null
     await fetchAll()
   } catch (e) { toast(e.message || 'Could not save proof', 'warn') }
+  proofBusy.value = false
 }
 async function fail(reason) {
   await reportFailed(exceptionFor.value, reason.k, reason.label)
@@ -164,6 +211,7 @@ async function logout(){ await signOut(); router.push('/login') }
 
 <template>
   <AppHeader :title="carrier?.name || 'Enkiama Cargos'" :subtitle="'Driver · ' + (profile?.name || '')" :carrier="carrier" live>
+    <button class="btn btn-accent" @click="scanOpen=true"><Icon name="camera" :size="15" /> Scan code</button>
     <button class="btn btn-ghost" @click="logout">Sign out</button>
   </AppHeader>
 
@@ -227,6 +275,11 @@ async function logout(){ await signOut(); router.push('/login') }
     <template v-if="available.length">
       <div class="sec"><h2>Available at your office</h2><span class="ln"></span></div>
       <div class="avail-hint">Parcels ready for pickup at your carrier. Claim one to add it to your run.</div>
+      <label class="scan-btn" :class="{busy:scanning}">
+        <Spinner v-if="scanning" :size="16" /><Icon v-else name="camera" :size="16" />
+        <span>{{ scanning ? 'Reading waybill…' : 'Scan a waybill to claim' }}</span>
+        <input type="file" accept="image/*" capture="environment" style="display:none" :disabled="scanning" @change="scanWaybill" />
+      </label>
       <div class="avail-list">
         <div v-for="p in available" :key="p.id" class="avail-card">
           <div class="avail-main">
@@ -246,7 +299,7 @@ async function logout(){ await signOut(); router.push('/login') }
   </div>
 
   <!-- PROOF OF DELIVERY MODAL -->
-  <div v-if="proofFor" class="overlay" @click.self="proofFor=null">
+  <div v-if="proofFor" class="overlay" v-escape="() => { proofFor=null }" @click.self="proofFor=null">
     <div class="modal">
       <h3>Proof of delivery</h3>
       <p>{{ proofFor.code }} to {{ proofFor.receiver }}<span v-if="nextMoney.owed>0"> · collect {{ fmtTZS(nextMoney.owed) }}</span></p>
@@ -264,15 +317,25 @@ async function logout(){ await signOut(); router.push('/login') }
         <img v-if="photoData" :src="photoData" style="width:100%;border-radius:11px;margin-top:8px;max-height:160px;object-fit:cover" />
       </div>
 
+      <div class="fg"><label>Who received it?</label>
+        <div class="rcv-relation">
+          <button v-for="r in ['self','family','neighbour','colleague','other']" :key="r"
+            class="rcv-chip" :class="{on:rcvRelation===r}" @click="rcvRelation=r">{{ r==='self' ? 'The receiver' : r }}</button>
+        </div>
+        <input v-if="rcvRelation!=='self'" v-model="rcvBy" placeholder="Name of who picked it up" style="margin-top:8px" />
+      </div>
+
       <div style="display:flex;gap:10px;margin-top:6px">
         <button class="btn btn-ghost" @click="proofFor=null">Cancel</button>
-        <button class="btn btn-go" style="flex:1" @click="submitProof">Confirm delivery</button>
+        <button class="btn btn-go" style="flex:1" :disabled="proofBusy" @click="submitProof">
+          <Spinner v-if="proofBusy" :size="15" /><span v-else>Confirm delivery</span>
+        </button>
       </div>
     </div>
   </div>
 
   <!-- EXCEPTION MODAL -->
-  <div v-if="exceptionFor" class="overlay" @click.self="exceptionFor=null">
+  <div v-if="exceptionFor" class="overlay" v-escape="() => { exceptionFor=null }" @click.self="exceptionFor=null">
     <div class="modal">
       <h3>Couldn't deliver</h3>
       <p>What happened with {{ exceptionFor.code }} to {{ exceptionFor.receiver }}?</p>
@@ -282,4 +345,7 @@ async function logout(){ await signOut(); router.push('/login') }
       <button class="btn btn-ghost btn-block" @click="exceptionFor=null">Cancel</button>
     </div>
   </div>
+
+  <!-- OCR WAYBILL SCANNER -->
+  <CodeScanner v-if="scanOpen" @found="onCodeScanned" @close="scanOpen=false" />
 </template>

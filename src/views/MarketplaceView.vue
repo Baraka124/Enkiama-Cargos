@@ -1,18 +1,19 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { supabase } from '../lib/supabase'
+import { usePublic } from '../composables/usePublic'
 import Icon from '../components/Icon.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
 
 const stores = ref([])
 const loading = ref(true)
+const pub = usePublic()
 const corridor = ref('')
 const corridors = ['Mbeya', 'Arusha', 'Mwanza', 'Dodoma', 'Dar es Salaam']
 
 async function load() {
   loading.value = true
-  const { data } = await supabase.rpc('browse_storefronts', { p_corridor: corridor.value || null })
+  const { data } = await pub.browseStorefronts(corridor.value)
   stores.value = data || []
   loading.value = false
 }

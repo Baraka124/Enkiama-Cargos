@@ -3,7 +3,8 @@ import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useConsignments } from '../composables/useConsignments'
-import { supabase, fmtTZS } from '../lib/supabase'
+import { fmtTZS } from '../lib/supabase'
+import { usePublic } from '../composables/usePublic'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import Icon from '../components/Icon.vue'
@@ -21,6 +22,7 @@ const { consignments, fetchAll, subscribe, unsubscribe, book } = useConsignments
 const tab = ref('send')
 const carriers = ref([])
 const busy = ref(false)
+const pub = usePublic()
 const lastCode = ref('')
 
 const f = ref({
@@ -29,7 +31,7 @@ const f = ref({
 })
 
 onMounted(async () => {
-  const { data } = await supabase.from('carrier').select('*').eq('status','active').order('name')
+  const { data } = await pub.activeCarriers()
   carriers.value = data || []
   if (carriers.value.length) f.value.carrierId = carriers.value[0].id
   await loadMyShipments()
@@ -37,9 +39,7 @@ onMounted(async () => {
 const myParcels = ref([])
 async function loadMyShipments() {
   // sender's own parcels across ALL carriers (RLS: sender_user_id = auth.uid())
-  const { data } = await supabase.from('consignment')
-    .select('*, payment(*), driver(name,vehicle), carrier(name,accent,slug,mark)')
-    .order('created_at', { ascending: false })
+  const { data } = await pub.mySenderShipments()
   myParcels.value = (data || []).map(shapeSender)
 }
 function shapeSender(row) {
@@ -59,7 +59,7 @@ async function submit() {
   if (!f.value.receiver || !f.value.receiverPhone) { toast('Receiver name and phone required', 'warn'); return }
   busy.value = true
   try {
-    const { data: code, error } = await supabase.rpc('sender_book', {
+    const { data: code, error } = await pub.senderBook({
       p_carrier_id: f.value.carrierId,
       p_receiver: f.value.receiver, p_receiver_ph: f.value.receiverPhone,
       p_addr: f.value.addr, p_item: f.value.item, p_weight: Number(f.value.weight) || 1,
