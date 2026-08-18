@@ -55,6 +55,7 @@ onMounted(load)
     <BrandMark variant="mark" :height="32" />
     <div class="tb-idblock"><div class="tb-name">My deliveries</div><div class="tb-role">Receiver · {{ profile?.name }}</div></div>
     <div class="tb-spacer"></div>
+    <RouterLink to="/market" class="btn btn-ghost" style="margin-right:8px"><Icon name="box" :size="15" /> Marketplace</RouterLink>
     <button class="btn btn-ghost" @click="logout">Sign out</button>
   </div></div>
 

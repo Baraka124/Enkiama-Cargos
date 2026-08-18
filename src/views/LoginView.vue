@@ -10,7 +10,7 @@ import BrandMark from '../components/BrandMark.vue'
 const router = useRouter()
 const toast = inject('toast')
 const pub = usePublic()
-const { signInEmail, signUpEmail, signUpSender, signUpReceiver, sendPhoneOtp, verifyPhoneOtp, sendPasswordReset, reloadProfile } = useAuth()
+const { signInEmail, signUpEmail, signUpSender, signUpReceiver, signUpDriver, sendPhoneOtp, verifyPhoneOtp, sendPasswordReset, reloadProfile } = useAuth()
 
 // ── auth state (all logic preserved) ──
 const mode = ref('email')            // email | phone
@@ -18,6 +18,7 @@ const role = ref('carrier')          // carrier | driver | sender
 const email = ref(''); const password = ref('')
 const phone = ref(''); const otp = ref(''); const otpSent = ref(false)
 const senderName = ref('')
+const driverName = ref(''); const driverVehicle = ref('')
 const busy = ref(false)
 const showReset = ref(false)
 const signupMode = ref(false)
@@ -28,6 +29,10 @@ async function doEmail() {
   try {
     if (signupMode.value && role.value === 'sender') {
       await signUpSender(email.value, password.value, senderName.value || 'Sender')
+      toast('Account created — check your email to verify, then sign in', 'ok')
+      signupMode.value = false
+    } else if (signupMode.value && role.value === 'driver') {
+      await signUpDriver(email.value, password.value, driverName.value || 'Driver', phone.value || null, driverVehicle.value || null)
       toast('Account created — check your email to verify, then sign in', 'ok')
       signupMode.value = false
     } else if (signupMode.value && role.value === 'receiver') {
@@ -61,13 +66,23 @@ async function doSendOtp() {
 }
 async function doVerify() {
   busy.value = true
-  try { await verifyPhoneOtp(phone.value, otp.value); await reloadProfile(); router.push('/') }
+  try {
+    await verifyPhoneOtp(phone.value, otp.value)
+    // if this is a driver signing up, create their account + connect them
+    // to a carrier's waiting record (or stand up an independent driver)
+    if (role.value === 'driver') {
+      const { useDriver } = await import('../composables/useDriver')
+      const { driverSignup } = useDriver()
+      try { await driverSignup(driverName.value || 'Driver', driverVehicle.value || null) } catch (e) {}
+    }
+    await reloadProfile(); router.push('/')
+  }
   catch (e) { toast(e.message || 'Wrong code', 'warn') }
   busy.value = false
 }
 function pickRole(r) {
   role.value = r
-  mode.value = (r === 'driver') ? 'phone' : 'email'
+  mode.value = 'email'   // all roles use email+password now (phone OTP needs SMS provider)
   signupMode.value = false; showReset.value = false; otpSent.value = false
 }
 
@@ -153,12 +168,10 @@ async function sendFleetApplication() {
         <h1 class="lp-h1">One parcel,<br><span class="grad">one truth.</span></h1>
         <p class="lp-sub">The ledger every road-freight carrier runs on — movement and money, tracked end to end, for every hand that touches the cargo.</p>
 
-        <div class="lp-doors">
-          <button class="lp-door" @click="pickRole('receiver'); scrollToAuth()"><Icon name="inbox" :size="18" /><div><div class="lp-door-t">My deliveries</div><div class="lp-door-s">See all parcels coming to you</div></div></button>
-          <router-link to="/track" class="lp-door"><Icon name="pin" :size="18" /><div><div class="lp-door-t">Quick track</div><div class="lp-door-s">One parcel, no account</div></div></router-link>
-          <router-link to="/market" class="lp-door"><Icon name="box" :size="18" /><div><div class="lp-door-t">Browse the marketplace</div><div class="lp-door-s">Shops that deliver, tracked</div></div></router-link>
-          <button class="lp-door" @click="pickRole('sender'); scrollToAuth()"><Icon name="box" :size="18" /><div><div class="lp-door-t">Send a parcel</div><div class="lp-door-s">Ship via any carrier</div></div></button>
-          <button class="lp-door" @click="showFleet=true"><Icon name="truck" :size="18" /><div><div class="lp-door-t">Operate a fleet</div><div class="lp-door-s">Join as a carrier</div></div></button>
+        <div class="lp-quick">
+          <router-link to="/track" class="lp-quick-link"><Icon name="pin" :size="16" /> Track a parcel</router-link>
+          <router-link to="/market" class="lp-quick-link"><Icon name="box" :size="16" /> Browse the marketplace</router-link>
+          <span class="lp-quick-note">No account needed</span>
         </div>
 
         <div class="lp-stats">
@@ -167,7 +180,7 @@ async function sendFleetApplication() {
           <div class="lp-stat"><div class="lp-sv mono">{{ settledStr }}</div><div class="lp-sl">settled today</div></div>
         </div>
 
-        <!-- live feed — now a proper responsive card, visible on mobile -->
+        <!-- live feed — quiet social proof -->
         <div class="lp-feed">
           <div class="lp-feed-hd"><span class="lp-live"><span class="lp-dot"></span>Live ledger</span></div>
           <transition-group name="feed" tag="div" class="lp-feed-list">
@@ -199,7 +212,12 @@ async function sendFleetApplication() {
               <button class="auth-link" @click="showReset=false">← Back to sign in</button>
             </template>
             <template v-else>
-              <label v-if="signupMode && role==='sender'" class="fld">Your name<input v-model="senderName" placeholder="e.g. Grace M." /></label>
+              <label v-if="signupMode && (role==='sender' || role==='receiver')" class="fld">Your name<input v-model="senderName" placeholder="e.g. Grace M." /></label>
+              <template v-if="signupMode && role==='driver'">
+                <label class="fld">Your name<input v-model="driverName" placeholder="e.g. Juma Hassan" /></label>
+                <label class="fld">Phone <span class="fld-opt">links you to your carrier</span><input v-model="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+255 7XX XXX XXX" /></label>
+                <label class="fld">Vehicle <span class="fld-opt">optional</span><input v-model="driverVehicle" placeholder="e.g. Motorbike T123 ABC" /></label>
+              </template>
               <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@carrier.co.tz" @keyup.enter="doEmail" /></label>
               <label class="fld">Password<input v-model="password" type="password" autocomplete="current-password" placeholder="••••••••" @keyup.enter="doEmail" /></label>
               <button class="auth-btn" :disabled="busy" @click="doEmail">
@@ -215,6 +233,10 @@ async function sendFleetApplication() {
           <!-- PHONE flow (driver) -->
           <template v-else>
             <template v-if="!otpSent">
+              <template v-if="role==='driver'">
+                <label class="fld">Your name<input v-model="driverName" placeholder="e.g. Juma Hassan" /></label>
+                <label class="fld">Vehicle <span class="fld-opt">optional</span><input v-model="driverVehicle" placeholder="e.g. Motorbike T123 ABC" /></label>
+              </template>
               <label class="fld">Phone number<input v-model="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+255 7XX XXX XXX" @keyup.enter="doSendOtp" /></label>
               <button class="auth-btn" :disabled="busy" @click="doSendOtp"><Spinner v-if="busy" :size="16" /><span v-else>Send code</span></button>
               <p class="auth-note">We'll text you a one-time code to sign in.</p>
@@ -230,6 +252,7 @@ async function sendFleetApplication() {
             <Icon name="box" :size="13" /> Receiving a parcel? Just open the tracking link your sender shared — no account needed.
           </div>
         </div>
+        <button class="lp-fleet-link" @click="showFleet=true"><Icon name="truck" :size="14" /> Operate a fleet? Apply to join as a carrier</button>
       </section>
     </div>
 
@@ -276,14 +299,14 @@ async function sendFleetApplication() {
 .lp-dot{width:7px;height:7px;border-radius:50%;background:var(--go);animation:pl 1.8s infinite}
 @keyframes pl{0%{box-shadow:0 0 0 0 var(--go-soft)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
 
-.lp-grid{max-width:1140px;margin:0 auto;padding:12px 20px;display:grid;gap:28px;grid-template-columns:1fr}
-@media(min-width:920px){.lp-grid{grid-template-columns:1.1fr .9fr;gap:48px;align-items:start;padding-top:40px}}
+.lp-grid{max-width:1080px;margin:0 auto;padding:32px 24px 60px;display:grid;gap:36px;grid-template-columns:1fr}
+@media(min-width:920px){.lp-grid{grid-template-columns:1fr .85fr;gap:64px;align-items:center;padding-top:72px}}
 
 .lp-h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(38px,11vw,64px);line-height:1.02;letter-spacing:-.03em;color:var(--ink);margin-top:8px}
 .grad{background:linear-gradient(100deg,var(--accent),var(--go));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.lp-sub{color:var(--ink-soft);font-size:15.5px;line-height:1.6;margin-top:16px;max-width:34em}
+.lp-sub{color:var(--ink-soft);font-size:16px;line-height:1.65;margin-top:20px;max-width:32em}
 
-.lp-stats{display:flex;gap:26px;margin-top:26px;flex-wrap:wrap}
+.lp-stats{display:flex;gap:32px;margin-top:36px;flex-wrap:wrap;padding-top:28px;border-top:1px solid var(--hairline)}
 .lp-sv{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;color:var(--ink);letter-spacing:-.02em}
 .lp-sv.mono{font-size:18px}
 .lp-sl{font-size:12px;color:var(--ink-faint);margin-top:3px}
@@ -325,4 +348,11 @@ async function sendFleetApplication() {
 .auth-note{font-size:12.5px;color:var(--ink-faint);margin:12px 2px 0;line-height:1.5}
 .auth-foot{margin-top:20px;padding-top:16px;border-top:1px solid var(--hairline);font-size:12px;color:var(--ink-faint);line-height:1.5;display:flex;gap:8px;align-items:flex-start}
 .auth-foot svg{flex-shrink:0;margin-top:1px;color:var(--ink-ghost)}
+
+.lp-quick{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:28px}
+.lp-quick-link{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:600;color:var(--accent-ink);text-decoration:none;padding:9px 16px;border:1px solid var(--hairline-2);border-radius:var(--r-full);transition:all var(--dur-fast) var(--ease)}
+.lp-quick-link:hover{border-color:var(--accent);background:var(--accent-soft)}
+.lp-quick-note{font-size:13px;color:var(--ink-faint)}
+.lp-fleet-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:14px;padding:12px;background:none;border:none;color:var(--ink-faint);font-size:13.5px;font-family:inherit;cursor:pointer;border-radius:var(--r);transition:color var(--dur-fast) var(--ease)}
+.lp-fleet-link:hover{color:var(--accent-ink)}
 </style>

@@ -4,6 +4,9 @@
 import { supabase } from '../lib/supabase'
 
 export function useDriver() {
+  const registerDriver = (name, phone, vehicle) => supabase.rpc('register_driver', { p_name: name, p_phone: phone, p_vehicle: vehicle || null })
+  const driverSignup = (name, vehicle) => supabase.rpc('driver_signup', { p_name: name || null, p_vehicle: vehicle || null })
+  const mySpace = () => supabase.rpc('my_driver_space')
   const availableParcels = () => supabase.rpc('available_parcels')
   const claimParcel = (code) => supabase.rpc('claim_parcel', { p_code: code })
   const setNegotiatedFee = (code, fee) =>
@@ -20,5 +23,5 @@ export function useDriver() {
   const deliverParcel = (code, note = 'Delivered', receivedBy = null, relation = null) =>
     supabase.rpc('deliver_parcel_v2', { p_code: code, p_note: note, p_received_by: receivedBy, p_relation: relation })
 
-  return { availableParcels, claimParcel, setNegotiatedFee, uploadPodPhoto, attachPodPhoto, deliverParcel }
+  return { registerDriver, driverSignup, mySpace, availableParcels, claimParcel, setNegotiatedFee, uploadPodPhoto, attachPodPhoto, deliverParcel }
 }

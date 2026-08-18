@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorefront } from '../composables/useStorefront'
 import { useAuth } from '../composables/useAuth'
@@ -18,11 +18,12 @@ const sf = useStorefront()
 
 const store = ref(null)
 const products = ref([])
+const setupIncomplete = computed(() => products.value.length === 0 || !selectedCarrier.value)
 const loading = ref(true)
 const saving = ref(false)
 
 const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#C08A2D' })
-const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'', section_id:'' })
+const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'', section_id:'', category:'' })
 const sections = ref([])
 const newSection = ref('')
 async function loadSections() {
@@ -92,11 +93,11 @@ async function addProduct() {
   if (!store.value) { toast('Save your storefront first', 'warn'); return }
   const { error } = await sf.addProduct({
     storefront_id: store.value.id, name: newProd.value.name,
-    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, image_url: newProd.value.image_url || null, section_id: newProd.value.section_id || null,
+    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, image_url: newProd.value.image_url || null, section_id: newProd.value.section_id || null, category: newProd.value.category || null,
   })
   if (error) { toast(error.message, 'warn'); return }
   toast('Product added', 'ok')
-  newProd.value = { name:"", description:"", price_tzs:"", image_url:"", section_id:"" }
+  newProd.value = { name:"", description:"", price_tzs:"", image_url:"", section_id:"", category:"" }
   await load()
 }
 async function delProduct(id) {
@@ -119,6 +120,28 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
   <div class="wrap" style="max-width:760px">
     <Skeleton v-if="loading" variant="line" :count="6" />
     <template v-else>
+      <!-- FIRST-RUN WELCOME — only for a brand-new business with no shop yet -->
+      <div v-if="!store" class="biz-welcome">
+        <div class="biz-welcome-badge"><Icon name="box" :size="22" /></div>
+        <h1>Welcome to Enkiama Cargos</h1>
+        <p>Let's get your shop live. In three steps you'll be selling with tracked delivery built in — every order ships through a real carrier and both you and your buyer follow it end to end.</p>
+        <div class="biz-steps">
+          <div class="biz-step"><span class="biz-step-n">1</span><div><b>Open your shop</b><span>Name, handle, and what you sell — just below.</span></div></div>
+          <div class="biz-step"><span class="biz-step-n">2</span><div><b>Add products &amp; a carrier</b><span>List items with photos, pick who delivers.</span></div></div>
+          <div class="biz-step"><span class="biz-step-n">3</span><div><b>Share your shop link</b><span>Buyers order, orders ship tracked.</span></div></div>
+        </div>
+      </div>
+
+      <!-- SETUP PROGRESS — once a shop exists, show what's left to do -->
+      <div v-else-if="setupIncomplete" class="biz-progress">
+        <div class="biz-progress-h"><Icon name="check" :size="14" /> Finish setting up your shop</div>
+        <div class="biz-checks">
+          <span class="biz-check done"><Icon name="check" :size="13" /> Shop created</span>
+          <span class="biz-check" :class="{done: products.length>0}"><Icon name="check" :size="13" /> {{ products.length>0 ? 'Products added' : 'Add your first product' }}</span>
+          <span class="biz-check" :class="{done: !!selectedCarrier}"><Icon name="check" :size="13" /> {{ selectedCarrier ? 'Carrier chosen' : 'Choose a carrier' }}</span>
+        </div>
+      </div>
+
       <div class="psec-head"><div><h2 class="psec-title">{{ store ? 'Edit your storefront' : 'Open your storefront' }}</h2><span class="psec-sub">Your public page on the marketplace — products shipped with tracked delivery.</span></div></div>
 
       <div class="mgr-card">
@@ -179,6 +202,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
               <div class="fg"><label>Price (TZS)</label><input v-model="newProd.price_tzs" type="number" inputmode="numeric" placeholder="45000" /></div>
             </div>
             <div class="fg"><label>Description</label><input v-model="newProd.description" placeholder="Premium wax print" /></div>
+            <div class="fg"><label>Category <span class="fld-opt">helps buyers find it</span></label><input v-model="newProd.category" list="cat-suggestions" placeholder="e.g. Fabric, Electronics, Food" /><datalist id="cat-suggestions"><option>Fabric</option><option>Electronics</option><option>Food &amp; Spices</option><option>Beauty</option><option>Home</option><option>Clothing</option><option>Accessories</option></datalist></div>
             <div v-if="sections.length" class="fg"><label>Section</label>
               <select v-model="newProd.section_id">
                 <option value="">No section</option>

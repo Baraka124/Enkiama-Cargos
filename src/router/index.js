@@ -37,6 +37,7 @@ router.beforeEach(async (to) => {
     const r = profile.value?.role
     if (r === 'driver') return { name: 'driver' }
     if (r === 'sender') return { name: 'send' }
+    if (r === 'receiver') return { name: 'deliveries' }
     if (r === 'carrier_admin' || r === 'dispatch') return { name: 'dispatch' }
     return { name: 'no-profile' }
   }
@@ -65,7 +66,7 @@ router.beforeEach(async (to) => {
 
   // role-scoped routes
   if (to.meta.roles && role && !to.meta.roles.includes(role)) {
-    const home = role === 'driver' ? 'driver' : role === 'sender' ? 'send' : 'dispatch'
+    const home = role === 'driver' ? 'driver' : role === 'sender' ? 'send' : role === 'receiver' ? 'deliveries' : 'dispatch'
     return to.name === home ? true : { name: home }
   }
   return true

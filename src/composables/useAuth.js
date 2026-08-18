@@ -84,6 +84,11 @@ async function signUpSender(email, password, name) {
 async function signUpReceiver(email, password, name) {
   return signUpEmail(email, password, { intent: 'receiver', name })
 }
+async function signUpDriver(email, password, name, phone, vehicle) {
+  // proper email+password driver account. The trigger connects them to a
+  // carrier's waiting record by phone, or stands up an independent driver.
+  return signUpEmail(email, password, { intent: 'driver', name, phone, vehicle })
+}
 async function sendPhoneOtp(phone) {
   const { error } = await supabase.auth.signInWithOtp({ phone })
   if (error) throw humanizeAuthError(error)
@@ -154,7 +159,7 @@ export function useAuth() {
       if (r === 'carrier_admin' || r === 'dispatch') return '/dispatch'
       return null
     }),
-    init, signInEmail, signUpEmail, signUpSender, signUpReceiver, sendPhoneOtp, verifyPhoneOtp,
+    init, signInEmail, signUpEmail, signUpSender, signUpReceiver, signUpDriver, sendPhoneOtp, verifyPhoneOtp,
     sendPasswordReset, updatePassword, resendVerification, updateMyProfile,
     signOut, signOutEverywhere, reloadProfile: loadProfile, setHat,
   }

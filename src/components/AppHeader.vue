@@ -1,13 +1,15 @@
 <script setup>
 // Shared premium header — one consistent, branded top bar for every screen.
-// Left: brand/context. Right: slot for actions. Optional live pulse.
+// Left: brand/context. Right: a built-in Marketplace link + slot for actions.
 import BrandMark from './BrandMark.vue'
 import CarrierMark from './CarrierMark.vue'
+import Icon from './Icon.vue'
 defineProps({
   title: { type: String, default: 'Enkiama Cargos' },
   subtitle: { type: String, default: '' },
   carrier: { type: Object, default: null },   // when set, shows CarrierMark
   live: { type: Boolean, default: false },
+  market: { type: Boolean, default: true },   // show the Marketplace link (default on)
 })
 </script>
 
@@ -23,7 +25,10 @@ defineProps({
         </div>
         <span v-if="live" class="ah-live"><span class="ah-live-dot"></span>Live</span>
       </div>
-      <div class="ah-actions"><slot /></div>
+      <div class="ah-actions">
+        <RouterLink v-if="market" to="/market" class="btn btn-ghost ah-market"><Icon name="box" :size="15" /> <span class="ah-market-t">Marketplace</span></RouterLink>
+        <slot />
+      </div>
     </div>
   </header>
 </template>
@@ -42,5 +47,6 @@ defineProps({
 @media(max-width:640px){
   .ah-inner{padding:var(--s3) var(--s4)}
   .ah-sub{display:none}
+  .ah-market-t{display:none}
 }
 </style>

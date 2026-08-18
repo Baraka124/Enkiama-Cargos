@@ -45,6 +45,18 @@ const orderForm = ref({ name: '', phone: '', addr: '', qty: 1 })
 const ordering = ref(false)
 const orderCode = ref('')
 function openOrder(p) { orderProduct.value = p; orderCode.value = ''; orderForm.value = { name:'', phone:'', addr:'', qty:1 } }
+
+function shareShop() {
+  const url = window.location.href
+  const text = `Check out ${store.value?.name} on Enkiama Cargos — order with tracked delivery: ${url}`
+  // native share sheet on mobile surfaces WhatsApp directly
+  if (navigator.share) {
+    navigator.share({ title: store.value?.name, text, url }).catch(() => {})
+  } else {
+    // desktop fallback: open WhatsApp web with the message prefilled
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+  }
+}
 async function placeOrder() {
   if (!orderForm.value.name || !orderForm.value.phone || !orderForm.value.addr) return
   ordering.value = true
@@ -123,6 +135,7 @@ onMounted(load)
           <div class="sf-trust-h">Every order tracked</div>
           <p class="sf-trust-p">Orders from {{ store.name }} ship through platform carriers with end-to-end tracking and cash-on-delivery — you see every step.</p>
           <a v-if="store.phone" :href="`tel:${store.phone}`" class="btn btn-accent btn-block btn-lg"><Icon name="phone" :size="16" /> Contact shop</a>
+          <button class="btn btn-ghost btn-block sf-share" @click="shareShop"><Icon name="box" :size="15" /> Share this shop</button>
           <RouterLink to="/track" class="btn btn-ghost btn-block">Track an order</RouterLink>
         </div>
       </aside>

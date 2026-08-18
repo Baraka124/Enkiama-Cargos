@@ -7,6 +7,10 @@ import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
 
 const stores = ref([])
+const products = ref([])
+const categories = ref([])
+const view = ref('shops')   // shops | products
+const activeCategory = ref('')
 const loading = ref(true)
 const pub = usePublic()
 const { session } = useAuth()
@@ -18,14 +22,25 @@ let searchTimer = null
 
 async function load() {
   loading.value = true
-  const { data } = await pub.browseStorefrontsV2(corridor.value, search.value, sort.value)
-  stores.value = data || []
+  if (view.value === 'shops') {
+    const { data } = await pub.browseStorefrontsV2(corridor.value, search.value, sort.value)
+    stores.value = data || []
+  } else {
+    const { data } = await pub.searchProducts(search.value, activeCategory.value, corridor.value)
+    products.value = data || []
+  }
   loading.value = false
 }
+async function loadCategories() {
+  const { data } = await pub.productCategories()
+  categories.value = data || []
+}
+function setView(v) { view.value = v; load() }
+function setCategory(c) { activeCategory.value = activeCategory.value === c ? '' : c; view.value = 'products'; load() }
 function filterCorridor(c) { corridor.value = corridor.value === c ? '' : c; load() }
 function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300) }
 function setSort(s) { sort.value = s; load() }
-onMounted(load)
+onMounted(() => { load(); loadCategories() })
 </script>
 
 <template>
@@ -45,6 +60,10 @@ onMounted(load)
         <input v-model="search" @input="onSearch" placeholder="Search shops or products — kitenge, phones, spices…" aria-label="Search the marketplace" />
       </div>
 
+      <div v-if="categories.length" class="mk-cats">
+        <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">{{ c.category }} <span class="mk-cat-n">{{ c.count }}</span></button>
+      </div>
+
       <div class="mk-corridors">
         <span class="mk-corr-lab">Delivers to:</span>
         <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c }}</button>
@@ -52,15 +71,42 @@ onMounted(load)
     </section>
 
     <div class="mk-toolbar">
-      <span class="mk-count">{{ stores.length }} shop{{ stores.length===1?'':'s' }}</span>
-      <div class="mk-sort">
+      <div class="mk-viewtoggle">
+        <button class="mk-vt" :class="{on:view==='shops'}" @click="setView('shops')"><Icon name="building" :size="14" /> Shops</button>
+        <button class="mk-vt" :class="{on:view==='products'}" @click="setView('products')"><Icon name="package" :size="14" /> Products</button>
+      </div>
+      <div v-if="view==='shops'" class="mk-sort">
         <button class="mk-sort-b" :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
         <button class="mk-sort-b" :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
         <button class="mk-sort-b" :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
       </div>
+      <span v-else class="mk-count">{{ products.length }} product{{ products.length===1?'':'s' }}</span>
     </div>
 
-    <div v-if="loading" class="mk-grid">
+    <!-- PRODUCTS VIEW -->
+    <div v-if="view==='products'">
+      <div v-if="loading" class="mk-pgrid">
+        <div v-for="i in 4" :key="i" class="mk-pcard sk"></div>
+      </div>
+      <EmptyState v-else-if="!products.length" icon="package" title="No products found" hint="Try a different search or category." />
+      <div v-else class="mk-pgrid">
+        <RouterLink v-for="p in products" :key="p.id" :to="`/shop/${p.shop_slug}`" class="mk-pcard">
+          <div class="mk-pimg" :style="p.image_url ? {backgroundImage:`url(${p.image_url})`} : {background:p.shop_accent}">
+            <span v-if="!p.image_url" class="mk-pimg-ph">{{ p.name.slice(0,1) }}</span>
+          </div>
+          <div class="mk-pbody">
+            <div class="mk-pname">{{ p.name }}</div>
+            <div class="mk-pshop">{{ p.shop_name }}<Icon v-if="p.verified_delivery" name="check" :size="11" /></div>
+            <div class="mk-pfoot">
+              <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
+              <span v-if="p.delivered_count>0" class="mk-pdel">{{ p.delivered_count }} delivered</span>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+    </div>
+
+    <div v-else-if="loading" class="mk-grid">
       <div v-for="i in 3" :key="i" class="mk-card sk"></div>
     </div>
     <EmptyState v-else-if="!stores.length" icon="search" title="No shops here yet" :hint="corridor ? `No storefronts delivering to ${corridor} yet.` : 'Be the first business on the marketplace.'" />
@@ -77,6 +123,7 @@ onMounted(load)
         <div class="mk-meta">
           <span v-if="s.verified_delivery" class="mk-verified"><Icon name="check" :size="13" /> Verified delivery</span>
           <span v-if="s.avg_rating" class="mk-rating"><Icon name="star" :size="13" /> {{ s.avg_rating }} <span class="mk-rc">({{ s.review_count }})</span></span>
+          <span v-if="s.delivered_count > 0" class="mk-delivered"><Icon name="truck" :size="12" /> {{ s.delivered_count }} delivered</span>
         </div>
         <div class="mk-foot">
           <span class="mk-prods">{{ s.product_count }} product{{ s.product_count===1?'':'s' }}</span>
@@ -144,4 +191,26 @@ onMounted(load)
 .mk-sort{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
 .mk-sort-b{padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:550;transition:all var(--dur-fast) var(--ease)}
 .mk-sort-b.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
+.mk-delivered{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--go-ink);font-weight:600;background:var(--go-soft);padding:3px 8px;border-radius:var(--r-full)}
+
+.mk-cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.mk-cat{padding:7px 14px;border:1px solid var(--hairline-2);border-radius:var(--r-full);background:var(--surface);font-size:var(--t-sm);font-family:inherit;cursor:pointer;color:var(--ink-soft);font-weight:550;transition:all var(--dur-fast) var(--ease)}
+.mk-cat.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mk-cat-n{opacity:.6;font-size:var(--t-xs)}
+.mk-viewtoggle{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
+.mk-vt{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:600;transition:all var(--dur-fast) var(--ease)}
+.mk-vt.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
+.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;max-width:1000px;margin:0 auto;padding:0 4px}
+.mk-pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
+.mk-pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.mk-pcard.sk{height:280px;background:var(--surface-2);animation:pulse 1.5s ease-in-out infinite}
+.mk-pimg{height:150px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
+.mk-pimg-ph{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:rgba(255,255,255,.7)}
+.mk-pbody{padding:12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.mk-pname{font-weight:650;font-size:var(--t-base);color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mk-pshop{display:flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--ink-faint)}
+.mk-pshop :deep(svg){color:var(--go-ink)}
+.mk-pfoot{margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.mk-pprice{font-weight:700;font-size:var(--t-base);color:var(--ink)}
+.mk-pdel{font-size:10px;color:var(--go-ink);font-weight:600;white-space:nowrap}
 </style>

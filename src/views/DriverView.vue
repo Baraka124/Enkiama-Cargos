@@ -158,7 +158,11 @@ function navigateTo(p) {
   window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank')
 }
 
-onMounted(async () => { await fetchAll(); await loadAvailable(); subscribe(); await nextTick(); renderMap() })
+const space = ref(null)
+async function loadSpace() {
+  try { const { data } = await drv.mySpace(); space.value = data } catch (e) {}
+}
+onMounted(async () => { await fetchAll(); await loadAvailable(); await loadSpace(); subscribe(); await nextTick(); renderMap() })
 onUnmounted(() => { unsubscribe(); if (map) { map.remove(); map = null } })
 watch(pending, async () => { await nextTick(); renderMap() })
 
@@ -216,6 +220,13 @@ async function logout(){ await signOut(); router.push('/login') }
   </AppHeader>
 
   <div class="wrap">
+    <div v-if="space" class="drv-stats">
+      <div class="drv-stat"><div class="drv-stat-n">{{ space.active_tasks }}</div><div class="drv-stat-l">Active tasks</div></div>
+      <div class="drv-stat"><div class="drv-stat-n">{{ space.delivered_total }}</div><div class="drv-stat-l">Delivered</div></div>
+      <div class="drv-stat"><div class="drv-stat-n">{{ fmtTZS(space.fees_earned) }}</div><div class="drv-stat-l">Fees earned</div></div>
+      <div class="drv-stat" :class="{alert: space.cash_to_remit>0}"><div class="drv-stat-n">{{ fmtTZS(space.cash_to_remit) }}</div><div class="drv-stat-l">Cash to remit</div></div>
+    </div>
+
     <div id="drvmap" class="map"></div>
 
     <div v-if="nextStop" class="nextstop">
@@ -296,6 +307,20 @@ async function logout(){ await signOut(); router.push('/login') }
 
     <div class="sec"><h2>Your run today</h2><span class="ln"></span></div>
     <ConsignmentCard v-for="p in mine" :key="p.id" :p="p" />
+
+    <template v-if="space && space.history && space.history.length">
+      <div class="sec"><h2>Delivery history</h2><span class="ln"></span></div>
+      <div class="drv-history">
+        <div v-for="h in space.history" :key="h.code" class="drv-hrow">
+          <div class="drv-hic"><Icon name="check" :size="14" /></div>
+          <div style="flex:1;min-width:0">
+            <div class="drv-htop"><span class="mono">{{ h.code }}</span> · {{ h.item }}</div>
+            <div class="drv-hsub">{{ h.receiver }}<span v-if="h.received_by && h.received_by!==h.receiver"> · received by {{ h.received_by }}</span> · {{ h.dest }}</div>
+          </div>
+          <div class="drv-hdate">{{ h.pod_at ? new Date(h.pod_at).toLocaleDateString() : '' }}</div>
+        </div>
+      </div>
+    </template>
   </div>
 
   <!-- PROOF OF DELIVERY MODAL -->
