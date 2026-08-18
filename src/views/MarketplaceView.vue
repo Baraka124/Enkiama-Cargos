@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { usePublic } from '../composables/usePublic'
+import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -8,16 +9,22 @@ import EmptyState from '../components/EmptyState.vue'
 const stores = ref([])
 const loading = ref(true)
 const pub = usePublic()
+const { session } = useAuth()
 const corridor = ref('')
 const corridors = ['Mbeya', 'Arusha', 'Mwanza', 'Dodoma', 'Dar es Salaam']
+const search = ref('')
+const sort = ref('recommended')
+let searchTimer = null
 
 async function load() {
   loading.value = true
-  const { data } = await pub.browseStorefronts(corridor.value)
+  const { data } = await pub.browseStorefrontsV2(corridor.value, search.value, sort.value)
   stores.value = data || []
   loading.value = false
 }
 function filterCorridor(c) { corridor.value = corridor.value === c ? '' : c; load() }
+function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300) }
+function setSort(s) { sort.value = s; load() }
 onMounted(load)
 </script>
 
@@ -25,17 +32,33 @@ onMounted(load)
   <div class="mk">
     <header class="mk-head">
       <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="34" /></RouterLink>
-      <RouterLink to="/login" class="btn btn-ghost">Sign in</RouterLink>
+      <RouterLink v-if="session" to="/" class="btn btn-ghost">← My dashboard</RouterLink>
+      <RouterLink v-else to="/login" class="btn btn-ghost">Sign in</RouterLink>
     </header>
 
     <section class="mk-hero">
       <h1 class="mk-h1">Shops that <span class="grad">deliver</span>, tracked.</h1>
       <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
+
+      <div class="mk-searchbar">
+        <Icon name="search" :size="18" class="mk-search-ic" />
+        <input v-model="search" @input="onSearch" placeholder="Search shops or products — kitenge, phones, spices…" aria-label="Search the marketplace" />
+      </div>
+
       <div class="mk-corridors">
         <span class="mk-corr-lab">Delivers to:</span>
         <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c }}</button>
       </div>
     </section>
+
+    <div class="mk-toolbar">
+      <span class="mk-count">{{ stores.length }} shop{{ stores.length===1?'':'s' }}</span>
+      <div class="mk-sort">
+        <button class="mk-sort-b" :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
+        <button class="mk-sort-b" :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
+        <button class="mk-sort-b" :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
+      </div>
+    </div>
 
     <div v-if="loading" class="mk-grid">
       <div v-for="i in 3" :key="i" class="mk-card sk"></div>
@@ -111,4 +134,14 @@ onMounted(load)
 .mk-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .mk-delivers{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
 .mk-prods{font-size:var(--t-sm);color:var(--ink-soft);font-weight:550;white-space:nowrap}
+
+.mk-searchbar{position:relative;max-width:520px;margin:22px auto 0}
+.mk-search-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ink-faint);pointer-events:none}
+.mk-searchbar input{width:100%;padding:14px 16px 14px 46px;border:1px solid var(--hairline-2);border-radius:var(--r-full);font-size:var(--t-base);background:var(--surface);box-shadow:var(--shadow-sm)}
+.mk-searchbar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.mk-toolbar{max-width:1000px;margin:26px auto 14px;padding:0 4px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mk-count{font-size:var(--t-sm);color:var(--ink-faint);font-weight:550}
+.mk-sort{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
+.mk-sort-b{padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:550;transition:all var(--dur-fast) var(--ease)}
+.mk-sort-b.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
 </style>

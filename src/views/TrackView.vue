@@ -114,10 +114,10 @@ onMounted(() => { if (code.value) track() })
 
 <template>
   <div class="topbar"><div class="inner">
-    <div class="tb-mark">{{ (parcel?.carrier || 'EC').slice(0,2).toUpperCase() }}</div>
+    <BrandMark variant="mark" :height="34" />
     <div><div class="tb-name">{{ parcel?.carrier || 'Enkiama Cargos' }}</div><div class="tb-role">Track your parcel</div></div>
     <div class="tb-spacer"></div>
-    <div class="tb-enk">powered by<br><BrandMark variant="mark" :height="20" style="margin-top:3px" /></div>
+    <RouterLink to="/market" class="btn btn-ghost tb-back">Marketplace</RouterLink>
   </div></div>
 
   <div class="wrap" style="max-width:560px">

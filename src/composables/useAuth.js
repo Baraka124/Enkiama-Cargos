@@ -24,7 +24,19 @@ async function loadProfile() {
   const uid = session.value.user.id
   const { data: pa } = await supabase.from('platform_admin').select('user_id').eq('user_id', uid).maybeSingle()
   isPlatformAdmin.value = !!pa
-  const { data: prof } = await supabase.from('profile').select('*').eq('user_id', uid).maybeSingle()
+  let { data: prof } = await supabase.from('profile').select('*').eq('user_id', uid).maybeSingle()
+  // No profile yet but signed in with a phone? Try to connect them to a
+  // driver record their carrier already created — this is how a driver
+  // gets their account (the previously-missing onboarding link).
+  if (!prof && session.value.user.phone) {
+    try {
+      const { data: link } = await supabase.rpc('connect_driver_account')
+      if (link?.linked) {
+        const { data: p2 } = await supabase.from('profile').select('*').eq('user_id', uid).maybeSingle()
+        prof = p2
+      }
+    } catch (e) { /* non-fatal */ }
+  }
   profile.value = prof || null
   if (prof?.carrier_id) {
     const { data: car } = await supabase.from('carrier').select('*').eq('id', prof.carrier_id).maybeSingle()

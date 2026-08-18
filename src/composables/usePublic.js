@@ -17,6 +17,8 @@ export function usePublic() {
 
   // marketplace + storefront
   const browseStorefronts = (corridor) => supabase.rpc('browse_storefronts', { p_corridor: corridor || null })
+  const browseStorefrontsV2 = (corridor, search, sort) =>
+    supabase.rpc('browse_storefronts_v2', { p_corridor: corridor || null, p_search: search || null, p_sort: sort || 'recommended' })
   const getStorefront = (slug) => supabase.rpc('get_storefront', { p_slug: slug })
   const placeOrder = (args) => supabase.rpc('place_order', args)
 
@@ -30,7 +32,7 @@ export function usePublic() {
   return {
     track, confirmReceipt, leaveReview, reschedule, report,
     myDeliveries, claimReceiverPhone,
-    browseStorefronts, getStorefront, placeOrder,
+    browseStorefronts, browseStorefrontsV2, getStorefront, placeOrder,
     activeCarriers, senderBook, mySenderShipments, applyAsCarrier,
   }
 }
