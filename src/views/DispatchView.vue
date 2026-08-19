@@ -130,6 +130,19 @@ async function submitBooking() {
 
 // team management (carrier admin only)
 const newDriver = ref({ name: '', phone: '', vehicle: 'bajaji' })
+const inviteLink = ref('')
+const genBusy = ref(false)
+async function generateDriverLink() {
+  genBusy.value = true
+  try {
+    const { data } = await disp.createDriverInvite(newDriver.value.name, newDriver.value.phone)
+    if (data?.ok) {
+      inviteLink.value = data.link
+      try { await navigator.clipboard.writeText(data.link) ; toast('Invite link copied — send it to your driver', 'ok') } catch(e){ toast('Invite link ready', 'ok') }
+    } else { toast(data?.error || 'Could not create link', 'warn') }
+  } catch (e) { toast('Could not create link', 'warn') }
+  genBusy.value = false
+}
 const newStaff = ref({ email: '' })
 const savingTeam = ref(false)
 
@@ -553,9 +566,9 @@ function fmtWhen(ts) {
             </div>
           </div>
           <div class="cust-stats">
-            <div class="cust-stat"><span class="cst-v">{{ c.parcels }}</span><span class="cst-l">parcels</span></div>
-            <div class="cust-stat"><span class="cst-v go">{{ c.delivered }}</span><span class="cst-l">delivered</span></div>
-            <div class="cust-stat" v-if="c.cash_outstanding"><span class="cst-v owed">{{ fmtTZS(c.cash_outstanding) }}</span><span class="cst-l">owed</span></div>
+            <div class="cust-stat"><span class="cst-v mono">{{ c.parcels }}</span><span class="cst-l">Parcels</span></div>
+            <div class="cust-stat"><span class="cst-v mono">{{ c.delivered }}</span><span class="cst-l">Delivered</span></div>
+            <div class="cust-stat"><span class="cst-v mono" :class="{owed:c.cash_outstanding}">{{ c.cash_outstanding ? fmtTZS(c.cash_outstanding) : '—' }}</span><span class="cst-l">Owed</span></div>
           </div>
           <div v-if="c.default_addr" class="cust-addr"><Icon name="pin" :size="12" /> {{ c.default_addr }}</div>
         </div>
@@ -609,6 +622,14 @@ function fmtWhen(ts) {
           <select v-model="newDriver.vehicle"><option>bajaji</option><option>bodaboda</option><option>toctoc</option><option>pickup</option><option>truck</option></select>
         </div>
         <button class="btn btn-accent" :disabled="savingTeam" @click="addDriver">Add driver</button>
+
+        <div class="invite-divider"><span>or invite them to self-register</span></div>
+        <div class="sub" style="margin-bottom:10px">Send a driver this link. They set their own password and are automatically added to your Drivers book.</div>
+        <button class="btn btn-ghost" :disabled="genBusy" @click="generateDriverLink"><Icon name="link" :size="15" /> Generate driver invite link</button>
+        <div v-if="inviteLink" class="invite-link-box">
+          <input :value="inviteLink" readonly @click="$event.target.select()" />
+          <button class="btn btn-accent" @click="() => { navigator.clipboard.writeText(inviteLink); toast('Copied','ok') }">Copy</button>
+        </div>
       </div>
 
       <div class="sec"><h2>Cash held by drivers</h2><span class="ln"></span></div>

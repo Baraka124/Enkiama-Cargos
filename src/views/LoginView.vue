@@ -18,6 +18,8 @@ const role = ref('carrier')          // carrier | driver | sender
 const email = ref(''); const password = ref('')
 const phone = ref(''); const otp = ref(''); const otpSent = ref(false)
 const senderName = ref('')
+const bizLocation = ref('')
+const bizTin = ref('')
 const driverName = ref(''); const driverVehicle = ref('')
 const busy = ref(false)
 const showReset = ref(false)
@@ -28,7 +30,7 @@ async function doEmail() {
   busy.value = true
   try {
     if (signupMode.value && role.value === 'sender') {
-      await signUpSender(email.value, password.value, senderName.value || 'Sender')
+      await signUpSender(email.value, password.value, senderName.value || 'Business', bizLocation.value, bizTin.value)
       toast('Account created — check your email to verify, then sign in', 'ok')
       signupMode.value = false
     } else if (signupMode.value && role.value === 'driver') {
@@ -227,7 +229,12 @@ async function sendFleetApplication() {
               <button class="auth-link" @click="showReset=false">← Back to sign in</button>
             </template>
             <template v-else>
-              <label v-if="signupMode && (role==='sender' || role==='receiver')" class="fld">Your name<input v-model="senderName" placeholder="e.g. Grace M." /></label>
+              <label v-if="signupMode && role==='receiver'" class="fld">Your name<input v-model="senderName" placeholder="e.g. Grace M." /></label>
+              <template v-if="signupMode && role==='sender'">
+                <label class="fld">Business name<input v-model="senderName" placeholder="e.g. Amina's Fabrics" /></label>
+                <label class="fld">Location<input v-model="bizLocation" placeholder="e.g. Kariakoo, Dar es Salaam" /></label>
+                <label class="fld">TIN <span class="fld-opt">optional</span><input v-model="bizTin" placeholder="Tax ID (if you have one)" /></label>
+              </template>
               <template v-if="signupMode && role==='driver'">
                 <label class="fld">Your name<input v-model="driverName" placeholder="e.g. Juma Hassan" /></label>
                 <label class="fld">Phone <span class="fld-opt">links you to your carrier</span><input v-model="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+255 7XX XXX XXX" /></label>
@@ -304,35 +311,41 @@ async function sendFleetApplication() {
 </template>
 
 <style scoped>
-.lp{min-height:100vh;background:
-  radial-gradient(1200px 500px at 80% -10%, var(--accent-soft), transparent 60%),
-  var(--paper);padding:0 0 40px}
-.lp-top{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;max-width:1140px;margin:0 auto}
-.lp-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink)}
+.lp{min-height:100vh;position:relative;background:var(--nav);padding:0 0 40px;overflow:hidden}
+.lp::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(900px 600px at 78% -8%, rgba(67,56,202,.35), transparent 60%),
+  radial-gradient(700px 500px at 10% 110%, rgba(55,48,217,.18), transparent 55%),
+  radial-gradient(500px 400px at 95% 90%, rgba(15,157,88,.1), transparent 60%)}
+.lp::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(circle at 30% 40%,black,transparent 75%)}
+.lp>*{position:relative;z-index:1}
+.lp-top{display:flex;align-items:center;justify-content:space-between;padding:22px 24px;max-width:1140px;margin:0 auto}
+.lp-brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:#fff}
 .lp-brand-name{letter-spacing:-.01em}
-.lp-live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--go-ink)}
-.lp-dot{width:7px;height:7px;border-radius:50%;background:var(--go);animation:pl 1.8s infinite}
-@keyframes pl{0%{box-shadow:0 0 0 0 var(--go-soft)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.lp-live{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:6px 12px;border-radius:var(--r-full)}
+.lp-dot{width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 8px #34D399;animation:pl 1.8s infinite}
+@keyframes pl{0%{box-shadow:0 0 0 0 rgba(52,211,153,.5)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
 
 .lp-grid{max-width:1080px;margin:0 auto;padding:32px 24px 60px;display:grid;gap:36px;grid-template-columns:1fr}
 @media(min-width:920px){.lp-grid{grid-template-columns:1fr .85fr;gap:64px;align-items:center;padding-top:72px}}
 
-.lp-h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(38px,11vw,64px);line-height:1.02;letter-spacing:-.03em;color:var(--ink);margin-top:8px}
-.grad{background:linear-gradient(100deg,var(--accent),var(--go));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.lp-sub{color:var(--ink-soft);font-size:16px;line-height:1.65;margin-top:20px;max-width:32em}
+.lp-h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(38px,11vw,64px);line-height:1.02;letter-spacing:-.03em;color:#fff;margin-top:8px}
+.grad{background:linear-gradient(100deg,#818CF8,#34D399);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lp-sub{color:rgba(255,255,255,.62);font-size:16px;line-height:1.65;margin-top:20px;max-width:32em}
 
-.lp-stats{display:flex;gap:32px;margin-top:36px;flex-wrap:wrap;padding-top:28px;border-top:1px solid var(--hairline)}
-.lp-sv{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;color:var(--ink);letter-spacing:-.02em}
+.lp-stats{display:flex;gap:32px;margin-top:36px;flex-wrap:wrap;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)}
+.lp-sv{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;color:#fff;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .lp-sv.mono{font-size:18px}
-.lp-sl{font-size:12px;color:var(--ink-faint);margin-top:3px}
+.lp-sl{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
 
-.lp-feed{margin-top:28px;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.lp-feed{margin-top:28px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;backdrop-filter:blur(8px)}
 .lp-feed-hd{margin-bottom:8px}
 .lp-feed-list{display:flex;flex-direction:column}
-.lp-feed-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13px}
+.lp-feed-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13px}
 .lp-feed-row:last-child{border-bottom:none}
 .lp-code{font-weight:700;font-size:12px;flex-shrink:0;width:64px}
-.lp-who{color:var(--ink-soft);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lp-who{color:rgba(255,255,255,.72);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lp-ev{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:8px;flex-shrink:0}
 .ev-booked{background:var(--surface-2);color:var(--ink-soft)}
 .ev-collected,.ev-linehaul{background:var(--accent-soft);color:var(--accent-ink)}
@@ -366,11 +379,11 @@ async function sendFleetApplication() {
 .auth-foot svg{flex-shrink:0;margin-top:1px;color:var(--ink-ghost)}
 
 .lp-quick{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin-top:28px}
-.lp-quick-link{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--accent-ink);text-decoration:none;padding:9px 16px;border:1px solid var(--hairline-2);border-radius:var(--r-full);transition:all var(--dur-fast) var(--ease)}
+.lp-quick-link{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;padding:10px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:var(--r-full);transition:all var(--dur-fast) var(--ease)}
 .lp-quick-link:hover{border-color:var(--accent);background:var(--accent-soft)}
-.lp-quick-note{font-size:13px;color:var(--ink-faint)}
-.lp-fleet-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:14px;padding:12px;background:none;border:none;color:var(--ink-faint);font-size:13px;font-family:inherit;cursor:pointer;border-radius:var(--r);transition:color var(--dur-fast) var(--ease)}
-.lp-fleet-link:hover{color:var(--accent-ink)}
+.lp-quick-note{font-size:13px;color:rgba(255,255,255,.45)}
+.lp-fleet-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:16px;padding:12px;background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-family:inherit;cursor:pointer;border-radius:var(--r);transition:color var(--dur-fast) var(--ease)}
+.lp-fleet-link:hover{color:#fff}
 .auth-head{margin-bottom:18px}
 .auth-title{font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
 .auth-subtitle{font-size:13px;color:var(--ink-faint);margin-top:3px}

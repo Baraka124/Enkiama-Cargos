@@ -380,19 +380,19 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
         </div>
 
         <div class="pcarrier-stats">
-          <div class="pcs"><span class="pcs-v">{{ c._count }}</span><span class="pcs-l">parcels</span></div>
-          <div class="pcs"><span class="pcs-v" :class="{go:c._onRoad}">{{ c._onRoad }}</span><span class="pcs-l">on road</span></div>
-          <div class="pcs"><span class="pcs-v">{{ c._done }}</span><span class="pcs-l">delivered</span></div>
-          <div class="pcs" v-if="c._issues"><span class="pcs-v owed">{{ c._issues }}</span><span class="pcs-l">failed</span></div>
+          <div class="pcs"><span class="pcs-v mono">{{ c._count }}</span><span class="pcs-l">Parcels</span></div>
+          <div class="pcs"><span class="pcs-v mono">{{ c._onRoad }}</span><span class="pcs-l">On road</span></div>
+          <div class="pcs"><span class="pcs-v mono">{{ c._done }}</span><span class="pcs-l">Delivered</span></div>
+          <div class="pcs"><span class="pcs-v mono" :class="{owed:c._issues}">{{ c._issues || 0 }}</span><span class="pcs-l">Failed</span></div>
         </div>
 
-        <div class="pcarrier-bar"><div class="pcarrier-fill" :style="{ width: c._pct+'%', background: c.accent || 'var(--accent)' }"></div></div>
+        <div class="pcarrier-bar"><div class="pcarrier-fill" :style="{ width: c._pct+'%' }"></div></div>
 
         <div class="pcarrier-foot">
-          <span class="pcarrier-pct">{{ c._pct }}% delivered</span>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-ghost" @click="openDrill(c)"><Icon name="chart" :size="14" /> View</button>
-            <button class="btn btn-ghost" @click="openManage(c)"><Icon name="pen" :size="14" /> Manage</button>
+          <span class="pcarrier-pct"><b>{{ c._pct }}%</b> delivered</span>
+          <div class="pcarrier-actions">
+            <button class="pc-act" @click="openDrill(c)"><Icon name="chart" :size="14" /> View</button>
+            <button class="pc-act primary" @click="openManage(c)"><Icon name="pen" :size="14" /> Manage</button>
           </div>
         </div>
       </div>
@@ -737,15 +737,21 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
 .st-attention{background:var(--owed-soft);color:var(--owed-ink)} .st-attention .st-dot{background:var(--owed)}
 .st-steady{background:var(--accent-soft);color:var(--accent-ink)} .st-steady .st-dot{background:var(--accent)}
 .st-idle{background:var(--surface-2);color:var(--ink-faint)} .st-idle .st-dot{background:var(--ink-ghost)}
-.pcarrier-stats{display:flex;gap:18px;margin-bottom:14px}
-.pcs{display:flex;flex-direction:column}
-.pcs-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;line-height:1;color:var(--ink)}
-.pcs-v.go{color:var(--go-ink)} .pcs-v.owed{color:var(--owed-ink)}
-.pcs-l{font-size:11px;color:var(--ink-faint);margin-top:3px;text-transform:uppercase;letter-spacing:.03em}
-.pcarrier-bar{height:6px;background:var(--surface-2);border-radius:8px;overflow:hidden;margin-bottom:14px}
-.pcarrier-fill{height:100%;border-radius:8px;transition:width .5s cubic-bezier(.16,1,.3,1)}
+.pcarrier-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;padding:12px;background:var(--surface-2);border-radius:12px}
+.pcs{display:flex;flex-direction:column;align-items:flex-start}
+.pcs-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.pcs-v.owed{color:var(--owed-ink)}
+.pcs-l{font-size:10px;color:var(--ink-faint);margin-top:4px;text-transform:uppercase;letter-spacing:.03em;font-weight:600}
+.pcarrier-bar{height:5px;background:var(--surface-3);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.pcarrier-fill{height:100%;background:var(--accent);border-radius:8px;transition:width .5s var(--ease-out)}
 .pcarrier-foot{display:flex;align-items:center;justify-content:space-between}
-.pcarrier-pct{font-size:12px;color:var(--ink-soft);font-weight:600}
+.pcarrier-pct{font-size:12px;color:var(--ink-soft);font-weight:500}
+.pcarrier-pct b{color:var(--ink);font-weight:700}
+.pcarrier-actions{display:flex;gap:6px}
+.pc-act{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid var(--hairline-2);background:var(--surface);border-radius:9px;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all var(--dur-fast) var(--ease)}
+.pc-act:hover{border-color:var(--ink-faint);color:var(--ink)}
+.pc-act.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.pc-act.primary:hover{background:var(--accent-ink);border-color:var(--accent-ink);color:#fff}
 
 /* platform tabs */
 .ptabs{display:flex;gap:4px;margin-bottom:26px;border-bottom:1px solid var(--hairline);overflow-x:auto;-webkit-overflow-scrolling:touch}

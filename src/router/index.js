@@ -4,6 +4,7 @@ import { useAuth } from '../composables/useAuth'
 const routes = [
   { path: '/', name: 'home', component: () => import('../views/LoginView.vue'), meta: { public: true, homeGate: true } },
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { public: true } },
+  { path: '/join-driver', name: 'join-driver', component: () => import('../views/JoinDriverView.vue'), meta: { public: true } },
   { path: '/track/:code?', name: 'track', component: () => import('../views/TrackView.vue'), meta: { public: true } },
   { path: '/welcome', name: 'no-profile', component: () => import('../views/NoProfileView.vue') },
   { path: '/platform', name: 'platform', component: () => import('../views/PlatformView.vue'), meta: { platform: true } },

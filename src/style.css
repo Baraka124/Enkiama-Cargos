@@ -47,8 +47,10 @@ body{
 }
 ::selection{background:var(--accent);color:#fff}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
-.mono{font-family:'Spline Sans Mono',ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-h1,h2,h3{font-family:'Space Grotesk','Segoe UI',sans-serif;letter-spacing:-.02em;color:var(--ink);font-weight:600}
+.mono{font-family:'Spline Sans Mono',ui-monospace,'SF Mono',Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em;font-feature-settings:'tnum' 1,'zero' 1}
+/* all figures align like a ledger */
+.wb-money,.wb-code,.biz-stat-v,.biz-order-amt,.biz-order-code,.statcard-v,.cell .cv,.mk-pprice{font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
+h1,h2,h3{font-family:'Space Grotesk','Segoe UI',sans-serif;letter-spacing:-.03em;color:var(--ink);font-weight:700}
 a{color:var(--accent-ink);text-decoration:none}
 
 /* premium micro-interactions: consistent press + hover language */
@@ -87,7 +89,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 /* ═══ CANONICAL CARD — every card-like surface inherits this exact construction.
    One radius, one border, one shadow. Density comes from a padding modifier only. ═══ */
 .card, .panel, .cons, .nextstop, .recon-card, .ship-card, .cust-card, .statcard,
-.intervene-tool, .drv-stat, .acct-card, .lp-feed, .biz-stat, .biz-quick-card {
+.intervene-tool, .acct-card, .lp-feed, .biz-stat, .biz-quick-card {
   background:var(--surface);
   border:1px solid var(--hairline);
   border-radius:var(--r-lg);
@@ -95,7 +97,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 }
 /* padding density modifiers — the ONLY approved paddings (8px grid) */
 .card--tight, .cell, .avail-card, .rev-row, .drv-hrow, .biz-step { padding:12px 16px; }
-.card--snug, .ship-card, .cust-card, .recon-card, .drv-stat, .lp-feed { padding:16px; }
+.card--snug, .ship-card, .cust-card, .recon-card, .lp-feed { padding:16px; }
 .card--roomy, .panel, .nextstop, .acct-card, .statcard, .intervene-tool { padding:20px; }
 /* interactive cards get consistent hover */
 .ship-card, .lp-door, .biz-quick-card, .cust-card, .statcard, .drv-hrow, .avail-card { transition:box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease); }
@@ -564,8 +566,8 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 .cust-name{font-weight:650;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tag-biz{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink)}
 .tag-acct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:8px;background:var(--go-soft);color:var(--go-ink)}
-.cust-stats{display:flex;gap:18px;padding:12px 0;border-top:1px solid var(--hairline)}
-.cust-stat{display:flex;flex-direction:column;gap:2px}
+
+
 .cst-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink)}
 .cst-v.go{color:var(--go-ink)} .cst-v.owed{color:var(--owed-ink);font-size:14px}
 .cst-l{font-size:10px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em}
@@ -726,7 +728,7 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 /* driver space: stats + history */
 .drv-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
 .drv-stat{}
-.drv-stat.alert{background:var(--owed-soft);border-color:var(--owed)}
+
 .drv-stat-n{font-family:'Space Grotesk',sans-serif;font-size:var(--t-lg);font-weight:650;color:var(--ink)}
 .drv-stat.alert .drv-stat-n{color:var(--owed-ink)}
 .drv-stat-l{font-size:var(--t-xs);color:var(--ink-faint);margin-top:2px}
@@ -771,3 +773,71 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 .topbar .tb-ico:hover{background:#20262F;color:#fff}
 .topbar .live-badge{color:var(--nav-ink)}
 .topbar .live-badge .dot{background:var(--go)}
+
+/* ═══ MICRO-INTERACTIONS — the motion that makes it feel alive & native ═══ */
+
+/* buttons: tactile press */
+.btn:active:not(:disabled),.auth-btn:active:not(:disabled){transform:translateY(1px) scale(.99)}
+
+/* inputs: confident focus ring */
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* cards animate in on mount, subtle stagger via nth-child */
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.wb,.biz-order,.ship-card,.cust-card,.rev-row,.avail-card{animation:cardIn .34s var(--ease-out) both}
+.wb:nth-child(1),.biz-order:nth-child(1){animation-delay:.02s}
+.wb:nth-child(2),.biz-order:nth-child(2){animation-delay:.06s}
+.wb:nth-child(3),.biz-order:nth-child(3){animation-delay:.1s}
+.wb:nth-child(4),.biz-order:nth-child(4){animation-delay:.14s}
+.wb:nth-child(5),.biz-order:nth-child(5){animation-delay:.18s}
+.wb:nth-child(n+6),.biz-order:nth-child(n+6){animation-delay:.2s}
+
+/* stat cards rise in */
+@keyframes statIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.statcard,.biz-stat,.cell{animation:statIn .3s var(--ease-out) both}
+.statcard:nth-child(2),.biz-stat:nth-child(2){animation-delay:.05s}
+.statcard:nth-child(3),.biz-stat:nth-child(3){animation-delay:.1s}
+.statcard:nth-child(4),.biz-stat:nth-child(4){animation-delay:.15s}
+
+/* stage/status chips: gentle pop when they appear */
+@keyframes chipIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.wb-stage,.biz-order-stage,.tb-count{animation:chipIn .28s var(--ease-out) both}
+
+/* progress bars ease their fill */
+.wb-prog-fill{transition:width .5s var(--ease-out)}
+
+/* icon buttons: springy hover */
+.tb-ico:hover{transform:translateY(-1px)}
+.tb-ico:active{transform:translateY(0)}
+
+/* nav tab underline slides (already has, ensure smooth) */
+.dtab{transition:color var(--dur-fast) var(--ease)}
+
+/* respect reduced-motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+
+/* driver invite link generator */
+.invite-divider{display:flex;align-items:center;gap:12px;margin:20px 0 16px;color:var(--ink-faint);font-size:12px}
+.invite-divider::before,.invite-divider::after{content:'';flex:1;height:1px;background:var(--hairline)}
+.invite-link-box{display:flex;gap:8px;margin-top:12px}
+.invite-link-box input{flex:1;padding:11px 14px;border:1px solid var(--hairline-2);border-radius:12px;font-size:13px;font-family:'Spline Sans Mono',monospace;background:var(--surface-2);color:var(--ink-soft)}
+
+/* global auth button (used by join-driver + others outside login) */
+.auth-btn{width:100%;padding:15px 24px;border:none;border-radius:14px;background:var(--accent);color:#fff;font-family:inherit;font-weight:650;font-size:15px;letter-spacing:-.01em;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease);display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 1px 2px rgba(55,48,217,.25),0 2px 8px rgba(55,48,217,.22)}
+.auth-btn:hover:not(:disabled){background:var(--accent-ink);box-shadow:0 2px 4px rgba(55,48,217,.3),0 6px 16px rgba(55,48,217,.28);transform:translateY(-1px)}
+.auth-btn:active:not(:disabled){transform:translateY(1px) scale(.99)}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ═══ CANONICAL STAT PANEL — every metric cluster uses this contained, aligned treatment ═══ */
+.cust-stats, .drv-stats {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  padding:12px; background:var(--surface-2); border-radius:12px; margin-bottom:14px;
+}
+.cst-v, .drv-stat-n { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:19px; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; }
+.cst-v.owed, .drv-stat-n.owed { color:var(--owed-ink); }
+.cst-l, .drv-stat-l { font-size:10px; color:var(--ink-faint); margin-top:4px; text-transform:uppercase; letter-spacing:.03em; font-weight:600; display:block; }
+.cust-stat, .drv-stat { display:flex; flex-direction:column; align-items:flex-start; background:none !important; padding:0 !important; border:none !important; }
+.drv-stats { grid-template-columns:repeat(4,1fr); }
+.drv-stat.alert .drv-stat-n { color:var(--owed-ink); }

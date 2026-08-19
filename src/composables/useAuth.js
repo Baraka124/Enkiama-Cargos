@@ -77,9 +77,9 @@ async function signUpEmail(email, password, meta = {}) {
   })
   if (error) throw humanizeAuthError(error)
 }
-async function signUpSender(email, password, name) {
-  // atomic: the v11 trigger creates the sender profile from metadata
-  return signUpEmail(email, password, { intent: 'sender', name })
+async function signUpSender(email, password, name, location, tin) {
+  // atomic: the trigger creates the sender profile from metadata
+  return signUpEmail(email, password, { intent: 'sender', name, location: location || null, tin: tin || null })
 }
 async function signUpReceiver(email, password, name) {
   return signUpEmail(email, password, { intent: 'receiver', name })
