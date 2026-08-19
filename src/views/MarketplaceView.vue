@@ -45,38 +45,43 @@ onMounted(() => { load(); loadCategories() })
 
 <template>
   <div class="mk">
-    <header class="mk-head">
-      <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="34" /></RouterLink>
-      <div class="mk-head-actions">
-        <template v-if="session">
-          <RouterLink to="/" class="btn btn-ghost">← My dashboard</RouterLink>
-        </template>
-        <template v-else>
-          <RouterLink to="/login?role=sender" class="btn btn-ghost">Sell on Enkiama</RouterLink>
-          <RouterLink to="/login" class="btn btn-accent">Sign in</RouterLink>
-        </template>
+    <div class="mk-dark">
+      <div class="mk-dark-inner">
+        <header class="mk-head">
+          <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="34" /></RouterLink>
+          <div class="mk-head-actions">
+            <template v-if="session">
+              <RouterLink to="/" class="btn btn-ghost">← My dashboard</RouterLink>
+            </template>
+            <template v-else>
+              <RouterLink to="/login?role=sender" class="btn btn-ghost">Sell on Enkiama</RouterLink>
+              <RouterLink to="/login" class="btn btn-accent">Sign in</RouterLink>
+            </template>
+          </div>
+        </header>
+
+        <section class="mk-hero">
+          <h1 class="mk-h1">Shops that <span class="grad">deliver</span>, tracked.</h1>
+          <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
+
+          <div class="mk-searchbar">
+            <Icon name="search" :size="18" class="mk-search-ic" />
+            <input v-model="search" @input="onSearch" placeholder="Search shops or products — kitenge, phones, spices…" aria-label="Search the marketplace" />
+          </div>
+
+          <div v-if="categories.length" class="mk-cats">
+            <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">{{ c.category }} <span class="mk-cat-n">{{ c.count }}</span></button>
+          </div>
+
+          <div class="mk-corridors">
+            <span class="mk-corr-lab">Delivers to:</span>
+            <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c }}</button>
+          </div>
+        </section>
       </div>
-    </header>
+    </div>
 
-    <section class="mk-hero">
-      <h1 class="mk-h1">Shops that <span class="grad">deliver</span>, tracked.</h1>
-      <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
-
-      <div class="mk-searchbar">
-        <Icon name="search" :size="18" class="mk-search-ic" />
-        <input v-model="search" @input="onSearch" placeholder="Search shops or products — kitenge, phones, spices…" aria-label="Search the marketplace" />
-      </div>
-
-      <div v-if="categories.length" class="mk-cats">
-        <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">{{ c.category }} <span class="mk-cat-n">{{ c.count }}</span></button>
-      </div>
-
-      <div class="mk-corridors">
-        <span class="mk-corr-lab">Delivers to:</span>
-        <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c }}</button>
-      </div>
-    </section>
-
+    <div class="mk-body">
     <div class="mk-toolbar">
       <div class="mk-viewtoggle">
         <button class="mk-vt" :class="{on:view==='shops'}" @click="setView('shops')"><Icon name="building" :size="14" /> Shops</button>
@@ -144,20 +149,32 @@ onMounted(() => { load(); loadCategories() })
       <p>Open a storefront, list your products, and every order ships tracked through the platform.</p>
       <RouterLink to="/login" class="btn btn-accent btn-lg">Open a storefront</RouterLink>
     </footer>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.mk{max-width:1100px;margin:0 auto;padding:0 20px 60px}
+.mk{min-height:100vh;background:var(--paper);padding-bottom:60px}
+.mk-dark{position:relative;background:var(--nav);overflow:hidden}
+.mk-dark::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(800px 500px at 75% -20%, rgba(67,56,202,.35), transparent 60%),
+  radial-gradient(600px 400px at 15% 120%, rgba(15,157,88,.12), transparent 55%)}
+.mk-dark::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 75%)}
+.mk-dark-inner{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 20px 44px}
+.mk-body{max-width:1100px;margin:0 auto;padding:0 20px}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
 .mk-logo{text-decoration:none}
 .mk-hero{text-align:center;padding:36px 0 30px}
-.mk-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,6vw,46px);font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
-.grad{background:linear-gradient(120deg,var(--accent-ink),var(--go-ink));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.mk-sub{font-size:15px;color:var(--ink-soft);max-width:560px;margin:0 auto 24px;line-height:1.6}
+.mk-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,6vw,46px);font-weight:700;letter-spacing:-.03em;margin-bottom:14px;color:#fff}
+/* grad */
+.mk-h1 .grad{background:linear-gradient(100deg,#818CF8,#34D399) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
+.unused-grad{background:linear-gradient(120deg,var(--accent-ink),var(--go-ink));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.mk-sub{font-size:15px;color:rgba(255,255,255,.62);max-width:560px;margin:0 auto 24px;line-height:1.6}
 .mk-corridors{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
-.mk-corr-lab{font-size:13px;color:var(--ink-faint);font-weight:500}
-.mk-corr{padding:7px 14px;border:1px solid var(--hairline);background:var(--surface);border-radius:20px;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit}
+.mk-corr-lab{font-size:13px;color:rgba(255,255,255,.5);font-weight:500}
+.mk-corr{padding:7px 14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);border-radius:20px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);cursor:pointer;transition:.15s;font-family:inherit}
 .mk-corr:hover{border-color:var(--accent)}
 .mk-corr.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:10px}
@@ -201,7 +218,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-delivered{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--go-ink);font-weight:600;background:var(--go-soft);padding:3px 8px;border-radius:var(--r-full)}
 
 .mk-cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
-.mk-cat{padding:7px 14px;border:1px solid var(--hairline-2);border-radius:var(--r-full);background:var(--surface);font-size:var(--t-sm);font-family:inherit;cursor:pointer;color:var(--ink-soft);font-weight:550;transition:all var(--dur-fast) var(--ease)}
+.mk-cat{padding:7px 14px;border:1px solid rgba(255,255,255,.14);border-radius:var(--r-full);background:rgba(255,255,255,.06);font-size:var(--t-sm);font-family:inherit;cursor:pointer;color:rgba(255,255,255,.85);font-weight:600;transition:all var(--dur-fast) var(--ease)}
 .mk-cat.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .mk-cat-n{opacity:.6;font-size:var(--t-xs)}
 .mk-viewtoggle{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
@@ -221,4 +238,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-pprice{font-weight:700;font-size:var(--t-base);color:var(--ink)}
 .mk-pdel{font-size:10px;color:var(--go-ink);font-weight:600;white-space:nowrap}
 .mk-head-actions{display:flex;align-items:center;gap:10px}
+
+.mk-head-actions .btn-ghost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
+.mk-head-actions .btn-ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25)}
 </style>
