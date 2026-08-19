@@ -5,7 +5,7 @@ import { useStorefront } from '../composables/useStorefront'
 import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
-import BrandMark from '../components/BrandMark.vue'
+import AppHeader from '../components/AppHeader.vue'
 import EmptyState from '../components/EmptyState.vue'
 import PhotoUpload from '../components/PhotoUpload.vue'
 import CarrierMark from '../components/CarrierMark.vue'
@@ -22,7 +22,7 @@ const setupIncomplete = computed(() => products.value.length === 0 || !selectedC
 const loading = ref(true)
 const saving = ref(false)
 
-const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#C08A2D' })
+const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#4338CA' })
 const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'', section_id:'', category:'' })
 const sections = ref([])
 const newSection = ref('')
@@ -67,7 +67,7 @@ async function load() {
   const { data } = await sf.myStore(profile.value?.user_id)
   if (data) {
     store.value = data
-    form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#C08A2D' }
+    form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#4338CA' }
     const { data: prods } = await sf.listProducts(data.id)
     products.value = prods || []
   }
@@ -109,13 +109,10 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
-    <BrandMark variant="mark" :height="32" />
-    <div class="tb-idblock"><div class="tb-name">My storefront</div><div class="tb-role">Business · {{ profile?.name }}</div></div>
-    <div class="tb-spacer"></div>
+  <AppHeader title="My storefront" :subtitle="'Business · ' + (profile?.name || '')">
     <RouterLink v-if="store" :to="`/shop/${store.slug}`" class="btn btn-ghost">View public page</RouterLink>
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
-  </div></div>
+  </AppHeader>
 
   <div class="wrap" style="max-width:760px">
     <Skeleton v-if="loading" variant="line" :count="6" />

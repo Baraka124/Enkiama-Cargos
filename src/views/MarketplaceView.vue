@@ -161,7 +161,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-card-top{display:flex;align-items:center;gap:13px;margin-bottom:16px}
 .mk-avatar{width:48px;height:48px;border-radius:13px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .mk-name{font-weight:700;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.mk-badge.feat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:6px;background:linear-gradient(120deg,#F5D67E,#E8A33D);color:#5A3D0A;display:inline-flex;align-items:center;gap:3px}
+.mk-badge.feat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;gap:3px}
 .mk-tag{font-size:13px;color:var(--ink-faint);margin-top:2px}
 .mk-meta{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
 .mk-verified{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:20px}

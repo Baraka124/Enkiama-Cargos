@@ -34,7 +34,7 @@ defineProps({
 </template>
 
 <style scoped>
-.ah{position:sticky;top:0;z-index:50;background:color-mix(in srgb, var(--paper) 85%, transparent);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--hairline)}
+.ah{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--hairline);box-shadow:var(--shadow-xs)}
 .ah-inner{max-width:1180px;margin:0 auto;padding:var(--s3) var(--s6);display:flex;align-items:center;gap:var(--s4)}
 .ah-brand{display:flex;align-items:center;gap:var(--s3);min-width:0}
 .ah-id{min-width:0}

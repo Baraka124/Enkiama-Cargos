@@ -774,7 +774,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
 .prob-list{display:flex;flex-direction:column;gap:10px}
 .prob-row{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--hairline);border-radius:13px;padding:14px 16px}
 .prob-row.failed{border-left:3px solid var(--owed)}
-.prob-row.cash{border-left:3px solid #E8A33D}
+.prob-row.cash{border-left:3px solid var(--warn)}
 .prob-ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .prob-row.failed .prob-ic{background:var(--owed-soft);color:var(--owed-ink)}
 .prob-row.cash .prob-ic{background:#FBF0DD;color:#B5791E}

@@ -7,6 +7,11 @@ const props = defineProps({ p: Object, why: String, urgent: Boolean })
 const { STAGE_CAP, STAGE_ORDER } = useConsignments()
 const failed = computed(() => props.p.stage === 'failed')
 const idx = computed(() => STAGE_ORDER.indexOf(props.p.stage))
+const stepIndex = computed(() => Math.max(1, Math.min(6, idx.value + 1)))
+const progPct = computed(() => {
+  if (failed.value) return 66
+  return Math.round((Math.max(0, idx.value) / (STAGE_ORDER.length - 1)) * 100)
+})
 const money = computed(() => {
   const p = props.p
   if (p.payMode === 'cash' || p.payMode === 'mobilemoney') {
@@ -75,16 +80,10 @@ const age = computed(() => {
       <span v-if="why" class="wb-why why-rank">· <span class="why-dot" :class="failed ? 'hi' : (!p.driver && p.stage==='linehaul') ? 'mid' : 'lo'"></span>{{ why }}</span>
     </div>
 
-    <!-- custody rail -->
-    <div class="wb-sec">
-      <div class="trk-lab"><Icon name="link" :size="12" /> Custody</div>
-      <div class="custody">
-        <div v-for="(s, i) in STAGE_ORDER" :key="s" class="cst"
-             :class="{ on: stageOn(s, i), fail: failed && s === 'delivered' }">
-          <div class="pt"></div>
-          <div class="cap">{{ cap(s) }}</div>
-        </div>
-      </div>
+    <!-- custody: compact progress (was a giant 6-stage rail) -->
+    <div class="wb-progress">
+      <div class="wb-prog-track"><div class="wb-prog-fill" :class="{fail:failed}" :style="{width: progPct + '%'}"></div></div>
+      <div class="wb-prog-cap"><span class="wb-prog-now" :class="{fail:failed}">{{ failed ? 'Delivery failed' : cap(p.stage) }}</span><span class="wb-prog-step">{{ stepIndex }}/6</span></div>
     </div>
 
     <!-- payment -->
@@ -121,14 +120,14 @@ const age = computed(() => {
 .wb.urgent{border-color:var(--owed-soft)}
 .wb-hd{display:flex;align-items:center;gap:12px;padding:14px 18px 12px;border-bottom:1px dashed var(--hairline-2)}
 .wb.urgent .wb-hd{background:var(--owed-soft)}
-.wb-code{font-size:15px;font-weight:600;letter-spacing:.12em;color:var(--ink)}
+.wb-code{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;letter-spacing:.04em;color:var(--ink)}
 .wb-strip{display:flex;gap:1.5px;margin-top:5px;height:11px;align-items:stretch}
 .wb-strip i{width:2px;background:var(--ink);border-radius:.5px}
-.wb-route{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px}
+.wb-route{display:flex;align-items:center;gap:12px;padding:14px 18px 10px}
 .wb-party{flex:1;min-width:0}
 .wb-arrow{color:var(--ink-ghost);padding-top:14px;flex-shrink:0}
 .p-lab{font-size:9.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.07em;font-weight:600}
-.p-val{font-size:14px;font-weight:600;margin-top:3px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-val{font-size:15px;font-weight:650;margin-top:2px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-sub{font-size:12px;color:var(--ink-faint);margin-top:2px;display:inline-flex;align-items:center;gap:4px}
 .wb-driver{padding:0 18px 14px;font-size:12.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
 .wb-why{color:var(--owed-ink);font-weight:550}
@@ -152,4 +151,13 @@ const age = computed(() => {
 .wb-attempt{padding:0 18px 12px;font-size:11.5px;color:var(--ink-faint);display:flex;align-items:center;gap:5px}
 .cons-actions{display:flex;gap:9px;padding:0 18px 16px;flex-wrap:wrap}
 .cons-actions:empty{display:none}
+
+.wb-progress{padding:10px 18px 12px}
+.wb-prog-track{height:5px;background:var(--surface-3);border-radius:var(--r-full);overflow:hidden}
+.wb-prog-fill{height:100%;background:var(--accent);border-radius:var(--r-full);transition:width var(--dur) var(--ease)}
+.wb-prog-fill.fail{background:var(--owed)}
+.wb-prog-cap{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.wb-prog-now{font-size:var(--t-sm);font-weight:650;color:var(--ink)}
+.wb-prog-now.fail{color:var(--owed-ink)}
+.wb-prog-step{font-size:var(--t-xs);color:var(--ink-faint);font-weight:600;font-variant-numeric:tabular-nums}
 </style>

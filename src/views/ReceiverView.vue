@@ -8,7 +8,7 @@ import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
 import Skeleton from '../components/Skeleton.vue'
 import CarrierMark from '../components/CarrierMark.vue'
-import BrandMark from '../components/BrandMark.vue'
+import AppHeader from '../components/AppHeader.vue'
 
 const router = useRouter()
 const toast = inject('toast')
@@ -51,13 +51,9 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
-    <BrandMark variant="mark" :height="32" />
-    <div class="tb-idblock"><div class="tb-name">My deliveries</div><div class="tb-role">Receiver · {{ profile?.name }}</div></div>
-    <div class="tb-spacer"></div>
-    <RouterLink to="/market" class="btn btn-ghost" style="margin-right:8px"><Icon name="box" :size="15" /> Marketplace</RouterLink>
+  <AppHeader title="My deliveries" :subtitle="'Receiver · ' + (profile?.name || '')">
     <button class="btn btn-ghost" @click="logout">Sign out</button>
-  </div></div>
+  </AppHeader>
 
   <div class="wrap">
     <!-- claim phone if not yet linked -->

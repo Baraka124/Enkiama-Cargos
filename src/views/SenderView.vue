@@ -8,7 +8,7 @@ import { usePublic } from '../composables/usePublic'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import Icon from '../components/Icon.vue'
-import BrandMark from '../components/BrandMark.vue'
+import AppHeader from '../components/AppHeader.vue'
 
 const STAGE_LABELS = { booked:'Booked', collected:'Collected', linehaul:'On road', with_driver:'With driver', delivered:'Delivered', confirmed:'Confirmed', failed:'Failed', cancelled:'Cancelled' }
 function stageLabel(s) { return STAGE_LABELS[s] || s }
@@ -79,14 +79,10 @@ async function logout() { await signOut(); router.push('/login') }
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
-    <BrandMark variant="mark" :height="34" />
-    <div><div class="tb-name">Enkiama Cargos</div><div class="tb-role">Sender · {{ profile?.name }}</div></div>
-    <div class="tb-spacer"></div>
-    <RouterLink to="/market" class="btn btn-ghost" style="margin-right:8px"><Icon name="box" :size="15" /> Marketplace</RouterLink>
+  <AppHeader title="Enkiama Cargos" :subtitle="'Sender · ' + (profile?.name || '')">
     <RouterLink to="/my-shop" class="btn btn-ghost">My storefront</RouterLink>
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
-  </div></div>
+  </AppHeader>
 
   <div class="wrap" style="max-width:720px">
     <div class="dtabs">

@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { fmtTZS } from '../lib/supabase'
 import { usePublic } from '../composables/usePublic'
 import Icon from '../components/Icon.vue'
+import AppHeader from '../components/AppHeader.vue'
 import BrandMark from '../components/BrandMark.vue'
 import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -113,12 +114,7 @@ onMounted(() => { if (code.value) track() })
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
-    <BrandMark variant="mark" :height="34" />
-    <div><div class="tb-name">{{ parcel?.carrier || 'Enkiama Cargos' }}</div><div class="tb-role">Track your parcel</div></div>
-    <div class="tb-spacer"></div>
-    <RouterLink to="/market" class="btn btn-ghost tb-back">Marketplace</RouterLink>
-  </div></div>
+  <AppHeader :title="parcel?.carrier || 'Enkiama Cargos'" subtitle="Track your parcel" />
 
   <div class="wrap" style="max-width:560px">
     <div class="panel">

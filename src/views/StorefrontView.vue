@@ -205,7 +205,7 @@ onMounted(load)
 .sf-order{padding:8px 16px !important;font-size:13px}
 .sf-reviews{display:flex;flex-direction:column;gap:10px}
 .sf-review{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:14px 16px}
-.sf-stars{display:flex;gap:2px;color:#E8A33D;margin-bottom:6px}
+.sf-stars{display:flex;gap:2px;color:#F59E0B;margin-bottom:6px}
 .sf-rev-text{font-size:13.5px;color:var(--ink-soft);font-style:italic}
 .sf-aside{position:sticky;top:20px;align-self:start}
 .sf-order-card{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:22px;text-align:center;box-shadow:var(--shadow-sm)}

@@ -25,6 +25,6 @@ const h = computed(() => (typeof props.height === 'number' ? props.height + 'px'
 <style scoped>
 .brandmark{width:auto;display:block;object-fit:contain;user-select:none;-webkit-user-drag:none}
 .brandmark-fallback{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;
-  background:linear-gradient(135deg,#1A3A5C,#C08A2D);color:#fff;font-family:'Space Grotesk',sans-serif;
+  background:linear-gradient(135deg,#4338CA,#312E81);color:#fff;font-family:'Space Grotesk',sans-serif;
   font-weight:700;letter-spacing:-.02em;flex-shrink:0}
 </style>
