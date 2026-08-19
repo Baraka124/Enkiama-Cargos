@@ -231,10 +231,10 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
 .biz-order:hover{border-color:var(--hairline-2);box-shadow:var(--shadow-xs)}
 .biz-order-top{display:flex;align-items:center;gap:9px;margin-bottom:6px}
 .biz-order-code{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--ink)}
-.biz-order-stage{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;background:var(--accent-soft);color:var(--accent-ink)}
+.biz-order-stage{font-size:11px;font-weight:650;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;background:var(--accent-soft);color:var(--accent-ink)}
 .grow{flex:1}
 .biz-order-amt{font-weight:700;font-size:14px;color:var(--ink)}
-.biz-order-body{display:flex;justify-content:space-between;gap:10px;font-size:12.5px}
+.biz-order-body{display:flex;justify-content:space-between;gap:10px;font-size:12px}
 .biz-order-item{color:var(--ink-soft);font-weight:550}
 .biz-order-buyer{color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:640px){.biz-stats{grid-template-columns:repeat(2,1fr)}.biz-quick{grid-template-columns:1fr}}

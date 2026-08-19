@@ -365,7 +365,7 @@ async function logout(){ await signOut(); router.push('/login') }
       <h3>Couldn't deliver</h3>
       <p>What happened with {{ exceptionFor.code }} to {{ exceptionFor.receiver }}?</p>
       <div class="reasons">
-        <button v-for="r in REASONS" :key="r.k" class="reason" @click="fail(r)"><span style="font-size:17px;margin-right:8px">{{ r.ic }}</span>{{ r.label }}</button>
+        <button v-for="r in REASONS" :key="r.k" class="reason" @click="fail(r)"><span style="font-size:16px;margin-right:8px">{{ r.ic }}</span>{{ r.label }}</button>
       </div>
       <button class="btn btn-ghost btn-block" @click="exceptionFor=null">Cancel</button>
     </div>

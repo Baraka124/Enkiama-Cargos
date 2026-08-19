@@ -52,7 +52,7 @@ function act() {
 .ob-dot.on{background:var(--accent)}
 .ob-ic{width:70px;height:70px;border-radius:16px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 22px}
 .ob-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:12px;color:var(--ink)}
-.ob-body{font-size:14.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:26px}
+.ob-body{font-size:14px;color:var(--ink-soft);line-height:1.65;margin-bottom:26px}
 .ob-actions{display:flex;flex-direction:column;gap:10px}
 .ob-skip{margin-top:16px;background:none;border:none;color:var(--ink-faint);font-size:13px;cursor:pointer;font-family:inherit}
 .ob-skip:hover{color:var(--ink-soft)}

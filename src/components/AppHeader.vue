@@ -53,4 +53,5 @@ defineProps({
 .ah .btn-ghost{background:var(--nav-soft);border-color:var(--nav-line);color:var(--nav-ink)}
 .ah .btn-ghost:hover{background:#20262F;border-color:#333B49;color:#fff}
 .ah-market{background:var(--nav-soft);border-color:var(--nav-line);color:var(--nav-ink)}
+.ah .btn-accent{box-shadow:0 1px 3px rgba(0,0,0,.3)}
 </style>

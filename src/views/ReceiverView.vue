@@ -97,5 +97,5 @@ onMounted(load)
 .claim-h{font-size:21px;font-weight:700;margin-bottom:10px}
 .claim-p{font-size:14px;color:var(--ink-soft);line-height:1.6;margin-bottom:22px}
 .claim-card .fg{text-align:left;margin-bottom:16px}
-.ship-track{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:var(--accent-ink)}
+.ship-track{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--accent-ink)}
 </style>

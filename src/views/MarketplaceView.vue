@@ -166,20 +166,20 @@ onMounted(() => { load(); loadCategories() })
 .mk-card.sk{height:180px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--hairline) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:mksh 1.4s infinite}
 @keyframes mksh{0%{background-position:100% 0}100%{background-position:-100% 0}}
 .mk-card-top{display:flex;align-items:center;gap:13px;margin-bottom:16px}
-.mk-avatar{width:48px;height:48px;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mk-avatar{width:48px;height:48px;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .mk-name{font-weight:700;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mk-badge.feat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;gap:3px}
 .mk-tag{font-size:13px;color:var(--ink-faint);margin-top:2px}
 .mk-meta{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
-.mk-verified{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:20px}
+.mk-verified{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:20px}
 .mk-rating{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#B5791E}
 .mk-rc{color:var(--ink-faint);font-weight:400}
-.mk-foot{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--hairline);font-size:12.5px}
+.mk-foot{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--hairline);font-size:12px}
 .mk-prods{font-weight:600;color:var(--ink-soft)}
 .mk-delivers{display:inline-flex;align-items:center;gap:4px;color:var(--ink-faint)}
 .mk-cta{text-align:center;margin-top:50px;padding:40px 24px;background:var(--surface);border:1px solid var(--hairline);border-radius:22px}
 .mk-cta h3{font-size:22px;font-weight:700;margin-bottom:8px}
-.mk-cta p{font-size:14.5px;color:var(--ink-soft);margin-bottom:22px}
+.mk-cta p{font-size:14px;color:var(--ink-soft);margin-bottom:22px}
 
 .mk-badge.feat{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:4px;background:var(--warn-soft);color:var(--warn-ink);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:var(--r-full)}
 .mk-name{font-family:'Space Grotesk',sans-serif;font-weight:650;font-size:var(--t-md);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:60px}
