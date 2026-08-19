@@ -22,8 +22,11 @@ watchEffect(() => {
 // simple global toast
 const toasts = ref([])
 function toast(msg, type = 'info') {
+  // coerce to a readable string — never render an empty object or blank
+  let text = typeof msg === 'string' ? msg : (msg?.message || '')
+  if (!text || !String(text).trim()) text = 'Something went wrong'
   const id = Date.now() + Math.random()
-  toasts.value.push({ id, msg, type })
+  toasts.value.push({ id, msg: String(text), type })
   setTimeout(() => { toasts.value = toasts.value.filter(t => t.id !== id) }, 3600)
 }
 provide('toast', toast)

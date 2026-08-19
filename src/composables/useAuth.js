@@ -136,13 +136,16 @@ function setHat(h) { hat.value = h; localStorage.setItem('enk-hat', h) }
 
 // friendlier auth error messages
 function humanizeAuthError(error) {
-  const m = (error?.message || '').toLowerCase()
-  if (m.includes('invalid login')) return new Error('Wrong email or password')
+  const m = (error?.message || error?.error_description || error?.msg || '').toLowerCase()
+  if (m.includes('invalid login') || m.includes('invalid credentials')) return new Error('Wrong email or password')
   if (m.includes('email not confirmed')) return new Error('Please verify your email first — check your inbox')
   if (m.includes('rate limit') || m.includes('too many')) return new Error('Too many attempts — wait a minute and try again')
   if (m.includes('already registered')) return new Error('That email already has an account — sign in instead')
   if (m.includes('weak') || m.includes('at least')) return new Error('Password too weak — use at least 8 characters')
-  return new Error(error?.message || 'Something went wrong')
+  if (m.includes('invalid') && m.includes('email')) return new Error('That email address looks invalid')
+  // always return a readable string, never an empty/object error
+  const fallback = error?.message || error?.error_description || error?.msg
+  return new Error(typeof fallback === 'string' && fallback.trim() ? fallback : 'Could not sign in — please check your details and try again')
 }
 
 export function useAuth() {
