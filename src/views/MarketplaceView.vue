@@ -47,8 +47,15 @@ onMounted(() => { load(); loadCategories() })
   <div class="mk">
     <header class="mk-head">
       <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="34" /></RouterLink>
-      <RouterLink v-if="session" to="/" class="btn btn-ghost">← My dashboard</RouterLink>
-      <RouterLink v-else to="/login" class="btn btn-ghost">Sign in</RouterLink>
+      <div class="mk-head-actions">
+        <template v-if="session">
+          <RouterLink to="/" class="btn btn-ghost">← My dashboard</RouterLink>
+        </template>
+        <template v-else>
+          <RouterLink to="/login?role=sender" class="btn btn-ghost">Sell on Enkiama</RouterLink>
+          <RouterLink to="/login" class="btn btn-accent">Sign in</RouterLink>
+        </template>
+      </div>
     </header>
 
     <section class="mk-hero">
@@ -213,4 +220,5 @@ onMounted(() => { load(); loadCategories() })
 .mk-pfoot{margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .mk-pprice{font-weight:700;font-size:var(--t-base);color:var(--ink)}
 .mk-pdel{font-size:10px;color:var(--go-ink);font-weight:600;white-space:nowrap}
+.mk-head-actions{display:flex;align-items:center;gap:10px}
 </style>

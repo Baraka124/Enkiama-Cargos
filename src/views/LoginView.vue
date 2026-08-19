@@ -107,6 +107,15 @@ function makeEvent() {
 }
 let timers = []
 onMounted(() => {
+  // deep-link: /login?role=sender opens the Business tab in signup mode
+  try {
+    const q = new URLSearchParams(window.location.hash.split('?')[1] || '')
+    const qr = q.get('role')
+    if (qr && ['carrier','driver','sender','receiver'].includes(qr)) {
+      pickRole(qr)
+      if (qr === 'sender') signupMode.value = true
+    }
+  } catch (e) {}
   // surface any auth error captured before boot (expired link, etc.)
   try {
     const notice = sessionStorage.getItem('auth_notice')
@@ -124,7 +133,7 @@ onMounted(() => {
 onUnmounted(() => timers.forEach(clearInterval))
 const settledStr = computed(() => 'TZS ' + settledTZS.value.toLocaleString())
 
-const roleLabels = { carrier: 'Carrier team', driver: 'Driver', sender: 'Sending a parcel', receiver: 'Receiving parcels' }
+const roleLabels = { carrier: 'Carrier team', driver: 'Driver', sender: 'Sell on the marketplace — manage your shop', receiver: 'Receiving parcels' }
 
 // ── fleet operator self-application (Phase 3 front door) ──
 const showFleet = ref(false)
@@ -196,17 +205,23 @@ async function sendFleetApplication() {
       <!-- RIGHT / BOTTOM: the actual sign-in, inline (no awkward slide-panel) -->
       <section class="lp-auth">
         <div class="auth-box">
-          <div class="auth-role">
+          <div class="auth-head">
+            <div class="auth-title">{{ signupMode ? 'Create your account' : 'Sign in' }}</div>
+            <div class="auth-subtitle">{{ signupMode ? 'Choose what you\'re here to do' : 'Welcome back — enter your details' }}</div>
+          </div>
+
+          <!-- role tabs ONLY matter for creating an account -->
+          <div v-if="signupMode" class="auth-role">
             <button v-for="r in ['carrier','driver','sender','receiver']" :key="r" class="role-pill" :class="{on:role===r}" @click="pickRole(r)">
-              <Icon :name="r==='carrier'?'building':r==='driver'?'bike':r==='receiver'?'inbox':'box'" :size="15" /> {{ r==='carrier'?'Carrier':r==='driver'?'Driver':r==='receiver'?'Receive':'Send' }}
+              <Icon :name="r==='carrier'?'building':r==='driver'?'bike':r==='receiver'?'inbox':'box'" :size="15" /> {{ r==='carrier'?'Carrier':r==='driver'?'Driver':r==='receiver'?'Receive':'Business' }}
             </button>
           </div>
-          <div class="auth-role-label">{{ roleLabels[role] }}</div>
+          <div v-if="signupMode" class="auth-role-label">{{ roleLabels[role] }}</div>
 
-          <!-- EMAIL flow (carrier / sender) -->
-          <template v-if="mode==='email'">
+          <!-- EMAIL flow -->
+          <template v-if="mode==='email' || !signupMode">
             <template v-if="showReset">
-              <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@carrier.co.tz" /></label>
+              <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" /></label>
               <p class="auth-note">We'll email you a link to reset your password.</p>
               <button class="auth-btn" :disabled="busy" @click="doReset"><Spinner v-if="busy" :size="16" /><span v-else>Send reset link</span></button>
               <button class="auth-link" @click="showReset=false">← Back to sign in</button>
@@ -218,19 +233,19 @@ async function sendFleetApplication() {
                 <label class="fld">Phone <span class="fld-opt">links you to your carrier</span><input v-model="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+255 7XX XXX XXX" /></label>
                 <label class="fld">Vehicle <span class="fld-opt">optional</span><input v-model="driverVehicle" placeholder="e.g. Motorbike T123 ABC" /></label>
               </template>
-              <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@carrier.co.tz" @keyup.enter="doEmail" /></label>
-              <label class="fld">Password<input v-model="password" type="password" autocomplete="current-password" placeholder="••••••••" @keyup.enter="doEmail" /></label>
+              <label class="fld">Email<input v-model="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" @keyup.enter="doEmail" /></label>
+              <label class="fld">Password<input v-model="password" type="password" :autocomplete="signupMode ? 'new-password' : 'current-password'" placeholder="••••••••" @keyup.enter="doEmail" /></label>
               <button class="auth-btn" :disabled="busy" @click="doEmail">
                 <Spinner v-if="busy" :size="16" /><span v-else>{{ signupMode ? 'Create account' : 'Sign in' }}</span>
               </button>
               <div class="auth-links">
-                <button class="auth-link" @click="signupMode=!signupMode">{{ signupMode ? 'Have an account? Sign in' : 'Create account' }}</button>
+                <button class="auth-link" @click="signupMode=!signupMode">{{ signupMode ? 'Have an account? Sign in' : 'New here? Create an account' }}</button>
                 <button v-if="!signupMode" class="auth-link" @click="showReset=true">Forgot password?</button>
               </div>
             </template>
           </template>
 
-          <!-- PHONE flow (driver) -->
+          <!-- PHONE flow (driver signup only) -->
           <template v-else>
             <template v-if="!otpSent">
               <template v-if="role==='driver'">
@@ -355,4 +370,7 @@ async function sendFleetApplication() {
 .lp-quick-note{font-size:13px;color:var(--ink-faint)}
 .lp-fleet-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:14px;padding:12px;background:none;border:none;color:var(--ink-faint);font-size:13.5px;font-family:inherit;cursor:pointer;border-radius:var(--r);transition:color var(--dur-fast) var(--ease)}
 .lp-fleet-link:hover{color:var(--accent-ink)}
+.auth-head{margin-bottom:18px}
+.auth-title{font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.auth-subtitle{font-size:13.5px;color:var(--ink-faint);margin-top:3px}
 </style>

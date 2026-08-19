@@ -162,13 +162,13 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 .cons-actions{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
 
 /* ── tabs ── */
-.dtabs{display:flex;gap:4px;margin:6px 0 22px;border-bottom:1px solid var(--hairline);align-items:center}
-.dtab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-faint);font-family:inherit;
-  font-size:13.5px;font-weight:550;padding:11px 4px;margin-right:18px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;margin-bottom:-1px}
+.dtabs{display:flex;gap:4px;margin:6px 0 22px;border-bottom:1.5px solid var(--hairline);align-items:center}
+.dtab{background:none;border:none;border-bottom:2.5px solid transparent;color:var(--ink-soft);font-family:inherit;
+  font-size:14px;font-weight:600;padding:12px 4px;margin-right:22px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:color var(--dur-fast) var(--ease);margin-bottom:-1.5px}
 .dtab:hover{color:var(--ink)}
-.dtab.on{color:var(--ink);border-bottom-color:var(--accent)}
-.tb-count{font-size:11px;background:var(--surface-2);color:var(--ink-soft);border-radius:20px;padding:1px 8px;font-weight:600}
-.dtab.on .tb-count{background:var(--accent-soft);color:var(--accent-ink)}
+.dtab.on{color:var(--accent-ink);border-bottom-color:var(--accent);font-weight:700}
+.tb-count{font-size:11px;background:var(--surface-3);color:var(--ink-soft);border-radius:20px;padding:1px 8px;font-weight:700}
+.dtab.on .tb-count{background:var(--accent);color:#fff}
 
 /* ── sections & empties ── */
 .sec{display:flex;align-items:center;gap:12px;margin:24px 2px 14px}
@@ -587,16 +587,16 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 
 /* premium stat cards (dispatch) — match Platform Console's tiled cards */
 .statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4);margin-bottom:var(--s6)}
-.statcard{display:flex;align-items:center;gap:var(--s3);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:var(--s5);text-align:left;font-family:inherit;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);cursor:pointer}
+.statcard{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:18px 20px;text-align:left;font-family:inherit;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease), transform var(--dur-fast) var(--ease);cursor:pointer}
 .statcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
 .statcard.alert{border-color:var(--owed-soft)}
-.statcard-ic{width:44px;height:44px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.statcard-ic.accent{background:var(--accent-soft);color:var(--accent-ink)}
+.statcard-ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.statcard-ic.accent{background:var(--accent);color:#fff}
 .statcard-ic.owed{background:var(--owed-soft);color:var(--owed-ink)}
-.statcard-ic.go{background:var(--go-soft);color:var(--go-ink)}
+.statcard-ic.go{background:var(--go);color:#fff}
 .statcard-ic.muted{background:var(--surface-2);color:var(--ink-faint)}
 .statcard-body{min-width:0}
-.statcard-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-2xl);line-height:1.05;color:var(--ink);letter-spacing:-.02em}
+.statcard-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;line-height:1;color:var(--ink);letter-spacing:-.025em}
 .statcard-v.owed-ink{color:var(--owed-ink)} .statcard-v.go-ink{color:var(--go-ink)}
 .statcard-l{font-size:var(--t-sm);color:var(--ink-faint);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:820px){.statrow{grid-template-columns:repeat(2,1fr)}}
@@ -737,3 +737,10 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 .biz-check{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-sm);color:var(--ink-faint);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-full);padding:6px 12px}
 .biz-check.done{color:var(--go-ink);border-color:var(--go)}
 .biz-check.done :deep(svg){color:var(--go)}
+
+/* header action cluster — grouped utility icons, decluttered */
+.tb-actions-desktop{display:flex;align-items:center;gap:10px}
+.tb-icongroup{display:flex;align-items:center;gap:2px;background:var(--surface-2);border:1px solid var(--hairline);border-radius:11px;padding:3px}
+.tb-ico{width:34px;height:32px;border:none;background:none;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);cursor:pointer;position:relative;transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.tb-ico:hover{background:var(--surface);color:var(--ink)}
+.tb-ico-lang{font-size:12px;font-weight:700;letter-spacing:.02em}

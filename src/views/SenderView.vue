@@ -79,8 +79,8 @@ async function logout() { await signOut(); router.push('/login') }
 </script>
 
 <template>
-  <AppHeader title="Enkiama Cargos" :subtitle="'Sender · ' + (profile?.name || '')">
-    <RouterLink to="/my-shop" class="btn btn-ghost">My storefront</RouterLink>
+  <AppHeader title="My business" :subtitle="profile?.name || ''">
+    <RouterLink to="/my-shop" class="btn btn-accent">My storefront</RouterLink>
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
   </AppHeader>
 
