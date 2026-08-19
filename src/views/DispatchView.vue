@@ -707,7 +707,7 @@ function fmtWhen(ts) {
       <!-- proof of delivery, if present -->
       <div v-if="detail.podPhotoUrl || detail.podSignature" class="panel" style="margin-bottom:16px;padding:14px">
         <div class="trk-lab" style="margin-bottom:10px"><Icon name="camera" :size="12" /> Proof of delivery</div>
-        <img v-if="detail.podPhotoUrl" :src="detail.podPhotoUrl" style="width:100%;border-radius:10px;margin-bottom:8px;max-height:180px;object-fit:cover" />
+        <img v-if="detail.podPhotoUrl" :src="detail.podPhotoUrl" style="width:100%;border-radius:12px;margin-bottom:8px;max-height:180px;object-fit:cover" />
         <img v-if="detail.podSignature" :src="detail.podSignature" style="width:120px;border:1px solid var(--hairline);border-radius:8px;background:#fff" />
       </div>
 

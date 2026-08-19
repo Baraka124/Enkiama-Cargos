@@ -104,7 +104,7 @@ const age = computed(() => {
 .grow{flex:1}
 .wb-age{font-size:11px;font-weight:600;color:var(--ink-faint)}
 .wb-age.warn{color:var(--warn-ink)}
-.wb-money{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:6px}
+.wb-money{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;padding:2px 8px;border-radius:8px}
 .wb-money.owed{background:var(--owed-soft);color:var(--owed-ink)}
 .wb-money.done{background:var(--go-soft);color:var(--go-ink)}
 .wb-money.fee{background:var(--surface-3);color:var(--ink-soft)}

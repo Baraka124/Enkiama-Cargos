@@ -34,12 +34,12 @@ defineProps({
 </template>
 
 <style scoped>
-.ah{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--hairline);box-shadow:var(--shadow-xs)}
+.ah{position:sticky;top:0;z-index:50;background:var(--nav);box-shadow:0 1px 0 var(--nav-line),var(--shadow-sm);border-bottom:none}
 .ah-inner{max-width:1180px;margin:0 auto;padding:var(--s3) var(--s6);display:flex;align-items:center;gap:var(--s4)}
 .ah-brand{display:flex;align-items:center;gap:var(--s3);min-width:0}
 .ah-id{min-width:0}
-.ah-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-lg);color:var(--ink);line-height:1.1;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ah-sub{font-size:var(--t-xs);color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ah-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-lg);color:var(--nav-ink);line-height:1.1;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ah-sub{font-size:var(--t-xs);color:var(--nav-faint);text-transform:uppercase;letter-spacing:.03em;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ah-live{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-xs);font-weight:600;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:var(--r-full);margin-left:var(--s2)}
 .ah-live-dot{width:6px;height:6px;border-radius:50%;background:var(--go);animation:ahPulse 2s var(--ease) infinite}
 @keyframes ahPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
@@ -49,4 +49,8 @@ defineProps({
   .ah-sub{display:none}
   .ah-market-t{display:none}
 }
+
+.ah .btn-ghost{background:var(--nav-soft);border-color:var(--nav-line);color:var(--nav-ink)}
+.ah .btn-ghost:hover{background:#20262F;border-color:#333B49;color:#fff}
+.ah-market{background:var(--nav-soft);border-color:var(--nav-line);color:var(--nav-ink)}
 </style>

@@ -216,9 +216,9 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
 </template>
 
 <style scoped>
-.mgr-card{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow-sm)}
+.mgr-card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:var(--shadow-sm)}
 .mgr-prods{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
-.mgr-prod{display:flex;align-items:center;gap:12px;background:var(--surface-2);border-radius:11px;padding:12px 14px}
+.mgr-prod{display:flex;align-items:center;gap:12px;background:var(--surface-2);border-radius:12px;padding:12px 14px}
 .mgr-prod-name{font-weight:600;font-size:14px}
 .mgr-prod-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;white-space:nowrap}
 .mgr-add{border-top:1px solid var(--hairline);padding-top:16px}

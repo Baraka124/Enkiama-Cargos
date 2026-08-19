@@ -20,11 +20,16 @@ const toast = inject('toast')
 const { profile, signOut } = useAuth()
 const { consignments, fetchAll, subscribe, unsubscribe, book } = useConsignments()
 
-const tab = ref('send')
+const tab = ref('overview')
 const carriers = ref([])
 const busy = ref(false)
 const pub = usePublic()
 const lastCode = ref('')
+const shopData = ref(null)
+
+async function loadShopOrders() {
+  try { const { data } = await pub.myShopOrders(); shopData.value = data } catch (e) {}
+}
 
 const f = ref({
   carrierId: '', receiver: '', receiverPhone: '', addr: '', item: '', weight: 1,
@@ -36,6 +41,7 @@ onMounted(async () => {
   carriers.value = data || []
   if (carriers.value.length) f.value.carrierId = carriers.value[0].id
   await loadMyShipments()
+  await loadShopOrders()
 })
 const myParcels = ref([])
 async function loadMyShipments() {
@@ -84,14 +90,67 @@ async function logout() { await signOut(); router.push('/login') }
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
   </AppHeader>
 
-  <div class="wrap" style="max-width:720px">
+  <div class="wrap" style="max-width:820px">
     <div class="dtabs">
+      <button class="dtab" :class="{on:tab==='overview'}" @click="tab='overview'">Overview</button>
+      <button class="dtab" :class="{on:tab==='orders'}" @click="tab='orders'">Orders <span v-if="shopData?.orders?.length" class="tb-count">{{ shopData.orders.length }}</span></button>
       <button class="dtab" :class="{on:tab==='send'}" @click="tab='send'">Send a parcel</button>
       <button class="dtab" :class="{on:tab==='mine'}" @click="tab='mine'">My parcels <span class="tb-count">{{ myParcels.length }}</span></button>
     </div>
 
+    <!-- OVERVIEW: business dashboard -->
+    <div v-if="tab==='overview'">
+      <template v-if="shopData?.has_shop">
+        <div class="biz-stats">
+          <button class="biz-stat" @click="tab='orders'"><div class="biz-stat-v">{{ shopData.stats.total }}</div><div class="biz-stat-l">Total orders</div></button>
+          <div class="biz-stat"><div class="biz-stat-v">{{ shopData.stats.active }}</div><div class="biz-stat-l">In progress</div></div>
+          <div class="biz-stat"><div class="biz-stat-v">{{ shopData.stats.delivered }}</div><div class="biz-stat-l">Delivered</div></div>
+          <div class="biz-stat"><div class="biz-stat-v mono">{{ fmtTZS(shopData.stats.revenue) }}</div><div class="biz-stat-l">Revenue</div></div>
+        </div>
+        <div class="biz-quick">
+          <RouterLink to="/my-shop" class="biz-quick-card"><Icon name="box" :size="18" /><div><b>Manage storefront</b><span>Products, sections, carrier</span></div></RouterLink>
+          <button class="biz-quick-card" @click="tab='orders'"><Icon name="inbox" :size="18" /><div><b>View orders</b><span>{{ shopData.stats.active }} need fulfilling</span></div></button>
+          <button class="biz-quick-card" @click="tab='send'"><Icon name="truck" :size="18" /><div><b>Send a parcel</b><span>Ship directly</span></div></button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="panel" style="text-align:center;padding:40px 24px">
+          <Icon name="box" :size="32" style="color:var(--accent);margin-bottom:12px" />
+          <h2>Open your shop to start selling</h2>
+          <p style="color:var(--ink-faint);margin:8px 0 20px">Create a storefront, list products, and receive orders with tracked delivery built in.</p>
+          <RouterLink to="/my-shop" class="btn btn-accent btn-lg">Open your storefront</RouterLink>
+        </div>
+        <div class="biz-quick" style="margin-top:16px">
+          <button class="biz-quick-card" @click="tab='send'"><Icon name="truck" :size="18" /><div><b>Send a parcel</b><span>Ship without a shop</span></div></button>
+        </div>
+      </template>
+    </div>
+
+    <!-- ORDERS: incoming orders from the shop -->
+    <div v-else-if="tab==='orders'">
+      <div class="panel">
+        <h2>Orders from your shop</h2>
+        <p class="psec-sub" style="margin-bottom:16px">When someone buys from your storefront, it appears here and ships with tracked delivery.</p>
+        <EmptyState v-if="!shopData?.orders?.length" icon="inbox" title="No orders yet" hint="Share your shop link to start receiving orders." />
+        <div v-else class="biz-orders">
+          <RouterLink v-for="o in shopData.orders" :key="o.code" :to="`/track?code=${o.code}`" class="biz-order">
+            <div class="biz-order-top">
+              <span class="biz-order-code">{{ o.code }}</span>
+              <span class="biz-order-stage" :class="'st-'+o.stage">{{ stageLabel(o.stage) }}</span>
+              <div class="grow"></div>
+              <span v-if="o.amount" class="biz-order-amt mono">{{ fmtTZS(o.amount) }}</span>
+            </div>
+            <div class="biz-order-body">
+              <span class="biz-order-item">{{ o.item }}</span>
+              <span class="biz-order-buyer">{{ o.buyer }} · {{ o.dest }}</span>
+            </div>
+          </RouterLink>
+        </div>
+      </div>
+    </div>
+
     <!-- SEND -->
-    <div v-if="tab==='send'">
+    <div v-else-if="tab==='send'">
       <div class="panel">
         <h2>Send a parcel</h2>
         <div class="sub">Choose a carrier to move it, tell us who receives it, and you'll get a tracking code to share.</div>
@@ -153,3 +212,30 @@ async function logout() { await signOut(); router.push('/login') }
     </div>
   </div>
 </template>
+
+<style scoped>
+.biz-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.biz-stat{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px;text-align:left;font-family:inherit;box-shadow:var(--shadow-xs)}
+button.biz-stat{cursor:pointer;transition:box-shadow .15s ease}
+button.biz-stat:hover{box-shadow:var(--shadow-sm)}
+.biz-stat-v{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:var(--ink);letter-spacing:-.02em;line-height:1}
+.biz-stat-l{font-size:12px;color:var(--ink-faint);margin-top:5px}
+.biz-quick{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.biz-quick-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:16px;text-align:left;font-family:inherit;cursor:pointer;text-decoration:none;color:inherit;box-shadow:var(--shadow-xs);transition:box-shadow .15s ease,transform .15s ease}
+.biz-quick-card:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.biz-quick-card :deep(svg){color:var(--accent);flex-shrink:0}
+.biz-quick-card b{display:block;font-size:14px;color:var(--ink);margin-bottom:2px}
+.biz-quick-card span{font-size:12px;color:var(--ink-faint)}
+.biz-orders{display:flex;flex-direction:column;gap:8px}
+.biz-order{display:block;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:13px 15px;text-decoration:none;transition:border-color .15s ease,box-shadow .15s ease}
+.biz-order:hover{border-color:var(--hairline-2);box-shadow:var(--shadow-xs)}
+.biz-order-top{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.biz-order-code{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:var(--ink)}
+.biz-order-stage{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;background:var(--accent-soft);color:var(--accent-ink)}
+.grow{flex:1}
+.biz-order-amt{font-weight:700;font-size:14px;color:var(--ink)}
+.biz-order-body{display:flex;justify-content:space-between;gap:10px;font-size:12.5px}
+.biz-order-item{color:var(--ink-soft);font-weight:550}
+.biz-order-buyer{color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:640px){.biz-stats{grid-template-columns:repeat(2,1fr)}.biz-quick{grid-template-columns:1fr}}
+</style>

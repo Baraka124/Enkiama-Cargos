@@ -12,7 +12,7 @@ defineProps({ icon: { type: String, default: 'inbox' }, title: String, hint: Str
 </template>
 <style scoped>
 .es{text-align:center;padding:56px 24px;animation:esIn .5s cubic-bezier(.16,1,.3,1)}
-.es-ic{width:60px;height:60px;border-radius:18px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;
+.es-ic{width:60px;height:60px;border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;
   background:var(--surface-2);color:var(--ink-faint);border:1px solid var(--hairline)}
 .es-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--ink-soft)}
 .es-hint{font-size:13px;color:var(--ink-faint);margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto;line-height:1.5}

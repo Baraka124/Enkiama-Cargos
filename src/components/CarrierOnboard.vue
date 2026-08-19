@@ -45,12 +45,12 @@ function act() {
 
 <style scoped>
 .ob-scrim{position:fixed;inset:0;z-index:2000;background:rgba(26,29,33,.5);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px}
-.ob-card{background:var(--paper);border-radius:24px;padding:36px 30px;max-width:440px;width:100%;text-align:center;box-shadow:var(--shadow-lg);animation:obRise .4s cubic-bezier(.16,1,.3,1)}
+.ob-card{background:var(--paper);border-radius:20px;padding:36px 30px;max-width:440px;width:100%;text-align:center;box-shadow:var(--shadow-lg);animation:obRise .4s cubic-bezier(.16,1,.3,1)}
 @keyframes obRise{from{transform:translateY(16px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 .ob-progress{display:flex;gap:7px;justify-content:center;margin-bottom:26px}
-.ob-dot{width:34px;height:5px;border-radius:5px;background:var(--hairline);transition:.3s}
+.ob-dot{width:34px;height:5px;border-radius:8px;background:var(--hairline);transition:.3s}
 .ob-dot.on{background:var(--accent)}
-.ob-ic{width:70px;height:70px;border-radius:18px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 22px}
+.ob-ic{width:70px;height:70px;border-radius:16px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 22px}
 .ob-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-bottom:12px;color:var(--ink)}
 .ob-body{font-size:14.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:26px}
 .ob-actions{display:flex;flex-direction:column;gap:10px}
