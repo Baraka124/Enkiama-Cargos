@@ -159,10 +159,19 @@ function navigateTo(p) {
 }
 
 const space = ref(null)
+const spaceError = ref(false)
+const spaceLoading = ref(true)
 async function loadSpace() {
-  try { const { data } = await drv.mySpace(); space.value = data } catch (e) {}
+  spaceError.value = false
+  try {
+    const { data, error } = await drv.mySpace()
+    if (error) throw error
+    space.value = data
+  } catch (e) {
+    spaceError.value = true
+  }
 }
-onMounted(async () => { await fetchAll(); await loadAvailable(); await loadSpace(); subscribe(); await nextTick(); renderMap() })
+onMounted(async () => { spaceLoading.value = true; await fetchAll(); await loadAvailable(); await loadSpace(); spaceLoading.value = false; subscribe(); await nextTick(); renderMap() })
 onUnmounted(() => { unsubscribe(); if (map) { map.remove(); map = null } })
 watch(pending, async () => { await nextTick(); renderMap() })
 
@@ -220,7 +229,18 @@ async function logout(){ await signOut(); router.push('/login') }
   </AppHeader>
 
   <div class="wrap">
-    <div v-if="space" class="drv-stats">
+    <!-- skeleton while loading -->
+    <div v-if="spaceLoading" class="drv-stats">
+      <div v-for="n in 4" :key="n" class="drv-stat"><div class="skel skel-num"></div><div class="skel skel-lab"></div></div>
+    </div>
+    <!-- error state -->
+    <div v-else-if="spaceError" class="drv-error">
+      <Icon name="alert" :size="24" />
+      <div class="drv-error-t">Couldn't load your space</div>
+      <div class="drv-error-d">Check your connection and try again.</div>
+      <button class="btn btn-accent" @click="loadSpace">Retry</button>
+    </div>
+    <div v-else-if="space" class="drv-stats">
       <div class="drv-stat"><div class="drv-stat-n">{{ space.active_tasks }}</div><div class="drv-stat-l">Active tasks</div></div>
       <div class="drv-stat"><div class="drv-stat-n">{{ space.delivered_total }}</div><div class="drv-stat-l">Delivered</div></div>
       <div class="drv-stat"><div class="drv-stat-n">{{ fmtTZS(space.fees_earned) }}</div><div class="drv-stat-l">Fees earned</div></div>

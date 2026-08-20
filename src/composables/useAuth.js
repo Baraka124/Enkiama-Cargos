@@ -50,17 +50,22 @@ async function loadProfile() {
 async function init() {
   if (initialized) return
   initialized = true
-  const { data } = await supabase.auth.getSession()
-  session.value = data.session
-  await loadProfile()
-  loading.value = false
+  try {
+    const { data } = await supabase.auth.getSession()
+    session.value = data.session
+    await loadProfile()
+  } catch (e) {
+    // never let init failure hang the app — proceed unauthenticated
+    session.value = null; profile.value = null
+  } finally {
+    loading.value = false
+  }
   supabase.auth.onAuthStateChange(async (event, newSession) => {
     session.value = newSession
-    // session expired or signed out elsewhere → clear cleanly
     if (event === 'SIGNED_OUT' || !newSession) {
       profile.value = null; carrier.value = null; isPlatformAdmin.value = false
     } else {
-      await loadProfile()
+      try { await loadProfile() } catch (e) {}
     }
   })
 }

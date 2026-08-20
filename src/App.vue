@@ -43,9 +43,7 @@ provide('toggleTheme', toggleTheme)
 
 <template>
   <router-view v-slot="{ Component }">
-    <transition name="view-fade" mode="out-in">
-      <component :is="Component" />
-    </transition>
+    <component :is="Component" />
   </router-view>
   <div class="toasts">
     <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">

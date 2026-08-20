@@ -22,6 +22,15 @@ const routes = [
 const router = createRouter({ history: createWebHashHistory(), routes })
 
 router.beforeEach(async (to) => {
+  try {
+    return await resolveGuard(to)
+  } catch (e) {
+    // a guard error must never leave the app blank — allow navigation through
+    return true
+  }
+})
+
+async function resolveGuard(to) {
   const { session, profile, isPlatformAdmin, init, loading, reloadProfile } = useAuth()
   await init()
   let guard = 0
@@ -71,6 +80,6 @@ router.beforeEach(async (to) => {
     return to.name === home ? true : { name: home }
   }
   return true
-})
+}
 
 export default router
