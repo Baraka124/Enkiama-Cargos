@@ -44,7 +44,21 @@ const orderProduct = ref(null)
 const orderForm = ref({ name: '', phone: '', addr: '', qty: 1 })
 const ordering = ref(false)
 const orderCode = ref('')
-function openOrder(p) { orderProduct.value = p; orderCode.value = ''; orderForm.value = { name:'', phone:'', addr:'', qty:1 } }
+const pvActive = ref(0)
+const pvZoom = ref(false)
+const pvImages = computed(() => {
+  const p = orderProduct.value
+  if (!p) return []
+  if (Array.isArray(p.images) && p.images.length) return p.images.filter(Boolean)
+  return p.image_url ? [p.image_url] : []
+})
+const orderTotal = computed(() => {
+  const p = orderProduct.value; if (!p) return 0
+  const base = (p.price_tzs||0) * (orderForm.value.qty||1)
+  const deliv = (!p.delivery_included && p.delivery_fee_tzs) ? Number(p.delivery_fee_tzs) : 0
+  return base + deliv
+})
+function openOrder(p) { orderProduct.value = p; orderCode.value = ''; pvActive.value = 0; pvZoom.value = false; orderForm.value = { name:'', phone:'', addr:'', qty:1 } }
 
 function shareShop() {
   const url = window.location.href
@@ -112,7 +126,7 @@ onMounted(load)
                   <div class="sf-prod-name">{{ p.name }}</div>
                   <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
                 </div>
-                <div class="sf-prod-price">{{ tzs(p.price_tzs) }}</div>
+                <div class="sf-prod-price">{{ tzs(p.price_tzs) }}<span v-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-was">{{ tzs(p.compare_at_tzs) }}</span></div>
                 <button class="btn btn-buy sf-order" @click="openOrder(p)">Order now</button>
               </div>
             </div>
@@ -146,7 +160,7 @@ onMounted(load)
 
     <!-- ORDER MODAL -->
     <div v-if="orderProduct" class="overlay" v-escape="() => { orderProduct=null }" @click.self="orderProduct=null">
-      <div class="modal" style="max-width:440px">
+      <div class="modal pv-modal">
         <div v-if="orderCode" class="book-success">
           <div class="book-success-ic"><Icon name="check" :size="30" /></div>
           <div class="book-success-code">{{ orderCode }}</div>
@@ -154,21 +168,54 @@ onMounted(load)
           <RouterLink :to="`/track/${orderCode}`" class="btn btn-accent btn-block btn-lg"><Icon name="pin" :size="16" /> Track my order</RouterLink>
           <button class="btn btn-ghost btn-block" @click="orderProduct=null">Done</button>
         </div>
-        <template v-else>
-          <h3>Order {{ orderProduct.name }}</h3>
-          <p>{{ tzs(orderProduct.price_tzs) }} · cash on delivery. Where should we deliver it?</p>
-          <div class="fg"><label>Your name <span class="req">*</span></label><input v-model="orderForm.name" placeholder="Full name" /></div>
-          <div class="row2">
-            <div class="fg"><label>Phone <span class="req">*</span></label><input v-model="orderForm.phone" type="tel" inputmode="tel" placeholder="+255…" /></div>
-            <div class="fg"><label>Quantity</label><input v-model="orderForm.qty" type="number" inputmode="numeric" min="1" /></div>
+        <div v-else class="pv">
+          <button class="pv-x" @click="orderProduct=null"><Icon name="plus" :size="18" style="transform:rotate(45deg)" /></button>
+
+          <!-- LEFT: immersive image gallery -->
+          <div class="pv-gallery">
+            <div class="pv-main" :class="{zoomed:pvZoom}" @click="pvZoom=!pvZoom"
+                 :style="pvImages.length ? {backgroundImage:`url(${pvImages[pvActive]})`} : {}">
+              <div v-if="!pvImages.length" class="pv-noimg"><Icon name="box" :size="48" /></div>
+              <span v-if="pvImages.length" class="pv-zoomhint"><Icon name="search" :size="13" /> {{ pvZoom ? 'Click to zoom out' : 'Click to zoom' }}</span>
+            </div>
+            <div v-if="pvImages.length > 1" class="pv-thumbs">
+              <button v-for="(img,i) in pvImages" :key="i" class="pv-thumb" :class="{on:i===pvActive}"
+                      :style="{backgroundImage:`url(${img})`}" @click="pvActive=i; pvZoom=false"></button>
+            </div>
           </div>
-          <div class="fg"><label>Delivery address <span class="req">*</span></label><input v-model="orderForm.addr" placeholder="Where to deliver" /></div>
-          <div class="sf-order-total">Total on delivery: <strong>{{ tzs((orderProduct.price_tzs||0) * (orderForm.qty||1)) }}</strong></div>
-          <div class="confirm-actions">
-            <button class="btn btn-ghost" @click="orderProduct=null">Cancel</button>
-            <button class="btn btn-buy" :disabled="ordering" @click="placeOrder"><Spinner v-if="ordering" :size="15" /><span v-else>Place order</span></button>
+
+          <!-- RIGHT: details + order -->
+          <div class="pv-detail">
+            <div class="pv-cat" v-if="orderProduct.category">{{ orderProduct.category }}</div>
+            <h2 class="pv-name">{{ orderProduct.name }}</h2>
+            <div class="pv-price-row">
+              <div class="pv-price">{{ tzs(orderProduct.price_tzs) }}</div>
+              <template v-if="orderProduct.compare_at_tzs > orderProduct.price_tzs">
+                <div class="pv-compare">{{ tzs(orderProduct.compare_at_tzs) }}</div>
+                <div class="pv-off">{{ Math.round((1 - orderProduct.price_tzs/orderProduct.compare_at_tzs)*100) }}% off</div>
+              </template>
+            </div>
+            <div class="pv-deliv" :class="orderProduct.delivery_included ? 'inc' : 'sep'">
+              <Icon name="truck" :size="13" />
+              <span v-if="orderProduct.delivery_included">Delivery included in price</span>
+              <span v-else-if="orderProduct.delivery_fee_tzs">+ {{ tzs(orderProduct.delivery_fee_tzs) }} delivery</span>
+              <span v-else>Delivery charged separately (carrier quote)</span>
+            </div>
+            <p v-if="orderProduct.description" class="pv-desc">{{ orderProduct.description }}</p>
+            <div class="pv-trust"><Icon name="check" :size="14" /> Ships tracked via {{ store.name }}'s carrier · Cash on delivery</div>
+
+            <div class="pv-form">
+              <div class="fg"><label>Your name <span class="req">*</span></label><input v-model="orderForm.name" placeholder="Full name" /></div>
+              <div class="row2">
+                <div class="fg"><label>Phone <span class="req">*</span></label><input v-model="orderForm.phone" type="tel" inputmode="tel" placeholder="+255…" /></div>
+                <div class="fg"><label>Quantity</label><input v-model="orderForm.qty" type="number" inputmode="numeric" min="1" /></div>
+              </div>
+              <div class="fg"><label>Delivery address <span class="req">*</span></label><input v-model="orderForm.addr" placeholder="Where to deliver" /></div>
+              <div class="pv-total"><span>Total on delivery</span><strong>{{ tzs(orderTotal) }}</strong></div>
+              <button class="btn btn-buy btn-block btn-lg" :disabled="ordering" @click="placeOrder"><Spinner v-if="ordering" :size="16" /><span v-else>Place order</span></button>
+            </div>
           </div>
-        </template>
+        </div>
       </div>
     </div>
   </div>
@@ -220,4 +267,37 @@ onMounted(load)
 .sf-order-total{font-size:14px;color:var(--ink-soft);margin:14px 0;padding:12px;background:var(--surface-2);border-radius:12px;text-align:center}
 .sf-order-total strong{color:var(--owed-ink);font-family:'Space Grotesk',sans-serif}
 .sf-prod-noimg{display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--ink-ghost)}
+
+/* ═══ IMMERSIVE PRODUCT VIEW — Amazon-style gallery + detail ═══ */
+.pv-modal{max-width:820px;padding:0;overflow:hidden}
+.pv{display:grid;grid-template-columns:1fr 1fr;position:relative}
+.pv-x{position:absolute;top:12px;right:12px;z-index:5;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);backdrop-filter:blur(4px)}
+.pv-x:hover{background:#fff;color:var(--ink)}
+.pv-gallery{background:var(--surface-2);padding:20px;display:flex;flex-direction:column;gap:12px}
+.pv-main{position:relative;aspect-ratio:1;border-radius:14px;background-size:cover;background-position:center;background-color:var(--surface-3);cursor:zoom-in;overflow:hidden;transition:background-size .3s ease;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+.pv-main.zoomed{background-size:180%;cursor:zoom-out}
+.pv-noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--ink-ghost)}
+.pv-zoomhint{position:absolute;bottom:10px;left:10px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#fff;background:rgba(0,0,0,.55);padding:5px 10px;border-radius:999px;backdrop-filter:blur(4px)}
+.pv-thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.pv-thumb{width:56px;height:56px;border-radius:10px;background-size:cover;background-position:center;background-color:var(--surface-3);border:2px solid transparent;cursor:pointer;transition:border-color .15s ease,transform .15s ease;padding:0}
+.pv-thumb:hover{transform:translateY(-2px)}
+.pv-thumb.on{border-color:var(--accent)}
+.pv-detail{padding:28px 26px;display:flex;flex-direction:column}
+.pv-cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-ink);margin-bottom:8px}
+.pv-name{font-family:"Space Grotesk",sans-serif;font-size:24px;font-weight:700;letter-spacing:-.02em;color:var(--ink);line-height:1.15;margin-bottom:10px}
+.pv-price{font-family:"Space Grotesk",sans-serif;font-size:26px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;margin-bottom:12px}
+.pv-desc{font-size:14px;color:var(--ink-soft);line-height:1.6;margin-bottom:14px}
+.pv-trust{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--go-ink);font-weight:600;padding:10px 12px;background:var(--go-soft);border-radius:10px;margin-bottom:18px}
+.pv-form{margin-top:auto}
+.pv-total{display:flex;align-items:center;justify-content:space-between;padding:12px 0;margin:6px 0 14px;border-top:1px solid var(--hairline);font-size:14px;color:var(--ink-soft)}
+.pv-total strong{font-family:"Space Grotesk",sans-serif;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+@media(max-width:680px){.pv{grid-template-columns:1fr}.pv-gallery{padding:16px}.pv-detail{padding:20px}}
+
+.pv-price-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.pv-compare{font-size:16px;color:var(--ink-faint);text-decoration:line-through;font-variant-numeric:tabular-nums}
+.pv-off{font-size:12px;font-weight:700;color:#fff;background:var(--owed);padding:3px 8px;border-radius:6px}
+.pv-deliv{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:8px;margin-bottom:14px}
+.pv-deliv.inc{background:var(--go-soft);color:var(--go-ink)}
+.pv-deliv.sep{background:var(--surface-2);color:var(--ink-soft)}
+.sf-prod-was{font-size:12px;color:var(--ink-faint);text-decoration:line-through;font-weight:500;margin-left:7px}
 </style>

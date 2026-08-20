@@ -1,7 +1,7 @@
 <script setup>
 // Self-contained line-icon set — uniform 1.6 stroke, 24-grid, currentColor.
 // No dependency; deploys clean. Use: <Icon name="truck" :size="18" />
-defineProps({ name: String, size: { type: [Number, String], default: 18 }, stroke: { type: [Number, String], default: 1.6 } })
+defineProps({ name: String, size: { type: [Number, String], default: 18 }, stroke: { type: [Number, String], default: 1.75 } })
 const P = {
   // ── freight-domain signature icons (what makes this set elite, not generic) ──
   waybill: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/><path d="M5 3v18" stroke-dasharray="1 2"/>',

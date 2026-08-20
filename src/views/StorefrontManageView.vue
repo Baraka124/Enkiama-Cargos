@@ -8,6 +8,7 @@ import Spinner from '../components/Spinner.vue'
 import AppHeader from '../components/AppHeader.vue'
 import EmptyState from '../components/EmptyState.vue'
 import PhotoUpload from '../components/PhotoUpload.vue'
+import MultiPhotoUpload from '../components/MultiPhotoUpload.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import Skeleton from '../components/Skeleton.vue'
 
@@ -17,13 +18,14 @@ const { profile, signOut } = useAuth()
 const sf = useStorefront()
 
 const store = ref(null)
+const tzs = (n) => 'TZS ' + (Number(n) || 0).toLocaleString()
 const products = ref([])
 const setupIncomplete = computed(() => products.value.length === 0 || !selectedCarrier.value)
 const loading = ref(true)
 const saving = ref(false)
 
-const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#4338CA' })
-const newProd = ref({ name:'', description:'', price_tzs:'', image_url:'', section_id:'', category:'' })
+const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#4338CA', cover_url:'', logo_url:'' })
+const newProd = ref({ name:'', description:'', price_tzs:'', compare_at_tzs:'', delivery_included:false, delivery_fee_tzs:'', images:[], section_id:'', category:'' })
 const sections = ref([])
 const newSection = ref('')
 async function loadSections() {
@@ -67,7 +69,7 @@ async function load() {
   const { data } = await sf.myStore(profile.value?.user_id)
   if (data) {
     store.value = data
-    form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#4338CA' }
+    form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#4338CA', cover_url:data.cover_url||'', logo_url:data.logo_url||'' }
     const { data: prods } = await sf.listProducts(data.id)
     products.value = prods || []
   }
@@ -81,6 +83,7 @@ async function saveStore() {
       p_slug: form.value.slug, p_name: form.value.name, p_tagline: form.value.tagline || null,
       p_about: form.value.about || null, p_region: form.value.region || null,
       p_delivers_to: form.value.delivers_to || null, p_phone: form.value.phone || null, p_accent: form.value.accent,
+      p_cover_url: form.value.cover_url || null, p_logo_url: form.value.logo_url || null,
     })
     if (error) throw error
     toast('Storefront saved', 'ok')
@@ -93,11 +96,11 @@ async function addProduct() {
   if (!store.value) { toast('Save your storefront first', 'warn'); return }
   const { error } = await sf.addProduct({
     storefront_id: store.value.id, name: newProd.value.name,
-    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, image_url: newProd.value.image_url || null, section_id: newProd.value.section_id || null, category: newProd.value.category || null,
+    description: newProd.value.description || null, price_tzs: Number(newProd.value.price_tzs) || null, compare_at_tzs: Number(newProd.value.compare_at_tzs) || null, delivery_included: !!newProd.value.delivery_included, delivery_fee_tzs: newProd.value.delivery_included ? null : (Number(newProd.value.delivery_fee_tzs) || null), images: newProd.value.images || [], image_url: (newProd.value.images && newProd.value.images[0]) || null, section_id: newProd.value.section_id || null, category: newProd.value.category || null,
   })
   if (error) { toast(error.message, 'warn'); return }
   toast('Product added', 'ok')
-  newProd.value = { name:"", description:"", price_tzs:"", image_url:"", section_id:"", category:"" }
+  newProd.value = { name:"", description:"", price_tzs:"", compare_at_tzs:"", delivery_included:false, delivery_fee_tzs:"", images:[], section_id:"", category:"" }
   await load()
 }
 async function delProduct(id) {
@@ -146,6 +149,15 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         <div class="row2">
           <div class="fg"><label>Handle (URL) <span class="req">*</span></label><input v-model="form.slug" :disabled="!!store" placeholder="aminas-fabrics" /><div class="field-hint">marketplace.../shop/<b>{{ form.slug || 'your-handle' }}</b></div></div>
           <div class="fg"><label>Shop name <span class="req">*</span></label><input v-model="form.name" placeholder="Amina's Fabrics" /></div>
+        </div>
+        <div class="sf-branding">
+          <div class="sf-cover-upload" :style="form.cover_url ? {backgroundImage:`url(${form.cover_url})`} : {background:`linear-gradient(135deg, ${form.accent}, ${form.accent}99)`}">
+            <div class="sf-logo-upload">
+              <PhotoUpload v-model="form.logo_url" />
+            </div>
+            <div class="sf-cover-btn"><PhotoUpload v-model="form.cover_url" /></div>
+          </div>
+          <div class="sf-branding-hint">Add a cover photo and logo — this is how your shop appears on the marketplace.</div>
         </div>
         <div class="fg"><label>Tagline</label><input v-model="form.tagline" placeholder="Kitenge & kanga, delivered nationwide" /></div>
         <div class="fg"><label>About</label><input v-model="form.about" placeholder="Tell buyers about your business" /></div>
@@ -196,7 +208,20 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
           <div class="mgr-add">
             <div class="row2">
               <div class="fg"><label>Product name</label><input v-model="newProd.name" placeholder="Kitenge — 6 yards" /></div>
-              <div class="fg"><label>Price (TZS)</label><input v-model="newProd.price_tzs" type="number" inputmode="numeric" placeholder="45000" /></div>
+              <div class="fg"><label>Price (TZS) <span class="fld-opt">what buyers pay</span></label><input v-model="newProd.price_tzs" type="number" inputmode="numeric" placeholder="45000" /></div>
+            </div>
+            <div class="fg"><label>Original price <span class="fld-opt">optional — shows a discount</span></label>
+              <input v-model="newProd.compare_at_tzs" type="number" inputmode="numeric" placeholder="e.g. 60000 (crossed out to show the deal)" />
+              <div v-if="Number(newProd.compare_at_tzs) > Number(newProd.price_tzs) && newProd.price_tzs" class="prod-save-hint">
+                Buyers save {{ tzs(Number(newProd.compare_at_tzs) - Number(newProd.price_tzs)) }} ({{ Math.round((1 - Number(newProd.price_tzs)/Number(newProd.compare_at_tzs))*100) }}% off)
+              </div>
+            </div>
+            <div class="fg"><label>Delivery</label>
+              <div class="deliv-toggle">
+                <button type="button" class="deliv-opt" :class="{on:newProd.delivery_included}" @click="newProd.delivery_included=true">Included in price</button>
+                <button type="button" class="deliv-opt" :class="{on:!newProd.delivery_included}" @click="newProd.delivery_included=false">Charged separately</button>
+              </div>
+              <input v-if="!newProd.delivery_included" v-model="newProd.delivery_fee_tzs" type="number" inputmode="numeric" placeholder="Delivery fee (TZS) — leave blank if carrier quotes it" style="margin-top:8px" />
             </div>
             <div class="fg"><label>Description</label><input v-model="newProd.description" placeholder="Premium wax print" /></div>
             <div class="fg"><label>Category <span class="fld-opt">helps buyers find it</span></label><input v-model="newProd.category" list="cat-suggestions" placeholder="e.g. Fabric, Electronics, Food" /><datalist id="cat-suggestions"><option>Fabric</option><option>Electronics</option><option>Food &amp; Spices</option><option>Beauty</option><option>Home</option><option>Clothing</option><option>Accessories</option></datalist></div>
@@ -206,7 +231,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
                 <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option>
               </select>
             </div>
-            <div class="fg"><label>Photo</label><PhotoUpload v-model="newProd.image_url" /></div>
+            <div class="fg"><label>Photos <span style="color:var(--ink-faint);font-weight:400">(up to 5)</span></label><MultiPhotoUpload v-model="newProd.images" :max="5" /></div>
             <button class="btn btn-accent" @click="addProduct"><Icon name="plus" :size="15" /> Add product</button>
           </div>
         </div>
@@ -222,4 +247,17 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
 .mgr-prod-name{font-weight:600;font-size:14px}
 .mgr-prod-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;white-space:nowrap}
 .mgr-add{border-top:1px solid var(--hairline);padding-top:16px}
+
+.sf-branding{margin-bottom:16px}
+.sf-cover-upload{position:relative;height:130px;border-radius:14px;background-size:cover;background-position:center;overflow:visible;margin-bottom:34px}
+.sf-cover-btn{position:absolute;top:10px;right:10px;width:auto}
+.sf-cover-btn :deep(.pu-preview),.sf-cover-btn :deep(.pu-drop){width:auto;height:auto}
+.sf-logo-upload{position:absolute;bottom:-24px;left:16px;width:64px;height:64px;border-radius:16px;border:3px solid var(--surface);background:var(--surface);box-shadow:0 4px 12px rgba(0,0,0,.15);overflow:hidden}
+.sf-branding-hint{font-size:12px;color:var(--ink-faint);margin-top:6px;line-height:1.5}
+
+.prod-save-hint{font-size:12px;color:var(--go-ink);font-weight:600;margin-top:6px}
+.deliv-toggle{display:flex;gap:8px}
+.deliv-opt{flex:1;padding:11px;border:1px solid var(--hairline-2);background:var(--surface);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all .15s ease}
+.deliv-opt:hover{border-color:var(--ink-faint)}
+.deliv-opt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
 </style>

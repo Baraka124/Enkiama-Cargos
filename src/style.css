@@ -5,26 +5,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
 
 :root{
-  /* ── SURFACES & INK — bold financial: deep authoritative ink, crisp paper ── */
-  --paper:#EDEFF3; --surface:#FFFFFF; --surface-2:#F3F5F9; --surface-3:#E6E9F0;
-  --ink:#0B0E14; --ink-soft:#464E5C; --ink-faint:#7A8291; --ink-ghost:#B4BAC6;
-  --hairline:#E1E5EC; --hairline-2:#CDD3DE;
-  --accent:#3730D9; --accent-soft:#E9E8FC; --accent-ink:#2A24A8;
-  --owed:#DC2626; --owed-soft:#FCEAEA; --owed-ink:#991B1B;
-  --go:#0F9D58; --go-soft:#E3F4EC; --go-ink:#0A6E3D;
-  --warn:#D97706; --warn-soft:#FCEFDC; --warn-ink:#92580A;
-  /* deep ink used for the authoritative top bar (Amazon-grade dark nav) */
-  --nav:#0B0E14; --nav-soft:#171B24; --nav-line:#242A36; --nav-ink:#E8EBF1; --nav-faint:#8B93A3;
-  --brand:#3730D9; --brand-soft:#E9E8FC; --brand-ink:#241E7A;
-  /* warm commerce accent — Amazon-style "buy/order" action that pops against dark */
-  --buy:#F59E0B; --buy-hi:#FBB524; --buy-ink:#7A4A05; --buy-soft:#FEF3DC;
+  /* ── SURFACES & INK — warm editorial: considered paper, true-black ink, one confident accent ── */
+  --paper:#F4F1EC; --surface:#FFFFFF; --surface-2:#F7F4EF; --surface-3:#EDE8E0;
+  --ink:#1A1714; --ink-soft:#5A544C; --ink-faint:#8B847A; --ink-ghost:#C4BCB0;
+  --hairline:#E7E2D9; --hairline-2:#D6CFC3;
+  --accent:#4338CA; --accent-soft:#EAE8FB; --accent-ink:#312A9E;
+  --owed:#DC2626; --owed-soft:#FBEAE6; --owed-ink:#991B1B;
+  --go:#0E8F53; --go-soft:#E2F1E8; --go-ink:#0A6E3D;
+  --warn:#C2740A; --warn-soft:#FaEEDA; --warn-ink:#8A5207;
+  /* deep warm NAVY for the authoritative top bar — Amazon "Squid Ink", a container not pure black */
+  --nav:#232F3E; --nav-soft:#2E3C4D; --nav-line:#3A4A5C; --nav-ink:#F4F4F5; --nav-faint:#9BA7B4;
+  --brand:#4338CA; --brand-soft:#EAE8FB; --brand-ink:#2A2478;
+  /* warm commerce accent — Amazon-orange energy, reserved ONLY for buy/order actions */
+  --buy:#F0870F; --buy-hi:#FF9900; --buy-ink:#7A4205; --buy-soft:#FDEBD4;
 
   /* ── ELEVATION ── */
-  --shadow-xs:0 1px 2px rgba(11,14,20,.07);
-  --shadow-sm:0 1px 3px rgba(11,14,20,.09),0 1px 2px rgba(11,14,20,.06);
-  --shadow-md:0 6px 16px rgba(11,14,20,.1),0 2px 6px rgba(11,14,20,.06);
-  --shadow-lg:0 24px 56px rgba(11,14,20,.17),0 8px 20px rgba(11,14,20,.08);
-  --shadow-xl:0 36px 88px rgba(11,14,20,.22),0 14px 28px rgba(11,14,20,.1);
+  --shadow-xs:0 1px 2px rgba(40,30,20,.06);
+  --shadow-sm:0 1px 2px rgba(40,30,20,.05),0 2px 6px rgba(40,30,20,.05);
+  --shadow-md:0 2px 4px rgba(40,30,20,.05),0 8px 20px rgba(40,30,20,.09),0 1px 3px rgba(40,30,20,.05);
+  --shadow-lg:0 4px 8px rgba(40,30,20,.06),0 20px 48px rgba(40,30,20,.16),0 8px 20px rgba(40,30,20,.08);
+  --shadow-xl:0 8px 16px rgba(40,30,20,.08),0 32px 80px rgba(40,30,20,.2),0 14px 28px rgba(40,30,20,.1);
 
   /* ── RADIUS SCALE ── */
   --r-xs:8px; --r-sm:10px; --r:12px; --r-lg:16px; --r-xl:20px; --r-full:999px;
@@ -49,7 +49,7 @@ body{
   background-image:
     radial-gradient(1000px 700px at 100% 0%, rgba(55,48,217,.05), transparent 55%),
     radial-gradient(900px 600px at 0% 100%, rgba(15,157,88,.035), transparent 55%),
-    linear-gradient(180deg, #F1F3F8 0%, var(--paper) 40%);
+    linear-gradient(180deg, #F8F5F0 0%, var(--paper) 42%);
   background-attachment:fixed;
 }
 ::selection{background:var(--accent);color:#fff}
@@ -111,7 +111,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
   background:var(--surface);
   border:1px solid var(--hairline);
   border-radius:var(--r-lg);
-  box-shadow:0 1px 2px rgba(11,14,20,.04), 0 2px 6px rgba(11,14,20,.05), 0 8px 20px rgba(11,14,20,.03);
+  box-shadow:0 1px 2px rgba(40,30,20,.04), 0 2px 8px rgba(40,30,20,.05), 0 10px 24px rgba(40,30,20,.035);
 }
 /* padding density modifiers — the ONLY approved paddings (8px grid) */
 .card--tight, .cell, .avail-card, .rev-row, .drv-hrow, .biz-step { padding:12px 16px; }
@@ -919,3 +919,30 @@ html, body { overflow-x:hidden; max-width:100vw; }
   /* driver header scan button compact */
   .ah .btn{padding:8px 12px;font-size:13px}
 }
+
+/* ═══ PREMIUM LAYER — the subtle material quality that separates premium from flat ═══ */
+/* refined focus rings everywhere — accessible + crafted */
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline:none;
+}
+/* cards get a hairline top-highlight for material depth (light catches the top edge) */
+.card, .panel, .statcard, .cust-card, .ship-card, .biz-quick-card, .mk-card {
+  position:relative;
+}
+.statcard, .cust-card, .ship-card, .biz-quick-card {
+  background-image:linear-gradient(180deg, rgba(255,255,255,.6), transparent 8%);
+}
+/* refined chip/badge treatment — subtle inner glow */
+.paychip, .wb-stage, .biz-order-stage, .mk-badge, .tb-count {
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4);
+}
+/* premium hover: cards lift with a warm-tinted deeper shadow */
+.statcard:hover, .cust-card:hover, .ship-card:hover, .biz-quick-card:hover {
+  box-shadow:0 2px 4px rgba(40,30,20,.06), 0 12px 28px rgba(40,30,20,.12), 0 4px 10px rgba(40,30,20,.06);
+}
+/* the accent underline on active tabs gets a subtle glow */
+.dtab.active::after, .dtab[aria-selected="true"]::after {
+  box-shadow:0 1px 6px var(--accent-soft);
+}
+/* smoother, more intentional page-level easing */
+* { -webkit-tap-highlight-color:transparent; }

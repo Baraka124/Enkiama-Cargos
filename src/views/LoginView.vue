@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
 import { usePublic } from '../composables/usePublic'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import { supabase } from '../lib/supabase'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import BrandMark from '../components/BrandMark.vue'
@@ -92,20 +93,18 @@ function pickRole(r) {
 const parcelsToday = ref(2841)
 const onRoad = ref(63)
 const settledTZS = ref(48920000)
-const carriersLive = ref(11)
+const carriersLive = ref(0)
 const NAMES = ['Grace Mwangi','Peter Otieno','Neema Joseph','Hamisi Bakari','John Mkwawa','Asha Salum','Baraka Omari','Zainab Ali','Juma Hassan','Rehema Said']
 const PLACES = ['Mikocheni','Kariakoo','Msasani','Uyole','Kimara','Tabata','Mbezi','Sinza','Ilala','Temeke']
 const CARRIERS = [['USIRI','#3E5BD6'],['Sumry','#137A5E'],['Kimoto','#B4472B'],['Enkiama','#4338CA']]
 const EVENTS = [['booked','booked'],['collected','collected'],['on road','linehaul'],['delivered','delivered'],['cash collected','cash'],['confirmed','confirmed']]
 const feed = ref([])
-let code = 4470
-function makeEvent() {
-  code++
-  const c = CARRIERS[Math.floor(Math.random()*CARRIERS.length)]
-  const ev = EVENTS[Math.floor(Math.random()*EVENTS.length)]
-  return { id: code+'-'+Math.random(), code: c[0].slice(0,3).toUpperCase()+'-'+code,
-    who: NAMES[Math.floor(Math.random()*NAMES.length)], place: PLACES[Math.floor(Math.random()*PLACES.length)],
-    carrier: c[0], accent: c[1], ev: ev[0], evClass: ev[1] }
+const stats = ref(null)
+async function loadStats() {
+  try {
+    const { data } = await supabase.rpc('public_platform_stats')
+    if (data) { stats.value = data; carriersLive.value = data.active_carriers || 0 }
+  } catch (e) {}
 }
 let timers = []
 onMounted(() => {
@@ -123,14 +122,7 @@ onMounted(() => {
     const notice = sessionStorage.getItem('auth_notice')
     if (notice) { toast(notice, 'warn'); sessionStorage.removeItem('auth_notice') }
   } catch (e) {}
-  for (let i=0;i<5;i++) feed.value.push(makeEvent())
-  timers.push(setInterval(() => { feed.value.unshift(makeEvent()); if (feed.value.length>6) feed.value.pop() }, 2400))
-  timers.push(setInterval(() => {
-    parcelsToday.value += Math.floor(Math.random()*3)
-    if (Math.random()>0.6) onRoad.value += (Math.random()>0.5?1:-1)
-    onRoad.value = Math.max(40, Math.min(90, onRoad.value))
-    settledTZS.value += Math.floor(Math.random()*40000)
-  }, 1900))
+  loadStats()
 })
 onUnmounted(() => timers.forEach(clearInterval))
 const settledStr = computed(() => 'TZS ' + settledTZS.value.toLocaleString())
@@ -170,7 +162,7 @@ async function sendFleetApplication() {
     <!-- top bar -->
     <header class="lp-top">
       <div class="lp-brand"><BrandMark variant="mark" :height="36" /> <span class="lp-brand-name">Enkiama Cargos</span></div>
-      <span class="lp-live"><span class="lp-dot"></span>{{ carriersLive }} carriers live</span>
+      <span v-if="carriersLive" class="lp-live"><span class="lp-dot"></span>{{ carriersLive }} carriers live</span>
     </header>
 
     <div class="lp-grid">
@@ -185,23 +177,19 @@ async function sendFleetApplication() {
           <span class="lp-quick-note">No account needed</span>
         </div>
 
-        <div class="lp-stats">
-          <div class="lp-stat"><div class="lp-sv">{{ parcelsToday.toLocaleString() }}</div><div class="lp-sl">parcels today</div></div>
-          <div class="lp-stat"><div class="lp-sv">{{ onRoad }}</div><div class="lp-sl">on the road now</div></div>
-          <div class="lp-stat"><div class="lp-sv mono">{{ settledStr }}</div><div class="lp-sl">settled today</div></div>
+        <div class="lp-stats" v-if="stats">
+          <div class="lp-stat"><div class="lp-sv mono">{{ (stats.total_parcels||0).toLocaleString() }}</div><div class="lp-sl">parcels moved</div></div>
+          <div class="lp-stat"><div class="lp-sv mono">{{ stats.active_carriers||0 }}</div><div class="lp-sl">active carriers</div></div>
+          <div class="lp-stat"><div class="lp-sv mono">{{ stats.regions||0 }}</div><div class="lp-sl">destinations served</div></div>
         </div>
 
-        <!-- live feed — quiet social proof -->
-        <div class="lp-feed">
-          <div class="lp-feed-hd"><span class="lp-live"><span class="lp-dot"></span>Live ledger</span></div>
-          <transition-group name="feed" tag="div" class="lp-feed-list">
-            <div v-for="f in feed" :key="f.id" class="lp-feed-row">
-              <span class="lp-code mono" :style="{color:f.accent}">{{ f.code }}</span>
-              <span class="lp-who">{{ f.who }} · {{ f.place }}</span>
-              <span class="lp-ev" :class="'ev-'+f.evClass">{{ f.ev }}</span>
-            </div>
-          </transition-group>
+        <!-- real value proof, not fake activity -->
+        <div class="lp-proof" v-if="stats">
+          <div class="lp-proof-row"><Icon name="check" :size="15" /><div><b>{{ (stats.delivered||0).toLocaleString() }} parcels delivered</b><span>Every one tracked end to end, cash reconciled</span></div></div>
+          <div class="lp-proof-row"><Icon name="truck" :size="15" /><div><b>{{ stats.active_carriers||0 }} carriers on the platform</b><span>Independent fleets, one shared standard</span></div></div>
+          <div class="lp-proof-row"><Icon name="box" :size="15" /><div><b>{{ stats.shops||0 }} shops selling with delivery built in</b><span>Order on the marketplace, shipped tracked</span></div></div>
         </div>
+
       </section>
 
       <!-- RIGHT / BOTTOM: the actual sign-in, inline (no awkward slide-panel) -->
@@ -269,6 +257,8 @@ async function sendFleetApplication() {
               <button class="auth-link" @click="otpSent=false">← Change number</button>
             </template>
           </template>
+
+          <div class="auth-secure"><Icon name="check" :size="12" /> Encrypted &amp; secure · Your data stays private</div>
 
           <div class="auth-foot">
             <Icon name="box" :size="13" /> Receiving a parcel? Just open the tracking link your sender shared — no account needed.
@@ -359,19 +349,20 @@ async function sendFleetApplication() {
 
 .lp-auth{position:relative}
 @media(min-width:920px){.lp-auth{position:sticky;top:40px}}
-.auth-box{background:var(--surface);border:1px solid var(--hairline);border-radius:20px;padding:24px;box-shadow:var(--shadow-lg)}
+.auth-box{background:linear-gradient(180deg,#FFFFFF,#FCFCFE);border:1px solid rgba(255,255,255,.9);border-radius:22px;padding:30px 28px;
+  box-shadow:0 0 0 1px rgba(11,14,20,.04),0 2px 4px rgba(11,14,20,.04),0 12px 32px rgba(11,14,20,.14),0 40px 80px rgba(11,14,20,.16)}
 .auth-role{display:flex;gap:6px;background:var(--surface-2);padding:5px;border-radius:12px;margin-bottom:6px}
 .role-pill{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border:none;background:transparent;border-radius:8px;font-family:inherit;font-weight:600;font-size:13px;color:var(--ink-faint);cursor:pointer;transition:.15s}
 .role-pill.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
 .auth-role-label{font-size:12px;color:var(--ink-faint);margin:12px 2px 16px;font-weight:500}
-.fld{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:14px}
-.fld input{width:100%;margin-top:7px;padding:13px 14px;border:1px solid var(--hairline-2);border-radius:12px;font-size:16px;font-family:inherit;background:var(--surface);color:var(--ink);transition:.15s}
-.fld input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fld{display:block;font-size:12px;font-weight:650;color:var(--ink-soft);margin-bottom:16px;letter-spacing:.01em}
+.fld input{width:100%;margin-top:8px;padding:14px 15px;border:1px solid var(--hairline-2);border-radius:12px;font-size:15px;font-family:inherit;background:var(--surface-2);color:var(--ink);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;box-shadow:inset 0 1px 2px rgba(11,14,20,.03)}
+.fld input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px var(--accent-soft),inset 0 1px 2px rgba(11,14,20,.02)}
 .otp-input{letter-spacing:.4em;text-align:center;font-size:22px !important}
-.auth-btn{width:100%;padding:15px 24px;border:none;border-radius:14px;background:var(--accent);color:#fff;font-family:inherit;font-weight:650;font-size:15px;letter-spacing:-.01em;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease);display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 1px 2px rgba(55,48,217,.25),0 2px 8px rgba(55,48,217,.22)}
-.auth-btn:hover:not(:disabled){background:var(--accent-ink);box-shadow:0 2px 4px rgba(55,48,217,.3),0 6px 16px rgba(55,48,217,.28);transform:translateY(-1px)}
-.auth-btn:active{transform:translateY(1px)}
-.auth-btn:active{transform:translateY(1px)} .auth-btn:disabled{opacity:.6}
+.auth-btn{width:100%;padding:15px 24px;border:none;border-radius:14px;background:linear-gradient(180deg,#4B40E0,var(--accent));color:#fff;font-family:inherit;font-weight:650;font-size:15px;letter-spacing:-.01em;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease);display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(45,38,140,.4),0 4px 12px rgba(55,48,217,.32),0 8px 24px rgba(55,48,217,.2)}
+.auth-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 4px rgba(45,38,140,.4),0 8px 20px rgba(55,48,217,.42),0 14px 34px rgba(55,48,217,.28)}
+.auth-btn:active{transform:translateY(1px) scale(.99)}
+.auth-btn:active{transform:translateY(1px) scale(.99)} .auth-btn:disabled{opacity:.6}
 .auth-links{display:flex;justify-content:space-between;margin-top:14px;gap:10px}
 .auth-link{background:none;border:none;color:var(--accent-ink);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;padding:4px 0}
 .auth-note{font-size:12px;color:var(--ink-faint);margin:12px 2px 0;line-height:1.5}
@@ -385,6 +376,16 @@ async function sendFleetApplication() {
 .lp-fleet-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:16px;padding:12px;background:none;border:none;color:rgba(255,255,255,.5);font-size:13px;font-family:inherit;cursor:pointer;border-radius:var(--r);transition:color var(--dur-fast) var(--ease)}
 .lp-fleet-link:hover{color:#fff}
 .auth-head{margin-bottom:18px}
-.auth-title{font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.auth-title{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.03em}
 .auth-subtitle{font-size:13px;color:var(--ink-faint);margin-top:3px}
+
+.auth-secure{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11.5px;color:var(--go-ink);font-weight:600;margin-top:16px;padding-top:14px;border-top:1px solid var(--hairline)}
+.auth-secure :deep(svg){color:var(--go)}
+
+.lp-proof{margin-top:28px;display:flex;flex-direction:column;gap:2px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:8px;backdrop-filter:blur(8px)}
+.lp-proof-row{display:flex;align-items:center;gap:12px;padding:12px 12px}
+.lp-proof-row:not(:last-child){border-bottom:1px solid rgba(255,255,255,.06)}
+.lp-proof-row :deep(svg){color:#34D399;flex-shrink:0}
+.lp-proof-row b{display:block;color:#fff;font-size:14px;font-weight:650;letter-spacing:-.01em}
+.lp-proof-row span{display:block;color:rgba(255,255,255,.5);font-size:12.5px;margin-top:2px}
 </style>

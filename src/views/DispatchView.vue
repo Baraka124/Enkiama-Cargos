@@ -6,6 +6,7 @@ import { useConsignments } from '../composables/useConsignments'
 import { useDispatch } from '../composables/useDispatch'
 import { useI18n } from '../composables/useI18n'
 import { fmtTZS } from '../lib/supabase'
+import Money from '../components/Money.vue'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import EmptyState from '../components/EmptyState.vue'
 import Skeleton from '../components/Skeleton.vue'
@@ -463,11 +464,11 @@ function fmtWhen(ts) {
       </button>
       <button class="statcard clickable" @click="tab='action'">
         <div class="statcard-ic owed"><Icon name="cash" :size="18" /></div>
-        <div class="statcard-body"><div class="statcard-v mono owed-ink">{{ fmtTZS(owedTotal) }}</div><div class="statcard-l">Cash to collect</div></div>
+        <div class="statcard-body"><div class="statcard-v owed-ink"><Money :amount="owedTotal" /></div><div class="statcard-l">Cash to collect</div></div>
       </button>
       <button class="statcard clickable" @click="tab='cash'">
         <div class="statcard-ic go"><Icon name="check" :size="18" /></div>
-        <div class="statcard-body"><div class="statcard-v mono go-ink">{{ fmtTZS(heldTotal) }}</div><div class="statcard-l">Collected · unremitted</div></div>
+        <div class="statcard-body"><div class="statcard-v go-ink"><Money :amount="heldTotal" /></div><div class="statcard-l">Collected · unremitted</div></div>
       </button>
     </div>
 

@@ -122,23 +122,26 @@ onMounted(() => { load(); loadCategories() })
     </div>
     <EmptyState v-else-if="!stores.length" icon="search" title="No shops here yet" :hint="corridor ? `No storefronts delivering to ${corridor} yet.` : 'Be the first business on the marketplace.'" />
     <div v-else class="mk-grid">
-      <RouterLink v-for="s in stores" :key="s.id" :to="`/shop/${s.slug}`" class="mk-card" :style="{'--sf': s.accent}">
-        <span v-if="s.featured" class="mk-badge feat"><Icon name="star" :size="10" /> Featured</span>
-        <div class="mk-card-top">
-          <div class="mk-avatar" :style="{background:s.accent}">{{ s.name.slice(0,2).toUpperCase() }}</div>
-          <div style="flex:1;min-width:0">
-            <div class="mk-name">{{ s.name }}</div>
-            <div class="mk-tag">{{ s.tagline }}</div>
+      <RouterLink v-for="s in stores" :key="s.id" :to="`/shop/${s.slug}`" class="mk-card" :style="{'--sf': s.accent || 'var(--accent)'}">
+        <div class="mk-cover" :style="s.cover_url ? {backgroundImage:`url(${s.cover_url})`} : {}">
+          <span v-if="s.featured" class="mk-badge feat"><Icon name="star" :size="10" /> Featured</span>
+          <span v-if="s.verified_delivery" class="mk-badge verif"><Icon name="check" :size="11" /> Verified</span>
+        </div>
+        <div class="mk-card-body">
+          <div class="mk-avatar" :style="{background:s.accent || 'var(--accent)'}">
+            <img v-if="s.logo_url" :src="s.logo_url" alt="" />
+            <span v-else>{{ s.name.slice(0,2).toUpperCase() }}</span>
           </div>
-        </div>
-        <div class="mk-meta">
-          <span v-if="s.verified_delivery" class="mk-verified"><Icon name="check" :size="13" /> Verified delivery</span>
-          <span v-if="s.avg_rating" class="mk-rating"><Icon name="star" :size="13" /> {{ s.avg_rating }} <span class="mk-rc">({{ s.review_count }})</span></span>
-          <span v-if="s.delivered_count > 0" class="mk-delivered"><Icon name="truck" :size="12" /> {{ s.delivered_count }} delivered</span>
-        </div>
-        <div class="mk-foot">
-          <span class="mk-prods">{{ s.product_count }} product{{ s.product_count===1?'':'s' }}</span>
-          <span v-if="s.delivers_to" class="mk-delivers"><Icon name="pin" :size="12" /> {{ s.delivers_to }}</span>
+          <div class="mk-name">{{ s.name }}</div>
+          <div class="mk-tag">{{ s.tagline }}</div>
+          <div class="mk-meta">
+            <span v-if="s.avg_rating" class="mk-rating"><Icon name="star" :size="13" /> {{ s.avg_rating }} <span class="mk-rc">({{ s.review_count }})</span></span>
+            <span v-if="s.delivered_count > 0" class="mk-delivered"><Icon name="truck" :size="12" /> {{ s.delivered_count }} delivered</span>
+          </div>
+          <div class="mk-foot">
+            <span class="mk-prods">{{ s.product_count }} product{{ s.product_count===1?'':'s' }}</span>
+            <span v-if="s.delivers_to" class="mk-delivers"><Icon name="pin" :size="12" /> {{ s.delivers_to }}</span>
+          </div>
         </div>
       </RouterLink>
     </div>
@@ -177,13 +180,19 @@ onMounted(() => { load(); loadCategories() })
 .mk-corr:hover{border-color:var(--accent)}
 .mk-corr.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
-.mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:20px;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm);border-top:3px solid var(--sf,var(--accent))}
+.mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
+.mk-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.mk-cover{position:relative;height:88px;background:linear-gradient(135deg, var(--sf,var(--accent)), color-mix(in srgb, var(--sf,var(--accent)) 55%, #000));background-size:cover;background-position:center}
+.mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.12))}
+.mk-card-body{padding:0 18px 18px;position:relative}
+.mk-avatar{width:56px;height:56px;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:-28px;border:3px solid var(--surface);box-shadow:0 4px 12px rgba(0,0,0,.15);position:relative;z-index:2;overflow:hidden}
+.mk-avatar img{width:100%;height:100%;object-fit:cover}
 .mk-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
 .mk-card.sk{height:180px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--hairline) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:mksh 1.4s infinite}
 @keyframes mksh{0%{background-position:100% 0}100%{background-position:-100% 0}}
-.mk-card-top{display:flex;align-items:center;gap:13px;margin-bottom:16px}
-.mk-avatar{width:48px;height:48px;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.mk-name{font-weight:700;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+
+.mk-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink);margin-top:10px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mk-badge.feat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;gap:3px}
 .mk-tag{font-size:13px;color:var(--ink-faint);margin-top:2px}
 .mk-meta{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
@@ -254,4 +263,8 @@ onMounted(() => { load(); loadCategories() })
 .mk-utilcat{background:none;border:none;color:rgba(255,255,255,.75);font-family:inherit;font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;cursor:pointer;transition:all .15s ease}
 .mk-utilcat:hover{background:rgba(255,255,255,.08);color:#fff}
 .mk-utilcat.on{background:rgba(255,255,255,.12);color:#fff}
+
+.mk-badge{position:absolute;top:10px;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:5px 9px;border-radius:999px;z-index:2}
+.mk-badge.feat{left:10px;background:rgba(255,255,255,.92);color:var(--warn-ink)}
+.mk-badge.verif{right:10px;background:rgba(255,255,255,.92);color:var(--go-ink)}
 </style>
