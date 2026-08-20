@@ -132,6 +132,20 @@ async function submitBooking() {
 const newDriver = ref({ name: '', phone: '', vehicle: 'bajaji' })
 const inviteLink = ref('')
 const genBusy = ref(false)
+const resetPwDriver = ref(null)
+const resetPwValue = ref('')
+const resetPwBusy = ref(false)
+function openResetPw(d) { resetPwDriver.value = d; resetPwValue.value = '' }
+async function doResetPw() {
+  if (resetPwValue.value.length < 8) { toast('Password must be at least 8 characters', 'warn'); return }
+  resetPwBusy.value = true
+  try {
+    const { data } = await disp.setDriverPassword(resetPwDriver.value.id, resetPwValue.value)
+    if (data?.ok) { toast(`Password reset for ${resetPwDriver.value.name}`, 'ok'); resetPwDriver.value = null }
+    else toast(data?.error || 'Could not reset password', 'warn')
+  } catch (e) { toast('Could not reset password', 'warn') }
+  resetPwBusy.value = false
+}
 async function generateDriverLink() {
   genBusy.value = true
   try {
@@ -648,9 +662,12 @@ function fmtWhen(ts) {
       <EmptyState v-if="!drivers.length" icon="bike" title="No drivers yet" />
       <div v-for="d in drivers" :key="d.id" class="cons" style="padding:14px 16px;display:flex;align-items:center;gap:13px">
         <div class="avatar">{{ initials(d.name) }}</div>
-        <div><div style="font-weight:600">{{ d.name }}</div><div class="p-sub">{{ d.phone }} · {{ d.vehicle }}</div></div>
-        <button class="btn btn-ghost" style="margin-left:auto" @click="toggleDriver(d)">{{ d.active ? 'Deactivate' : 'Reactivate' }}</button>
-        <span class="paychip" :class="d.active?'pay-prepaid':'pay-settled'">{{ d.active?'Active':'Off' }}</span>
+        <div style="min-width:0"><div style="font-weight:600">{{ d.name }}</div><div class="p-sub">{{ d.phone }} · {{ d.vehicle }}</div></div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <button v-if="d.user_id" class="btn btn-ghost" @click="openResetPw(d)"><Icon name="link" :size="13" /> Reset password</button>
+          <button class="btn btn-ghost" @click="toggleDriver(d)">{{ d.active ? 'Deactivate' : 'Reactivate' }}</button>
+          <span class="paychip" :class="d.active?'pay-prepaid':'pay-settled'">{{ d.active?'Active':'Off' }}</span>
+        </div>
       </div>
 
       <div class="panel" style="margin-top:20px">
@@ -658,6 +675,19 @@ function fmtWhen(ts) {
         <div class="sub">They sign up with this email and join {{ carrier?.name }} as dispatch. (Invite flow uses the same claim-on-signup as carrier onboarding.)</div>
         <div class="fg"><label>Staff email</label><input v-model="newStaff.email" type="email" placeholder="staff@carrier.co.tz" /></div>
         <button class="btn btn-ghost" @click="sendStaffInvite">Send invite</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET DRIVER PASSWORD -->
+  <div v-if="resetPwDriver" class="modal-back" @click.self="resetPwDriver=null">
+    <div class="modal">
+      <h3>Reset password — {{ resetPwDriver.name }}</h3>
+      <p class="sub">Set a new password for this driver. Share it with them securely — they can change it after signing in.</p>
+      <div class="fg"><label>New password</label><input v-model="resetPwValue" type="text" placeholder="At least 8 characters" @keyup.enter="doResetPw" /></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-ghost" @click="resetPwDriver=null">Cancel</button>
+        <button class="btn btn-accent" :disabled="resetPwBusy" @click="doResetPw"><Spinner v-if="resetPwBusy" :size="15" /><span v-else>Set password</span></button>
       </div>
     </div>
   </div>

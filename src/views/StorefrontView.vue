@@ -107,12 +107,13 @@ onMounted(load)
             <div class="sf-products">
               <div v-for="p in g.items" :key="p.id" class="sf-prod">
                 <div v-if="p.image_url" class="sf-prod-img" :style="{backgroundImage:`url(${p.image_url})`}"></div>
+                <div v-else class="sf-prod-img sf-prod-noimg"><Icon name="box" :size="22" /></div>
                 <div style="flex:1;min-width:0">
                   <div class="sf-prod-name">{{ p.name }}</div>
                   <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
                 </div>
                 <div class="sf-prod-price">{{ tzs(p.price_tzs) }}</div>
-                <button class="btn btn-accent sf-order" @click="openOrder(p)">Order</button>
+                <button class="btn btn-buy sf-order" @click="openOrder(p)">Order now</button>
               </div>
             </div>
           </div>
@@ -165,7 +166,7 @@ onMounted(load)
           <div class="sf-order-total">Total on delivery: <strong>{{ tzs((orderProduct.price_tzs||0) * (orderForm.qty||1)) }}</strong></div>
           <div class="confirm-actions">
             <button class="btn btn-ghost" @click="orderProduct=null">Cancel</button>
-            <button class="btn btn-accent" :disabled="ordering" @click="placeOrder"><Spinner v-if="ordering" :size="15" /><span v-else>Place order</span></button>
+            <button class="btn btn-buy" :disabled="ordering" @click="placeOrder"><Spinner v-if="ordering" :size="15" /><span v-else>Place order</span></button>
           </div>
         </template>
       </div>
@@ -218,4 +219,5 @@ onMounted(load)
 .sf-loading{text-align:center;padding:80px 20px;color:var(--ink-faint)}
 .sf-order-total{font-size:14px;color:var(--ink-soft);margin:14px 0;padding:12px;background:var(--surface-2);border-radius:12px;text-align:center}
 .sf-order-total strong{color:var(--owed-ink);font-family:'Space Grotesk',sans-serif}
+.sf-prod-noimg{display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--ink-ghost)}
 </style>

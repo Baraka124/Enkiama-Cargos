@@ -116,17 +116,21 @@ onMounted(() => { if (code.value) track() })
 <template>
   <AppHeader :title="parcel?.carrier || 'Enkiama Cargos'" subtitle="Track your parcel" />
 
-  <div class="wrap" style="max-width:560px">
-    <div class="panel">
-      <div class="fg" style="position:relative">
-        <label>Tracking code</label>
-        <input v-model="code" class="mono" placeholder="USR-XXXX" style="text-transform:uppercase" @keyup.enter="track" />
+  <div class="trk-hero">
+    <div class="trk-hero-inner">
+      <div class="trk-hero-badge"><Icon name="pin" :size="16" /> Live tracking</div>
+      <h1 class="trk-hero-h1">Where's your <span class="grad">parcel</span>?</h1>
+      <p class="trk-hero-sub">Enter your tracking code to see exactly where your cargo is — no account needed.</p>
+      <div class="trk-hero-search">
+        <input v-model="code" class="mono" placeholder="ENK-XXXX" style="text-transform:uppercase" @keyup.enter="track" />
+        <button class="btn btn-accent" :disabled="busy" @click="track">
+          <Spinner v-if="busy" :size="16" /><template v-else>Track</template>
+        </button>
       </div>
-      <button class="btn btn-accent btn-block btn-lg" :disabled="busy" @click="track">
-        <Spinner v-if="busy" :size="16" /><template v-else>Track parcel</template>
-      </button>
     </div>
+  </div>
 
+  <div class="wrap" style="max-width:560px">
     <EmptyState v-if="notFound" icon="search" title="No parcel with that code" hint="Check the code your sender shared with you." />
 
     <div v-if="parcel" class="cons">
@@ -283,3 +287,23 @@ onMounted(() => { if (code.value) track() })
     </div>
   </div>
 </template>
+
+<style scoped>
+.trk-hero{position:relative;background:var(--nav);overflow:hidden}
+.trk-hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(700px 400px at 70% -20%, rgba(67,56,202,.32), transparent 60%),
+  radial-gradient(500px 350px at 15% 120%, rgba(15,157,88,.1), transparent 55%)}
+.trk-hero::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;mask-image:radial-gradient(circle at 50% 20%,black,transparent 72%)}
+.trk-hero-inner{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:40px 24px 44px;text-align:center}
+.trk-hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 13px;border-radius:999px;margin-bottom:18px}
+.trk-hero-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,6vw,40px);font-weight:700;letter-spacing:-.03em;color:#fff;margin-bottom:10px}
+.trk-hero-h1 .grad{background:linear-gradient(100deg,#818CF8,#34D399) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
+.trk-hero-sub{font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;max-width:400px;margin:0 auto 24px}
+.trk-hero-search{display:flex;gap:10px;max-width:440px;margin:0 auto}
+.trk-hero-search input{flex:1;padding:14px 18px;border:1px solid rgba(255,255,255,.16);border-radius:14px;font-size:16px;font-weight:600;letter-spacing:.05em;background:rgba(255,255,255,.95);color:var(--ink);box-shadow:var(--shadow-md)}
+.trk-hero-search input:focus{outline:none;border-color:#818CF8;box-shadow:0 0 0 3px rgba(129,140,248,.3)}
+.trk-hero-search .btn{padding:14px 24px;font-size:15px}
+.wrap{margin-top:24px}
+</style>

@@ -29,6 +29,8 @@ export function usePublic() {
   const activeCarriers = () => supabase.from('carrier').select('*').eq('status', 'active').order('name')
   const senderBook = (args) => supabase.rpc('sender_book', args)
   const myShopOrders = () => supabase.rpc('my_shop_orders')
+  const businessSwitchCarrier = (code, carrierId) => supabase.rpc('business_switch_carrier', { p_code: code, p_carrier_id: carrierId })
+  const businessMarkReady = (code) => supabase.rpc('business_mark_ready', { p_code: code })
   const applyAsCarrier = (args) => supabase.rpc('apply_as_carrier', args)
   const mySenderShipments = () =>
     supabase.from('consignment').select('*, payment(*), driver(name,vehicle), carrier(name,accent,slug,mark)').order('created_at', { ascending: false })
@@ -36,7 +38,7 @@ export function usePublic() {
   return {
     track, confirmReceipt, leaveReview, reschedule, report,
     myDeliveries, claimReceiverPhone,
-    browseStorefronts, browseStorefrontsV2, searchProducts, productCategories, getStorefront, placeOrder, myShopOrders,
+    browseStorefronts, browseStorefrontsV2, searchProducts, productCategories, getStorefront, placeOrder, myShopOrders, businessSwitchCarrier, businessMarkReady,
     activeCarriers, senderBook, mySenderShipments, applyAsCarrier,
   }
 }

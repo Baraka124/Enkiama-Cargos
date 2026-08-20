@@ -97,8 +97,14 @@ async function register() {
 </template>
 
 <style scoped>
-.join-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--paper)}
-.join-card{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--hairline);border-radius:20px;padding:28px;box-shadow:var(--shadow-lg)}
+.join-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;background:var(--nav);overflow:hidden}
+.join-wrap::before{content:'';position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(700px 500px at 75% -10%, rgba(67,56,202,.32), transparent 60%),
+  radial-gradient(500px 400px at 15% 110%, rgba(15,157,88,.1), transparent 55%)}
+.join-wrap::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;
+  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 72%)}
+.join-card{position:relative;z-index:1;width:100%;max-width:440px;background:var(--surface);border:1px solid var(--hairline);border-radius:20px;padding:28px;box-shadow:var(--shadow-xl)}
 .join-brand{display:flex;justify-content:center;margin-bottom:20px}
 .join-loading{display:flex;justify-content:center;padding:40px}
 .join-head{text-align:center;margin-bottom:22px}

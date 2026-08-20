@@ -16,6 +16,8 @@
   /* deep ink used for the authoritative top bar (Amazon-grade dark nav) */
   --nav:#0B0E14; --nav-soft:#171B24; --nav-line:#242A36; --nav-ink:#E8EBF1; --nav-faint:#8B93A3;
   --brand:#3730D9; --brand-soft:#E9E8FC; --brand-ink:#241E7A;
+  /* warm commerce accent — Amazon-style "buy/order" action that pops against dark */
+  --buy:#F59E0B; --buy-hi:#FBB524; --buy-ink:#7A4A05; --buy-soft:#FEF3DC;
 
   /* ── ELEVATION ── */
   --shadow-xs:0 1px 2px rgba(11,14,20,.07);
@@ -44,6 +46,11 @@ body{
   font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   background:var(--paper);color:var(--ink);line-height:1.55;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:-.006em;
+  background-image:
+    radial-gradient(1000px 700px at 100% 0%, rgba(55,48,217,.05), transparent 55%),
+    radial-gradient(900px 600px at 0% 100%, rgba(15,157,88,.035), transparent 55%),
+    linear-gradient(180deg, #F1F3F8 0%, var(--paper) 40%);
+  background-attachment:fixed;
 }
 ::selection{background:var(--accent);color:#fff}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
@@ -75,15 +82,26 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 .tb-enk b{color:var(--ink-faint);font-weight:600}
 
 /* ── buttons ── */
-.btn{border:none;padding:11px 18px;border-radius:12px;font-family:inherit;font-weight:650;font-size:14px;letter-spacing:-.01em;
-  display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease);color:#fff;white-space:nowrap}
-.btn:active{transform:translateY(1px)} .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-accent{background:var(--accent);box-shadow:0 1px 2px rgba(67,56,202,.25),0 2px 8px rgba(67,56,202,.22)} .btn-accent:hover:not(:disabled){background:var(--accent-ink);box-shadow:0 2px 4px rgba(67,56,202,.3),0 6px 16px rgba(67,56,202,.28);transform:translateY(-1px)}
-.btn-go{background:var(--go);box-shadow:0 1px 2px rgba(18,160,95,.25),0 2px 8px rgba(18,160,95,.22)} .btn-go:hover:not(:disabled){background:var(--go-ink);box-shadow:0 2px 4px rgba(18,160,95,.3),0 6px 16px rgba(18,160,95,.28);transform:translateY(-1px)}
-.btn-owed{background:var(--owed);box-shadow:0 1px 2px rgba(214,59,42,.25),0 2px 8px rgba(214,59,42,.22)} .btn-owed:hover:not(:disabled){background:var(--owed-ink);transform:translateY(-1px)}
-.btn-ghost{background:var(--surface);border:1px solid var(--hairline-2);color:var(--ink);box-shadow:var(--shadow-xs);font-weight:600}
-.btn-ghost:hover{border-color:var(--ink-faint);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
-.btn-block{width:100%} .btn-lg{padding:15px 24px;font-size:15px;border-radius:12px}
+.btn{border:none;padding:11px 19px;border-radius:12px;font-family:inherit;font-weight:650;font-size:14px;letter-spacing:-.01em;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease);color:#fff;white-space:nowrap;position:relative}
+.btn:active:not(:disabled){transform:translateY(1px) scale(.985)} .btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* PRIMARY — commands attention: gradient depth, inset top-highlight, layered shadow */
+.btn-accent{background:linear-gradient(180deg,#4B40E0,var(--accent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(45,38,140,.4),0 4px 12px rgba(55,48,217,.32),0 8px 24px rgba(55,48,217,.2)}
+.btn-accent:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 4px rgba(45,38,140,.4),0 8px 20px rgba(55,48,217,.42),0 14px 34px rgba(55,48,217,.28)}
+.btn-go{background:linear-gradient(180deg,#16B26A,var(--go));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(8,90,52,.4),0 4px 12px rgba(15,157,88,.32),0 8px 24px rgba(15,157,88,.2)}
+.btn-go:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 2px 4px rgba(8,90,52,.4),0 8px 20px rgba(15,157,88,.42),0 14px 34px rgba(15,157,88,.28)}
+.btn-owed{background:linear-gradient(180deg,#E24433,var(--owed));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(120,25,15,.4),0 4px 12px rgba(214,59,42,.3),0 8px 22px rgba(214,59,42,.18)}
+.btn-owed:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px)}
+
+/* SECONDARY — recedes so primary pops: flat, quiet, no lift shadow */
+.btn-ghost{background:var(--surface);border:1px solid var(--hairline-2);color:var(--ink-soft);box-shadow:none;font-weight:600}
+.btn-ghost:hover:not(:disabled){background:var(--surface-2);border-color:var(--ink-ghost);color:var(--ink)}
+.btn-block{width:100%} .btn-lg{padding:15px 26px;font-size:15px;border-radius:13px}
 
 /* ── panels & cards ── */
 /* ═══ CANONICAL CARD — every card-like surface inherits this exact construction.
@@ -93,7 +111,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
   background:var(--surface);
   border:1px solid var(--hairline);
   border-radius:var(--r-lg);
-  box-shadow:var(--shadow-sm);
+  box-shadow:0 1px 2px rgba(11,14,20,.04), 0 2px 6px rgba(11,14,20,.05), 0 8px 20px rgba(11,14,20,.03);
 }
 /* padding density modifiers — the ONLY approved paddings (8px grid) */
 .card--tight, .cell, .avail-card, .rev-row, .drv-hrow, .biz-step { padding:12px 16px; }
@@ -841,3 +859,37 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .cust-stat, .drv-stat { display:flex; flex-direction:column; align-items:flex-start; background:none !important; padding:0 !important; border:none !important; }
 .drv-stats { grid-template-columns:repeat(4,1fr); }
 .drv-stat.alert .drv-stat-n { color:var(--owed-ink); }
+
+/* ── warm commerce button (Amazon "buy now" energy) — for order/buy actions only ── */
+.btn-buy{background:linear-gradient(180deg,var(--buy-hi),var(--buy));color:#3A2503;font-weight:700;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 1px 2px rgba(122,74,5,.35),0 4px 12px rgba(245,158,11,.3),0 8px 22px rgba(245,158,11,.18)}
+.btn-buy:hover:not(:disabled){filter:brightness(1.05);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 4px rgba(122,74,5,.35),0 8px 20px rgba(245,158,11,.42),0 14px 34px rgba(245,158,11,.26)}
+
+/* ═══ MOBILE FIXES — prevent horizontal overflow, fix header on small screens ═══ */
+html, body { overflow-x:hidden; max-width:100vw; }
+*, *::before, *::after { box-sizing:border-box; }
+
+@media(max-width:640px){
+  /* topbar: clean, compact — mobile uses the hamburger menu, not desktop actions */
+  .topbar{padding:10px 16px}
+  .topbar .inner{gap:8px}
+  /* stat cards stack cleanly */
+  .statrow{grid-template-columns:1fr 1fr;gap:10px}
+  .statcard{padding:12px;gap:10px}
+  .statcard-ic{width:38px;height:38px}
+  .statcard-v{font-size:17px}
+  .statcard-l{font-size:11px}
+  /* consignment cards: full width, tighter */
+  .wb, .cons, .panel{margin-left:0;margin-right:0}
+  /* tabs scroll horizontally without cutting */
+  .dtabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .dtab{flex-shrink:0}
+  /* action buttons stack full-width on cards */
+  .cons-actions .btn, .biz-order-actions .btn{flex:1 1 auto}
+}
+
+/* authoritative mobile topbar: hide desktop actions, show hamburger (must come last) */
+@media(max-width:760px){
+  .topbar .tb-actions-desktop{display:none !important}
+  .tb-actions-mobile{display:flex !important}
+}

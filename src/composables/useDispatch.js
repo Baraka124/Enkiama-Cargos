@@ -10,6 +10,7 @@ export function useDispatch() {
     supabase.from('driver').select('*').eq('carrier_id', carrierId)
   const addDriver = (row) => supabase.from('driver').insert(row)
   const createDriverInvite = (name, phone) => supabase.rpc('create_driver_invite', { p_name: name || null, p_phone: phone || null })
+  const setDriverPassword = (driverId, newPassword) => supabase.rpc('admin_set_driver_password', { p_driver_id: driverId, p_new_password: newPassword })
   const setDriverActive = (driverId, active) =>
     supabase.rpc('set_driver_active', { p_driver: driverId, p_active: active })
   const inviteStaff = (email) => supabase.rpc('invite_staff', { p_email: email, p_role: 'dispatch' })
@@ -34,7 +35,7 @@ export function useDispatch() {
     supabase.rpc('set_delivery_fee', { p_code: code, p_fee: fee, p_payer: payer, p_note: note })
 
   return {
-    listDrivers, addDriver, createDriverInvite, setDriverActive, inviteStaff,
+    listDrivers, addDriver, createDriverInvite, setDriverPassword, setDriverActive, inviteStaff,
     cashLedger, settleDriverCash,
     notifications, markNotificationsRead,
     customers, custodyEvents, setDeliveryFee,

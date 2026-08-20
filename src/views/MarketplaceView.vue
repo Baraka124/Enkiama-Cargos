@@ -47,31 +47,30 @@ onMounted(() => { load(); loadCategories() })
   <div class="mk">
     <div class="mk-dark">
       <div class="mk-dark-inner">
-        <header class="mk-head">
-          <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="34" /></RouterLink>
+        <header class="mk-nav">
+          <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="32" /></RouterLink>
+          <div class="mk-navsearch">
+            <input v-model="search" @input="onSearch" placeholder="Search shops or products across Tanzania…" aria-label="Search" />
+            <button class="mk-navsearch-btn" @click="onSearch"><Icon name="search" :size="18" /></button>
+          </div>
           <div class="mk-head-actions">
             <template v-if="session">
-              <RouterLink to="/" class="btn btn-ghost">← My dashboard</RouterLink>
+              <RouterLink to="/" class="mk-navlink">← My dashboard</RouterLink>
             </template>
             <template v-else>
-              <RouterLink to="/login?role=sender" class="btn btn-ghost">Sell on Enkiama</RouterLink>
+              <RouterLink to="/login?role=sender" class="mk-navlink">Sell on Enkiama</RouterLink>
               <RouterLink to="/login" class="btn btn-accent">Sign in</RouterLink>
             </template>
           </div>
         </header>
 
+        <nav class="mk-utilbar">
+          <button v-for="c in categories.slice(0,7)" :key="c.category" class="mk-utilcat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">{{ c.category }}</button>
+        </nav>
+
         <section class="mk-hero">
           <h1 class="mk-h1">Shops that <span class="grad">deliver</span>, tracked.</h1>
           <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
-
-          <div class="mk-searchbar">
-            <Icon name="search" :size="18" class="mk-search-ic" />
-            <input v-model="search" @input="onSearch" placeholder="Search shops or products — kitenge, phones, spices…" aria-label="Search the marketplace" />
-          </div>
-
-          <div v-if="categories.length" class="mk-cats">
-            <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">{{ c.category }} <span class="mk-cat-n">{{ c.count }}</span></button>
-          </div>
 
           <div class="mk-corridors">
             <span class="mk-corr-lab">Delivers to:</span>
@@ -162,8 +161,8 @@ onMounted(() => { load(); loadCategories() })
 .mk-dark::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.35;
   background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
   background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 75%)}
-.mk-dark-inner{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 20px 44px}
-.mk-body{max-width:1100px;margin:0 auto;padding:0 20px}
+.mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
+.mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
 .mk-logo{text-decoration:none}
 .mk-hero{text-align:center;padding:36px 0 30px}
@@ -177,7 +176,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-corr{padding:7px 14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);border-radius:20px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);cursor:pointer;transition:.15s;font-family:inherit}
 .mk-corr:hover{border-color:var(--accent)}
 .mk-corr.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:10px}
+.mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
 .mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:20px;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm);border-top:3px solid var(--sf,var(--accent))}
 .mk-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
 .mk-card.sk{height:180px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--hairline) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:mksh 1.4s infinite}
@@ -224,7 +223,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-viewtoggle{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
 .mk-vt{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:600;transition:all var(--dur-fast) var(--ease)}
 .mk-vt.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
-.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;max-width:1000px;margin:0 auto;padding:0 4px}
+.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;max-width:1100px;margin:0 auto;padding:0 4px}
 .mk-pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
 .mk-pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
 .mk-pcard.sk{height:280px;background:var(--surface-2);animation:pulse 1.5s ease-in-out infinite}
@@ -241,4 +240,18 @@ onMounted(() => { load(); loadCategories() })
 
 .mk-head-actions .btn-ghost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
 .mk-head-actions .btn-ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25)}
+
+/* ── Amazon-style command nav ── */
+.mk-nav{display:flex;align-items:center;gap:20px;padding:14px 0}
+.mk-navsearch{flex:1;display:flex;max-width:640px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.mk-navsearch input{flex:1;border:none;padding:12px 16px;font-size:14px;outline:none;background:#fff;color:var(--ink)}
+.mk-navsearch input::placeholder{color:var(--ink-faint)}
+.mk-navsearch-btn{border:none;background:var(--accent);color:#fff;padding:0 18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
+.mk-navsearch-btn:hover{background:var(--accent-ink)}
+.mk-navlink{color:var(--nav-ink);text-decoration:none;font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;white-space:nowrap;transition:background .15s ease}
+.mk-navlink:hover{background:rgba(255,255,255,.08)}
+.mk-utilbar{display:flex;align-items:center;gap:4px;padding:0 0 8px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
+.mk-utilcat{background:none;border:none;color:rgba(255,255,255,.75);font-family:inherit;font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;cursor:pointer;transition:all .15s ease}
+.mk-utilcat:hover{background:rgba(255,255,255,.08);color:#fff}
+.mk-utilcat.on{background:rgba(255,255,255,.12);color:#fff}
 </style>
