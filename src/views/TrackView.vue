@@ -19,6 +19,13 @@ const pub = usePublic()
 const searched = ref(false)
 
 const STAGE_ORDER = ['booked','collected','linehaul','with_driver','delivered','confirmed']
+const events = ref([])
+function stageTime(s) {
+  const e = events.value.find(ev => ev.stage === s)
+  if (!e) return ''
+  const d = new Date(e.at)
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+}
 const STAGE_CAP = { booked:'Booked', collected:'Carrier has it', linehaul:'On road', with_driver:'With driver', delivered:'Delivered', confirmed:'Confirmed', failed:'Failed' }
 
 async function track() {
@@ -34,6 +41,11 @@ async function track() {
     payMode: r.pay_mode, payState: r.pay_state, cod: r.cod_amount, fee: r.fee_amount,
     podPhoto: r.pod_photo_url, podAt: r.pod_at,
   }
+  // load the verifiable event ledger
+  try {
+    const { data: evs } = await pub.trackEvents(code.value)
+    events.value = evs || []
+  } catch (e) { events.value = [] }
   if (r.carrier_accent) document.documentElement.style.setProperty('--accent', r.carrier_accent)
 }
 const confirmStep = ref(false)   // showing the phone-check input
@@ -148,12 +160,22 @@ onMounted(() => { if (code.value) track() })
         </div>
 
         <div class="wb-sec">
-          <div class="trk-lab"><Icon name="link" :size="12" /> Where it is</div>
-          <div class="custody">
-            <div v-for="(s,i) in STAGE_ORDER" :key="s" class="cst" :class="{on:stageOn(s,i)}">
-              <div class="pt"></div><div class="cap">{{ STAGE_CAP[s] }}</div>
+          <div class="trk-lab"><Icon name="link" :size="12" /> The ledger · one parcel, one truth</div>
+          <div class="tl">
+            <div v-for="(s,i) in STAGE_ORDER" :key="s" class="tl-row" :class="{done:stageOn(s,i), current:parcel.stage===s}">
+              <div class="tl-marker">
+                <div class="tl-node"><Icon v-if="stageOn(s,i)" name="check" :size="11" /></div>
+                <div v-if="i < STAGE_ORDER.length-1" class="tl-line" :class="{filled:stageOn(STAGE_ORDER[i+1], i+1)}"></div>
+              </div>
+              <div class="tl-body">
+                <div class="tl-stage">{{ STAGE_CAP[s] }}<span v-if="parcel.stage===s" class="tl-live"><span class="tl-live-dot"></span>now</span></div>
+                <div v-if="stageTime(s)" class="tl-time">{{ stageTime(s) }}</div>
+                <div v-else-if="stageOn(s,i)" class="tl-time muted">completed</div>
+                <div v-else class="tl-time pending">pending</div>
+              </div>
             </div>
           </div>
+          <div class="tl-verify"><Icon name="check" :size="12" /> Verified record · every step logged, nothing can be altered</div>
         </div>
 
         <div v-if="owed>0" class="money-bar owed" style="margin-top:16px">
@@ -306,4 +328,26 @@ onMounted(() => { if (code.value) track() })
 .trk-hero-search input:focus{outline:none;border-color:#818CF8;box-shadow:0 0 0 3px rgba(129,140,248,.3)}
 .trk-hero-search .btn{padding:14px 24px;font-size:15px}
 .wrap{margin-top:24px}
+
+/* ═══ TRUST-LEDGER TIMELINE — the beautiful vertical journey ═══ */
+.tl{display:flex;flex-direction:column;margin-top:6px}
+.tl-row{display:flex;gap:14px;min-height:52px}
+.tl-marker{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.tl-node{width:26px;height:26px;border-radius:50%;background:var(--surface-3);border:2px solid var(--hairline-2);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:all .3s ease;z-index:1}
+.tl-line{width:2px;flex:1;background:var(--hairline-2);margin:2px 0;transition:background .4s ease}
+.tl-line.filled{background:var(--go)}
+.tl-row.done .tl-node{background:var(--go);border-color:var(--go)}
+.tl-row.current .tl-node{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px var(--accent-soft);animation:tlPulse 2s ease-in-out infinite}
+@keyframes tlPulse{0%,100%{box-shadow:0 0 0 5px var(--accent-soft)}50%{box-shadow:0 0 0 9px transparent}}
+.tl-body{padding-bottom:18px;padding-top:2px}
+.tl-stage{font-weight:650;font-size:14.5px;color:var(--ink-faint);display:flex;align-items:center;gap:8px}
+.tl-row.done .tl-stage{color:var(--ink)}
+.tl-row.current .tl-stage{color:var(--accent-ink);font-weight:700}
+.tl-live{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:999px}
+.tl-live-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:tlPulse2 1.4s ease-in-out infinite}
+@keyframes tlPulse2{0%,100%{opacity:1}50%{opacity:.3}}
+.tl-time{font-size:12px;color:var(--ink-soft);margin-top:3px;font-variant-numeric:tabular-nums}
+.tl-time.muted{color:var(--ink-faint)}
+.tl-time.pending{color:var(--ink-ghost)}
+.tl-verify{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--go-ink);margin-top:6px;padding:10px 12px;background:var(--go-soft);border-radius:10px}
 </style>

@@ -8,6 +8,7 @@ import { usePublic } from '../composables/usePublic'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import Icon from '../components/Icon.vue'
+import Money from '../components/Money.vue'
 import AppHeader from '../components/AppHeader.vue'
 
 const STAGE_LABELS = { booked:'Booked', collected:'Collected', linehaul:'On road', with_driver:'With driver', delivered:'Delivered', confirmed:'Confirmed', failed:'Failed', cancelled:'Cancelled' }
@@ -26,6 +27,22 @@ const busy = ref(false)
 const pub = usePublic()
 const lastCode = ref('')
 const shopData = ref(null)
+const insights = ref(null)
+const insightsLoading = ref(false)
+async function loadInsights() {
+  if (insights.value) return
+  insightsLoading.value = true
+  try { const { data } = await pub.businessInsights(); insights.value = data } catch (e) {}
+  insightsLoading.value = false
+}
+const weekTrend = computed(() => {
+  if (!insights.value) return 0
+  return (insights.value.this_week || 0) - (insights.value.last_week || 0)
+})
+function barPct(v, arr) {
+  const max = Math.max(...arr.map(x => x.orders), 1)
+  return Math.round((v / max) * 100)
+}
 
 async function loadShopOrders() {
   try { const { data } = await pub.myShopOrders(); shopData.value = data } catch (e) {}
@@ -110,6 +127,7 @@ async function logout() { await signOut(); router.push('/login') }
     <div class="dtabs">
       <button class="dtab" :class="{on:tab==='overview'}" @click="tab='overview'">Overview</button>
       <button class="dtab" :class="{on:tab==='orders'}" @click="tab='orders'">Orders <span v-if="shopData?.orders?.length" class="tb-count">{{ shopData.orders.length }}</span></button>
+      <button class="dtab" :class="{on:tab==='insights'}" @click="tab='insights'; loadInsights()">Insights</button>
       <button class="dtab" :class="{on:tab==='send'}" @click="tab='send'">Send a parcel</button>
       <button class="dtab" :class="{on:tab==='mine'}" @click="tab='mine'">My parcels <span class="tb-count">{{ myParcels.length }}</span></button>
     </div>
@@ -192,7 +210,86 @@ async function logout() { await signOut(); router.push('/login') }
       </div>
     </div>
 
-    <!-- SWITCH CARRIER MODAL -->
+    <!-- INSIGHTS TAB -->
+    <div v-else-if="tab==='insights'">
+      <div v-if="insightsLoading" class="panel">
+        <div class="ins-grid">
+          <div v-for="n in 4" :key="n" class="ins-stat"><div class="skel skel-num"></div><div class="skel skel-lab"></div></div>
+        </div>
+      </div>
+      <template v-else-if="insights?.has_shop">
+        <!-- CASH-FLOW BRAIN: money position + plain-language signals -->
+        <div class="cfb">
+          <div class="cfb-cash">
+            <div class="cfb-cash-main">
+              <div class="cfb-cash-lab">You're owed</div>
+              <div class="cfb-cash-v"><Money :amount="insights.cash.owed_to_you" size="xl" /></div>
+              <div class="cfb-cash-sub">cash-on-delivery still to collect</div>
+            </div>
+            <div class="cfb-cash-side">
+              <div class="cfb-mini"><span class="cfb-mini-l">Received</span><span class="cfb-mini-v go-ink"><Money :amount="insights.cash.received" /></span></div>
+              <div class="cfb-mini"><span class="cfb-mini-l">In transit</span><span class="cfb-mini-v"><Money :amount="insights.cash.in_transit" /></span></div>
+            </div>
+          </div>
+          <div class="cfb-signals">
+            <div v-if="insights.signals.trend_pct != null" class="cfb-sig" :class="insights.signals.trend">
+              <Icon :name="insights.signals.trend==='up'?'check':'alert'" :size="16" />
+              <span>Orders are <strong>{{ insights.signals.trend }}</strong> {{ Math.abs(insights.signals.trend_pct) }}% vs last week</span>
+            </div>
+            <div v-if="insights.signals.best_day" class="cfb-sig">
+              <Icon name="clock" :size="16" />
+              <span><strong>{{ insights.signals.best_day }}</strong> is your busiest day — stock up for it</span>
+            </div>
+            <div v-if="insights.signals.growth_market" class="cfb-sig">
+              <Icon name="pin" :size="16" />
+              <span><strong>{{ insights.signals.growth_market }}</strong> is your top market — worth pushing there</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ins-grid">
+          <div class="ins-stat">
+            <div class="ins-v">{{ insights.this_week }}</div>
+            <div class="ins-l">Orders this week</div>
+            <div class="ins-trend" :class="weekTrend >= 0 ? 'up' : 'down'">{{ weekTrend >= 0 ? '▲' : '▼' }} {{ Math.abs(weekTrend) }} vs last week</div>
+          </div>
+          <div class="ins-stat">
+            <div class="ins-v">{{ insights.total_orders }}</div>
+            <div class="ins-l">Total orders</div>
+          </div>
+          <div class="ins-stat">
+            <div class="ins-v">{{ insights.delivered }}</div>
+            <div class="ins-l">Delivered</div>
+          </div>
+          <div class="ins-stat">
+            <div class="ins-v">{{ insights.success_rate }}%</div>
+            <div class="ins-l">Success rate</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px" v-if="insights.top_items?.length">
+          <h2>Best sellers</h2>
+          <div class="ins-bars">
+            <div v-for="(it,i) in insights.top_items" :key="i" class="ins-bar-row">
+              <span class="ins-bar-name">{{ it.name }}</span>
+              <div class="ins-bar-track"><div class="ins-bar-fill" :style="{width: barPct(it.orders, insights.top_items) + '%'}"></div></div>
+              <span class="ins-bar-val">{{ it.orders }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:16px" v-if="insights.by_dest?.length">
+          <h2>Top destinations</h2>
+          <div class="ins-dest">
+            <div v-for="(d,i) in insights.by_dest" :key="i" class="ins-dest-row">
+              <Icon name="pin" :size="14" /> <span class="ins-dest-name">{{ d.dest }}</span> <span class="ins-dest-count">{{ d.orders }} order{{ d.orders===1?'':'s' }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+      <EmptyState v-else icon="chart" title="No insights yet" hint="Once orders come in, you'll see trends, best sellers, and destinations here." />
+    </div>
+
     <div v-if="switchOrder" class="modal-back" @click.self="switchOrder=null">
       <div class="modal">
         <h3>Choose carrier — {{ switchOrder.code }}</h3>
@@ -311,6 +408,46 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
 .carrier-nm{font-weight:650;font-size:14px;color:var(--ink)}
 .carrier-rg{font-size:12px;color:var(--ink-faint)}
 .carrier-chk{margin-left:auto;color:var(--accent)}
+
+.ins-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.ins-stat{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px;box-shadow:var(--shadow-sm)}
+.ins-v{font-family:"Space Grotesk",sans-serif;font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ins-l{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-top:4px}
+.ins-trend{font-size:11.5px;font-weight:600;margin-top:8px}
+.ins-trend.up{color:var(--go-ink)}
+.ins-trend.down{color:var(--owed-ink)}
+.ins-bars{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.ins-bar-row{display:flex;align-items:center;gap:12px}
+.ins-bar-name{flex:0 0 140px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-bar-track{flex:1;height:10px;background:var(--surface-3);border-radius:999px;overflow:hidden}
+.ins-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-ink));border-radius:999px;transition:width .5s ease}
+.ins-bar-val{flex:0 0 auto;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ins-dest{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.ins-dest-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--hairline);font-size:13.5px}
+.ins-dest-row:last-child{border-bottom:none}
+.ins-dest-name{flex:1;color:var(--ink);font-weight:600}
+.ins-dest-count{color:var(--ink-faint);font-size:12.5px}
+@media(max-width:640px){.ins-grid{grid-template-columns:1fr 1fr}.ins-bar-name{flex-basis:90px}}
+
+.cfb{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-bottom:16px}
+.cfb-cash{display:flex;gap:20px;background:linear-gradient(135deg,var(--ink),#2A2620);border-radius:16px;padding:22px;color:#fff}
+.cfb-cash-main{flex:1}
+.cfb-cash-lab{font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600}
+.cfb-cash-v{margin:6px 0 4px;color:#fff}
+.cfb-cash-v :deep(.money-cur){color:rgba(255,255,255,.5)}
+.cfb-cash-sub{font-size:11.5px;color:rgba(255,255,255,.45)}
+.cfb-cash-side{display:flex;flex-direction:column;gap:12px;justify-content:center;border-left:1px solid rgba(255,255,255,.12);padding-left:20px}
+.cfb-mini{display:flex;flex-direction:column;gap:2px}
+.cfb-mini-l{font-size:11px;color:rgba(255,255,255,.5)}
+.cfb-mini-v{font-size:15px;font-weight:700;font-family:"Space Grotesk",sans-serif}
+.cfb-mini-v.go-ink{color:#4ADE80}
+.cfb-signals{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.cfb-sig{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;font-size:13px;color:var(--ink-soft)}
+.cfb-sig strong{color:var(--ink);text-transform:capitalize}
+.cfb-sig :deep(svg){color:var(--accent);flex-shrink:0}
+.cfb-sig.up :deep(svg){color:var(--go)}
+.cfb-sig.down :deep(svg){color:var(--warn)}
+@media(max-width:760px){.cfb{grid-template-columns:1fr}.cfb-cash{flex-direction:column;gap:14px}.cfb-cash-side{border-left:none;border-top:1px solid rgba(255,255,255,.12);padding-left:0;padding-top:14px;flex-direction:row;gap:24px}}
 </style>
 
 <style scoped>
@@ -340,4 +477,44 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
 .carrier-nm{font-weight:650;font-size:14px;color:var(--ink)}
 .carrier-rg{font-size:12px;color:var(--ink-faint)}
 .carrier-chk{margin-left:auto;color:var(--accent)}
+
+.ins-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.ins-stat{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px;box-shadow:var(--shadow-sm)}
+.ins-v{font-family:"Space Grotesk",sans-serif;font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ins-l{font-size:12.5px;color:var(--ink-soft);font-weight:600;margin-top:4px}
+.ins-trend{font-size:11.5px;font-weight:600;margin-top:8px}
+.ins-trend.up{color:var(--go-ink)}
+.ins-trend.down{color:var(--owed-ink)}
+.ins-bars{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.ins-bar-row{display:flex;align-items:center;gap:12px}
+.ins-bar-name{flex:0 0 140px;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-bar-track{flex:1;height:10px;background:var(--surface-3);border-radius:999px;overflow:hidden}
+.ins-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-ink));border-radius:999px;transition:width .5s ease}
+.ins-bar-val{flex:0 0 auto;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ins-dest{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.ins-dest-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--hairline);font-size:13.5px}
+.ins-dest-row:last-child{border-bottom:none}
+.ins-dest-name{flex:1;color:var(--ink);font-weight:600}
+.ins-dest-count{color:var(--ink-faint);font-size:12.5px}
+@media(max-width:640px){.ins-grid{grid-template-columns:1fr 1fr}.ins-bar-name{flex-basis:90px}}
+
+.cfb{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-bottom:16px}
+.cfb-cash{display:flex;gap:20px;background:linear-gradient(135deg,var(--ink),#2A2620);border-radius:16px;padding:22px;color:#fff}
+.cfb-cash-main{flex:1}
+.cfb-cash-lab{font-size:12.5px;color:rgba(255,255,255,.6);font-weight:600}
+.cfb-cash-v{margin:6px 0 4px;color:#fff}
+.cfb-cash-v :deep(.money-cur){color:rgba(255,255,255,.5)}
+.cfb-cash-sub{font-size:11.5px;color:rgba(255,255,255,.45)}
+.cfb-cash-side{display:flex;flex-direction:column;gap:12px;justify-content:center;border-left:1px solid rgba(255,255,255,.12);padding-left:20px}
+.cfb-mini{display:flex;flex-direction:column;gap:2px}
+.cfb-mini-l{font-size:11px;color:rgba(255,255,255,.5)}
+.cfb-mini-v{font-size:15px;font-weight:700;font-family:"Space Grotesk",sans-serif}
+.cfb-mini-v.go-ink{color:#4ADE80}
+.cfb-signals{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.cfb-sig{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;font-size:13px;color:var(--ink-soft)}
+.cfb-sig strong{color:var(--ink);text-transform:capitalize}
+.cfb-sig :deep(svg){color:var(--accent);flex-shrink:0}
+.cfb-sig.up :deep(svg){color:var(--go)}
+.cfb-sig.down :deep(svg){color:var(--warn)}
+@media(max-width:760px){.cfb{grid-template-columns:1fr}.cfb-cash{flex-direction:column;gap:14px}.cfb-cash-side{border-left:none;border-top:1px solid rgba(255,255,255,.12);padding-left:0;padding-top:14px;flex-direction:row;gap:24px}}
 </style>

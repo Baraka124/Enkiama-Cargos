@@ -946,3 +946,60 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 /* smoother, more intentional page-level easing */
 * { -webkit-tap-highlight-color:transparent; }
+
+/* ═══ RETURN-TRIP MATCHING ═══ */
+.trip-form{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trip-in{flex:1;min-width:120px;padding:12px 14px;border:1px solid var(--hairline-2);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface-2)}
+.trip-in:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.trip-cap{flex:0 0 100px;min-width:80px}
+.trip-arrow{color:var(--ink-faint);flex-shrink:0}
+.trip-card{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px;margin-top:12px;box-shadow:var(--shadow-sm)}
+.trip-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.trip-route{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink)}
+.trip-route svg{color:var(--accent)}
+.trip-cap-badge{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);padding:4px 10px;border-radius:999px}
+.trip-matches-lab{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--go-ink);margin-bottom:10px}
+.trip-match{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface-2);border-radius:10px;margin-bottom:8px}
+.trip-match-item{font-weight:650;font-size:14px;color:var(--ink);display:block}
+.trip-match-dest{font-size:12px;color:var(--ink-faint);display:flex;align-items:center;gap:4px;margin-top:2px}
+.trip-match-fee{font-weight:700}
+.trip-nomatch{font-size:13px;color:var(--ink-faint);padding:10px 0}
+
+/* ═══ DELIGHT — satisfying success/confirmation micro-interactions ═══ */
+/* animated success check that draws itself in */
+@keyframes checkPop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes checkRing{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.4);opacity:0}}
+.success-moment{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.success-moment::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid var(--go);animation:checkRing .7s ease-out}
+.success-moment > *{animation:checkPop .5s cubic-bezier(.16,1,.3,1)}
+
+/* the book-success code reveal gets a gentle celebratory entrance */
+.book-success-ic{animation:checkPop .55s cubic-bezier(.16,1,.3,1)}
+.book-success-code{animation:esIn .5s .15s cubic-bezier(.16,1,.3,1) both}
+
+/* button press satisfaction — subtle scale on active */
+.btn:active:not(:disabled){transform:translateY(1px) scale(.985)}
+
+/* stat/number count-up feel: gentle fade-rise when values first mount */
+@keyframes valueRise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.statcard-v, .ins-v, .rf-amt, .cfb-cash-v{animation:valueRise .5s cubic-bezier(.16,1,.3,1) both}
+
+/* toast entrance with a bit more life */
+.toast{animation:toastIn .4s cubic-bezier(.16,1,.3,1)}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+
+/* delivered/settled rows get a brief green wash when they update */
+@keyframes settleFlash{0%{background:var(--go-soft)}100%{background:transparent}}
+.just-settled{animation:settleFlash 1.2s ease-out}
+
+@media(prefers-reduced-motion:reduce){
+  .success-moment::after,.success-moment > *,.statcard-v,.ins-v,.rf-amt,.cfb-cash-v{animation:none}
+}
+
+/* ═══ COMMAND-CENTER HERO — the "what matters now" line ═══ */
+.cmd-hero{margin-bottom:18px;animation:esIn .5s cubic-bezier(.16,1,.3,1)}
+.cmd-greet{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.cmd-focus{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px;color:var(--ink-soft);font-weight:500}
+.cmd-focus-dot{width:8px;height:8px;border-radius:50%;background:var(--owed);flex-shrink:0;animation:tlPulse2 1.6s ease-in-out infinite}
+.cmd-focus-dot.go{background:var(--go)}
+.cmd-focus .money{font-weight:700;color:var(--ink)}

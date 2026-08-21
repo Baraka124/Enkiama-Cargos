@@ -248,6 +248,11 @@ function onKey(e) {
 }
 
 const owedTotal = computed(() => consignments.value.filter(p => (p.payMode==='cash') && !['collected','remitted','settled'].includes(p.payState)).reduce((a,p)=>a+p.cod,0))
+const firstName = computed(() => (profile.value?.name || 'there').split(' ')[0])
+const greeting = computed(() => {
+  const h = new Date().getHours()
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+})
 const heldTotal = computed(() => consignments.value.filter(p => p.payMode==='cash' && p.payState==='collected').reduce((a,p)=>a+p.cod,0))
 const active = computed(() => consignments.value.filter(p => !['confirmed','cancelled'].includes(p.stage)))
 const filteredLedger = computed(() => consignments.value.filter(matchesSearch))
@@ -289,11 +294,34 @@ async function logout(){ await signOut(); router.push('/login') }
 
 // cash ledger — who's holding what (v7 view)
 const cashLedger = ref([])
+const recon = ref(null)
+const trips = ref(null)
+const tripsLoading = ref(false)
+const tripForm = ref({ from:'', to:'', cap:'' })
+async function loadTrips() {
+  tripsLoading.value = true
+  try { const { data } = await disp.tripMatches(); trips.value = data } catch (e) {}
+  tripsLoading.value = false
+}
+async function submitTrip() {
+  try {
+    const { error } = await disp.declareTrip(tripForm.value.from, tripForm.value.to, null, Number(tripForm.value.cap) || null, null)
+    if (error) throw error
+    toast('Trip posted — matching cargo now', 'ok')
+    tripForm.value = { from:'', to:'', cap:'' }
+    trips.value = null
+    await loadTrips()
+  } catch (e) { toast(e.message || 'Could not post trip', 'warn') }
+}
 async function loadCash() {
   try {
     const { data } = await disp.cashLedger()
     cashLedger.value = data || []
   } catch (e) { cashLedger.value = [] }
+  try {
+    const { data: rec } = await disp.reconciliation()
+    recon.value = rec
+  } catch (e) { recon.value = null }
 }
 const totalHolding = computed(() => cashLedger.value.reduce((a,r)=>a + (r.cash_holding||0), 0))
 const totalRemitted = computed(() => cashLedger.value.reduce((a,r)=>a + (r.cash_remitted||0), 0))
@@ -453,6 +481,20 @@ function fmtWhen(ts) {
   </div></div>
 
   <div class="wrap">
+    <div class="cmd-hero">
+      <div class="cmd-greet">{{ greeting }}, {{ firstName }}</div>
+      <div class="cmd-focus">
+        <template v-if="actionList.length">
+          <span class="cmd-focus-dot"></span>{{ actionList.length }} {{ actionList.length===1?'parcel needs':'parcels need' }} your attention
+        </template>
+        <template v-else-if="owedTotal>0">
+          <span class="cmd-focus-dot go"></span>All moving smoothly · <Money :amount="owedTotal" /> in cash to collect
+        </template>
+        <template v-else>
+          <span class="cmd-focus-dot go"></span>Everything's on track — nothing needs you right now
+        </template>
+      </div>
+    </div>
     <div class="statrow">
       <button class="statcard clickable" @click="tab='ledger'">
         <div class="statcard-ic accent"><Icon name="box" :size="18" /></div>
@@ -478,6 +520,7 @@ function fmtWhen(ts) {
       <button class="dtab" :class="{on:tab==='ledger'}" @click="tab='ledger'">Ledger <span class="tb-count">{{ consignments.length }}</span></button>
       <button class="dtab" :class="{on:tab==='customers'}" @click="tab='customers'">Customers <span class="tb-count">{{ customers.length }}</span></button>
       <button class="dtab" :class="{on:tab==='cash'}" @click="tab='cash'">Cash <span class="tb-count">{{ cashLedger.length }}</span></button>
+      <button class="dtab" :class="{on:tab==='trips'}" @click="tab='trips'; loadTrips()">Return trips</button>
       <button v-if="isAdmin" class="dtab" :class="{on:tab==='team'}" @click="tab='team'">Team <span class="tb-count">{{ drivers.length }}</span></button>
       <button class="btn btn-accent" style="margin-left:auto" @click="bookModal=true"><Icon name="plus" :size="15" /> New consignment</button>
     </div>
@@ -592,6 +635,29 @@ function fmtWhen(ts) {
 
     <!-- CASH LEDGER (v7) -->
     <div v-else-if="tab==='cash'">
+      <!-- MONEY-FLOW RECONCILIATION: where every shilling is -->
+      <div v-if="recon?.ok" class="recon-flow">
+        <div class="recon-flow-title">Cash position</div>
+        <div class="recon-flow-rail">
+          <div class="rf-stage"><div class="rf-amt owed-ink"><Money :amount="recon.cash.owed" /></div><div class="rf-lab">Owed <span>uncollected</span></div></div>
+          <div class="rf-arrow">→</div>
+          <div class="rf-stage"><div class="rf-amt"><Money :amount="recon.cash.collected" /></div><div class="rf-lab">In driver hands</div></div>
+          <div class="rf-arrow">→</div>
+          <div class="rf-stage"><div class="rf-amt"><Money :amount="recon.cash.remitted" /></div><div class="rf-lab">Remitted <span>to office</span></div></div>
+          <div class="rf-arrow">→</div>
+          <div class="rf-stage"><div class="rf-amt go-ink"><Money :amount="recon.cash.settled" /></div><div class="rf-lab">Settled ✓</div></div>
+        </div>
+        <div class="recon-fees">
+          <span>Fee income: <strong><Money :amount="recon.fees.total_earned" /></strong> earned</span>
+          <span class="rf-sep">·</span>
+          <span><Money :amount="recon.fees.carrier_share" /> carrier</span>
+          <span class="rf-sep">·</span>
+          <span><Money :amount="recon.fees.driver_share" /> drivers</span>
+          <span class="rf-sep">·</span>
+          <span class="rf-pending"><Money :amount="recon.fees.pending" /> pending</span>
+        </div>
+      </div>
+
       <div class="strip" style="grid-template-columns:repeat(3,1fr)">
         <div class="cell owed money"><div class="cl">Held by drivers</div><div class="cv mono">{{ fmtTZS(totalHolding) }}</div></div>
         <div class="cell go money"><div class="cl">Settled to office</div><div class="cv mono">{{ fmtTZS(totalRemitted) }}</div></div>
@@ -625,6 +691,42 @@ function fmtWhen(ts) {
     </div>
 
     <!-- TEAM (carrier admin only) -->
+    <div v-else-if="tab==='trips'">
+      <div class="panel">
+        <h2>Fill your empty return legs</h2>
+        <p class="sub" style="margin-bottom:16px">Declare a trip you're running. We'll surface waiting cargo along that corridor — so a truck that would drive back empty earns on the return.</p>
+        <div class="trip-form">
+          <input v-model="tripForm.from" placeholder="From (e.g. Dar es Salaam)" class="trip-in" />
+          <Icon name="route" :size="18" class="trip-arrow" />
+          <input v-model="tripForm.to" placeholder="To (e.g. Mbeya)" class="trip-in" />
+          <input v-model="tripForm.cap" type="number" inputmode="numeric" placeholder="Spare kg" class="trip-in trip-cap" />
+          <button class="btn btn-accent" :disabled="!tripForm.from||!tripForm.to" @click="submitTrip">Post trip</button>
+        </div>
+      </div>
+
+      <div v-if="tripsLoading" class="panel" style="margin-top:16px"><div class="skel skel-line"></div><div class="skel skel-line short"></div></div>
+      <template v-else-if="trips?.trips?.length">
+        <div v-for="t in trips.trips" :key="t.id" class="trip-card">
+          <div class="trip-card-head">
+            <div class="trip-route"><strong>{{ t.from }}</strong> <Icon name="route" :size="15" /> <strong>{{ t.to }}</strong></div>
+            <span class="trip-cap-badge" v-if="t.capacity_kg">{{ t.capacity_kg }}kg spare</span>
+          </div>
+          <div v-if="t.matches?.length" class="trip-matches">
+            <div class="trip-matches-lab">{{ t.matches.length }} waiting cargo on this corridor</div>
+            <div v-for="m in t.matches" :key="m.code" class="trip-match">
+              <div class="trip-match-info">
+                <span class="trip-match-item">{{ m.item }}</span>
+                <span class="trip-match-dest"><Icon name="pin" :size="11" /> {{ m.dest }} · {{ m.weight }}kg</span>
+              </div>
+              <div class="trip-match-fee"><Money :amount="m.fee" /></div>
+            </div>
+          </div>
+          <div v-else class="trip-nomatch">No waiting cargo on this corridor yet — we'll notify you when a match appears.</div>
+        </div>
+      </template>
+      <EmptyState v-else icon="route" title="No trips posted yet" hint="Post a trip above to start matching empty return legs with waiting cargo." />
+    </div>
+
     <div v-else-if="tab==='team'">
       <div class="panel">
         <h2>Add a driver</h2>

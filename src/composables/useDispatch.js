@@ -17,6 +17,9 @@ export function useDispatch() {
 
   // ---- cash ----
   const cashLedger = () => supabase.rpc('my_cash_ledger')
+  const reconciliation = () => supabase.rpc('carrier_reconciliation')
+  const declareTrip = (from, to, depart, cap, note) => supabase.rpc('declare_trip', { p_from: from, p_to: to, p_depart: depart || null, p_capacity: cap || null, p_note: note || null })
+  const tripMatches = () => supabase.rpc('trip_matches')
   const settleDriverCash = (driverId) => supabase.rpc('settle_driver_cash', { p_driver: driverId })
 
   // ---- notifications ----
@@ -36,7 +39,7 @@ export function useDispatch() {
 
   return {
     listDrivers, addDriver, createDriverInvite, setDriverPassword, setDriverActive, inviteStaff,
-    cashLedger, settleDriverCash,
+    cashLedger, reconciliation, declareTrip, tripMatches, settleDriverCash,
     notifications, markNotificationsRead,
     customers, custodyEvents, setDeliveryFee,
   }

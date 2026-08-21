@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 export function usePublic() {
   // tracking + receiver actions
   const track = (code) => supabase.rpc('track_parcel', { p_code: code })
+  const trackEvents = (code) => supabase.rpc('track_events', { p_code: code })
   const confirmReceipt = (code, last4) => supabase.rpc('confirm_receipt_verified', { p_code: code, p_last4: last4 })
   const leaveReview = (args) => supabase.rpc('leave_review', args)
   const reschedule = (code, when, note) => supabase.rpc('receiver_reschedule', { p_code: code, p_when: when, p_note: note || null })
@@ -37,7 +38,7 @@ export function usePublic() {
     supabase.from('consignment').select('*, payment(*), driver(name,vehicle), carrier(name,accent,slug,mark)').order('created_at', { ascending: false })
 
   return {
-    track, confirmReceipt, leaveReview, reschedule, report,
+    track, trackEvents, confirmReceipt, leaveReview, reschedule, report,
     myDeliveries, claimReceiverPhone,
     browseStorefronts, browseStorefrontsV2, searchProducts, productCategories, getStorefront, placeOrder, myShopOrders, businessInsights, businessSwitchCarrier, businessMarkReady,
     activeCarriers, senderBook, mySenderShipments, applyAsCarrier,
