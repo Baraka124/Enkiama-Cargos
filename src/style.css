@@ -147,10 +147,15 @@ textarea::placeholder{color:var(--ink-ghost)}
 input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):focus,
 select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 
-.fg input,.fg select{width:100%;padding:12px 14px;border:1px solid var(--hairline-2);border-radius:12px;
-  font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink);transition:.15s}
-.fg input::placeholder{color:var(--ink-ghost)}
-.fg input:focus,.fg select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fg input,.fg select,.fg textarea{width:100%;padding:12px 14px;border:1px solid var(--hairline-2);border-radius:11px;
+  font-size:14px;font-family:inherit;background:var(--surface-2);color:var(--ink);transition:.16s;
+  box-shadow:inset 0 1px 2px rgba(20,24,31,.04)}
+.fg input:hover:not(:focus),.fg select:hover:not(:focus),.fg textarea:hover:not(:focus){border-color:var(--ink-ghost);background:var(--surface)}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--ink-ghost)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft),inset 0 1px 2px rgba(20,24,31,.03)}
+.fg select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23828C99' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+.fg label{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;display:block}
+.fld-opt{font-weight:400;color:var(--ink-faint);font-size:11.5px}
 
 /* ── stat strip ── */
 .strip{display:grid;gap:13px;margin-bottom:24px;grid-template-columns:repeat(4,1fr)}

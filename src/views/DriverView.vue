@@ -7,6 +7,7 @@ import { useDriver } from '../composables/useDriver'
 import { fmtTZS } from '../lib/supabase'
 import ConsignmentCard from '../components/ConsignmentCard.vue'
 import Icon from '../components/Icon.vue'
+import StatCard from '../components/StatCard.vue'
 import AppHeader from '../components/AppHeader.vue'
 import CodeScanner from '../components/CodeScanner.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -230,8 +231,8 @@ async function logout(){ await signOut(); router.push('/login') }
 
   <div class="wrap">
     <!-- skeleton while loading -->
-    <div v-if="spaceLoading" class="drv-stats">
-      <div v-for="n in 4" :key="n" class="drv-stat"><div class="skel skel-num"></div><div class="skel skel-lab"></div></div>
+    <div v-if="spaceLoading" class="statrow">
+      <div v-for="n in 4" :key="n" class="statcard card"><div class="skel skel-num"></div></div>
     </div>
     <!-- error state -->
     <div v-else-if="spaceError" class="drv-error">
@@ -240,14 +241,14 @@ async function logout(){ await signOut(); router.push('/login') }
       <div class="drv-error-d">Check your connection and try again.</div>
       <button class="btn btn-accent" @click="loadSpace">Retry</button>
     </div>
-    <div v-else-if="space" class="drv-stats">
-      <div class="drv-stat"><div class="drv-stat-n">{{ space.active_tasks }}</div><div class="drv-stat-l">Active tasks</div></div>
-      <div class="drv-stat"><div class="drv-stat-n">{{ space.delivered_total }}</div><div class="drv-stat-l">Delivered</div></div>
-      <div class="drv-stat"><div class="drv-stat-n">{{ fmtTZS(space.fees_earned) }}</div><div class="drv-stat-l">Fees earned</div></div>
-      <div class="drv-stat" :class="{alert: space.cash_to_remit>0}"><div class="drv-stat-n">{{ fmtTZS(space.cash_to_remit) }}</div><div class="drv-stat-l">Cash to remit</div></div>
+    <div v-else-if="space" class="statrow">
+      <StatCard label="Active tasks" :value="space.active_tasks" icon="box" tone="accent" />
+      <StatCard label="Delivered" :value="space.delivered_total" icon="check" tone="go" />
+      <StatCard label="Fees earned" :value="fmtTZS(space.fees_earned)" icon="cash" tone="muted" />
+      <StatCard label="Cash to remit" :value="fmtTZS(space.cash_to_remit)" icon="cash" :tone="space.cash_to_remit>0 ? 'owed' : 'muted'" :alert="space.cash_to_remit>0" />
     </div>
 
-    <div id="drvmap" class="map"></div>
+    <div v-show="pending.length" id="drvmap" class="map"></div>
 
     <div v-if="nextStop" class="nextstop">
       <div class="ns-lab"><Icon name="pin" :size="12" /> Next stop</div>
