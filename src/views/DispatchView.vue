@@ -12,6 +12,7 @@ import EmptyState from '../components/EmptyState.vue'
 import Skeleton from '../components/Skeleton.vue'
 import Spinner from '../components/Spinner.vue'
 import Icon from '../components/Icon.vue'
+import Avatar from '../components/Avatar.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import CarrierOnboard from '../components/CarrierOnboard.vue'
 
@@ -130,7 +131,7 @@ async function submitBooking() {
 }
 
 // team management (carrier admin only)
-const newDriver = ref({ name: '', phone: '', vehicle: 'bajaji' })
+const newDriver = ref({ name: '', phone: '', vehicle: 'bajaji', license: '' })
 const inviteLink = ref('')
 const genBusy = ref(false)
 const loginDriver = ref(null)
@@ -180,10 +181,11 @@ async function addDriver() {
   const { error } = await disp.addDriver({
     carrier_id: profile.value.carrier_id, name: newDriver.value.name,
     phone: newDriver.value.phone, vehicle: newDriver.value.vehicle,
+    license_no: newDriver.value.license || null,
   })
   savingTeam.value = false
   if (error) { toast(error.message, 'warn'); return }
-  toast('Driver added', 'ok'); newDriver.value = { name: '', phone: '', vehicle: 'bajaji' }; loadDrivers()
+  toast('Driver added', 'ok'); newDriver.value = { name: '', phone: '', vehicle: 'bajaji', license: '' }; loadDrivers()
 }
 async function toggleDriver(d) {
   const { error } = await disp.setDriverActive(d.id, !d.active)
@@ -656,7 +658,7 @@ function fmtWhen(ts) {
       <div v-else class="cust-grid">
         <div v-for="c in customers" :key="c.id" class="cust-card">
           <div class="cust-top">
-            <div class="avatar">{{ initials(c.name) }}</div>
+            <Avatar :name="c.name" />
             <div style="flex:1;min-width:0">
               <div class="cust-name">{{ c.name }}
                 <span v-if="c.is_business" class="tag tag-biz">Business</span>
@@ -710,7 +712,7 @@ function fmtWhen(ts) {
       <div v-else class="recon-grid">
         <div v-for="r in cashLedger" :key="r.driver_id" class="recon-card" :class="{owing: r.cash_holding>0}">
           <div class="recon-top">
-            <div class="avatar">{{ initials(r.driver_name) }}</div>
+            <Avatar :name="r.driver_name" />
             <div style="flex:1;min-width:0">
               <div class="recon-name">{{ r.driver_name }}</div>
               <div class="p-sub">{{ r.parcels_holding }} parcel(s) to remit</div>
@@ -775,13 +777,16 @@ function fmtWhen(ts) {
     <div v-else-if="tab==='team'">
       <div class="panel">
         <h2>Add a driver</h2>
-        <div class="sub">Drivers belong to {{ carrier?.name }} and can only be assigned to your consignments.</div>
+        <div class="sub">Drivers belong to {{ carrier?.name }} and can only be assigned to your consignments. Same details a driver enters when they self-register — you can create their login after, or let them set their own password via the invite link.</div>
         <div class="row2">
-          <div class="fg"><label>Name</label><input v-model="newDriver.name" placeholder="Juma" /></div>
+          <div class="fg"><label>Name</label><input v-model="newDriver.name" placeholder="Juma Hassan" /></div>
           <div class="fg"><label>Phone</label><input v-model="newDriver.phone" placeholder="+255712000111" /></div>
         </div>
-        <div class="fg"><label>Vehicle</label>
-          <select v-model="newDriver.vehicle"><option>bajaji</option><option>bodaboda</option><option>toctoc</option><option>pickup</option><option>truck</option></select>
+        <div class="row2">
+          <div class="fg"><label>Vehicle</label>
+            <select v-model="newDriver.vehicle"><option>bajaji</option><option>bodaboda</option><option>toctoc</option><option>pickup</option><option>truck</option></select>
+          </div>
+          <div class="fg"><label>License no. <span class="fld-opt">optional</span></label><input v-model="newDriver.license" placeholder="Driving licence number" /></div>
         </div>
         <button class="btn btn-accent" :disabled="savingTeam" @click="addDriver">Add driver</button>
 
@@ -798,7 +803,7 @@ function fmtWhen(ts) {
       <div class="sub" style="margin:0 2px 12px">Real-time — collected cash-on-delivery each driver is holding and hasn't remitted to the carrier yet.</div>
       <div v-if="!ledger.length" class="empty" style="padding:24px"><p>No cash outstanding</p></div>
       <div v-for="l in ledger" :key="l.driver_id" class="cons" style="padding:14px 16px;display:flex;align-items:center;gap:13px">
-        <div class="avatar">{{ initials(l.driver_name) }}</div>
+        <Avatar :name="l.driver_name" />
         <div><div style="font-weight:600">{{ l.driver_name }}</div><div class="p-sub">{{ l.parcels_holding }} parcel{{ l.parcels_holding===1?'':'s' }} · {{ fmtTZS(l.cash_remitted) }} remitted</div></div>
         <div style="margin-left:auto;text-align:right">
           <div class="mono" :style="{fontWeight:700,fontSize:'18px',color: l.cash_holding>0 ? 'var(--owed-ink)' : 'var(--ink-3)'}">{{ fmtTZS(l.cash_holding) }}</div>
@@ -809,7 +814,7 @@ function fmtWhen(ts) {
       <div class="sec"><h2>Drivers</h2><span class="ln"></span></div>
       <EmptyState v-if="!drivers.length" icon="bike" title="No drivers yet" />
       <div v-for="d in drivers" :key="d.id" class="cons" style="padding:14px 16px;display:flex;align-items:center;gap:13px">
-        <div class="avatar">{{ initials(d.name) }}</div>
+        <Avatar :name="d.name" />
         <div style="min-width:0"><div style="font-weight:600">{{ d.name }}</div><div class="p-sub">{{ d.phone }} · {{ d.vehicle }}</div></div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
           <button class="btn btn-ghost" @click="openLoginAccess(d)"><Icon name="link" :size="13" /> {{ d.user_id ? 'Login access' : 'Create login' }}</button>

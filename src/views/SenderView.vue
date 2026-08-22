@@ -123,7 +123,7 @@ async function logout() { await signOut(); router.push('/login') }
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
   </AppHeader>
 
-  <div class="wrap" style="max-width:820px">
+  <div class="wrap" :style="{maxWidth: (tab==='overview' && !shopData?.has_shop) ? '1080px' : '820px'}">
     <div class="dtabs">
       <button class="dtab" :class="{on:tab==='overview'}" @click="tab='overview'">Overview</button>
       <button class="dtab" :class="{on:tab==='orders'}" @click="tab='orders'">Orders <span v-if="shopData?.orders?.length" class="tb-count">{{ shopData.orders.length }}</span></button>
@@ -148,30 +148,62 @@ async function logout() { await signOut(); router.push('/login') }
         </div>
       </template>
       <template v-else>
-        <div class="biz-onboard">
-          <div class="biz-onboard-badge"><Icon name="box" :size="14" /> Your business, online</div>
-          <h1 class="biz-onboard-h1">Open your shop and sell <span class="biz-grad">with delivery built in</span></h1>
-          <p class="biz-onboard-sub">List your products on the Enkiama marketplace. Every order ships with tracked, door-to-door delivery — you focus on selling, we move the cargo.</p>
-          <div class="biz-onboard-cta">
-            <RouterLink to="/my-shop" class="btn btn-accent btn-lg">Open your storefront</RouterLink>
-            <button class="btn btn-ghost btn-lg" @click="tab='send'">Just send a parcel</button>
+        <div class="biz2">
+          <!-- editorial hero: asymmetric, bold, with a live storefront preview -->
+          <div class="biz2-hero">
+            <div class="biz2-hero-l">
+              <div class="biz2-eyebrow"><span class="biz2-dot"></span> Sell on Enkiama</div>
+              <h1 class="biz2-h1">Your shop.<br>Delivered across<br><span class="biz2-grad">Tanzania.</span></h1>
+              <p class="biz2-sub">List products once. Every order ships door-to-door with live tracking and cash-on-delivery handled — you sell, we move the cargo.</p>
+              <div class="biz2-cta">
+                <RouterLink to="/my-shop" class="btn btn-accent btn-lg"><Icon name="box" :size="16" /> Open your storefront</RouterLink>
+                <button class="btn btn-ghost btn-lg" @click="tab='send'">Just send a parcel →</button>
+              </div>
+              <div class="biz2-proof">
+                <div class="biz2-proof-i"><b>Free</b><span>to list</span></div>
+                <div class="biz2-proof-sep"></div>
+                <div class="biz2-proof-i"><b>Tracked</b><span>every order</span></div>
+                <div class="biz2-proof-sep"></div>
+                <div class="biz2-proof-i"><b>COD</b><span>handled</span></div>
+              </div>
+            </div>
+            <!-- storefront preview mockup -->
+            <div class="biz2-hero-r">
+              <div class="biz2-preview">
+                <div class="biz2-pv-top"><span class="biz2-pv-dot"></span><span class="biz2-pv-dot"></span><span class="biz2-pv-dot"></span><span class="biz2-pv-url">enkiama.com/shop/you</span></div>
+                <div class="biz2-pv-body">
+                  <div class="biz2-pv-shop">
+                    <div class="biz2-pv-logo">{{ (profile?.name||'S').slice(0,1) }}</div>
+                    <div><div class="biz2-pv-name">{{ profile?.name || 'Your shop' }}</div><div class="biz2-pv-tag"><span class="biz2-pv-verified"><Icon name="check" :size="9" /> Verified delivery</span></div></div>
+                  </div>
+                  <div class="biz2-pv-grid">
+                    <div class="biz2-pv-card"><div class="biz2-pv-img a"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 25,000</div></div>
+                    <div class="biz2-pv-card"><div class="biz2-pv-img b"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 45,000</div></div>
+                    <div class="biz2-pv-card"><div class="biz2-pv-img c"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 12,000</div></div>
+                    <div class="biz2-pv-card"><div class="biz2-pv-img d"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 80,000</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="biz2-float biz2-float-1"><Icon name="truck" :size="15" /> On the road</div>
+              <div class="biz2-float biz2-float-2"><Icon name="check" :size="15" /> Delivered · Mbeya</div>
+            </div>
           </div>
 
-          <div class="biz-steps">
-            <div class="biz-step-c">
-              <div class="biz-step-num">1</div>
-              <div class="biz-step-t">Set up your storefront</div>
-              <div class="biz-step-d">Add your business name, products, photos, and organize them into sections.</div>
+          <!-- operational how-it-works strip -->
+          <div class="biz2-how">
+            <div class="biz2-how-step">
+              <div class="biz2-how-n">01</div>
+              <div class="biz2-how-txt"><b>Set up your storefront</b><span>Add products, photos, and sections in minutes.</span></div>
             </div>
-            <div class="biz-step-c">
-              <div class="biz-step-num">2</div>
-              <div class="biz-step-t">Share your shop link</div>
-              <div class="biz-step-d">Customers browse and order from your storefront on the marketplace.</div>
+            <div class="biz2-how-arrow"><Icon name="arrowRight" :size="16" /></div>
+            <div class="biz2-how-step">
+              <div class="biz2-how-n">02</div>
+              <div class="biz2-how-txt"><b>Share your link</b><span>Customers browse and order from the marketplace.</span></div>
             </div>
-            <div class="biz-step-c">
-              <div class="biz-step-num">3</div>
-              <div class="biz-step-t">Orders ship & track</div>
-              <div class="biz-step-d">Every order flows here as a tracked delivery, door to door.</div>
+            <div class="biz2-how-arrow"><Icon name="arrowRight" :size="16" /></div>
+            <div class="biz2-how-step">
+              <div class="biz2-how-n">03</div>
+              <div class="biz2-how-txt"><b>Orders ship &amp; track</b><span>Every order lands here, tracked door to door.</span></div>
             </div>
           </div>
         </div>
@@ -448,6 +480,61 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
 .cfb-sig.up :deep(svg){color:var(--go)}
 .cfb-sig.down :deep(svg){color:var(--warn)}
 @media(max-width:760px){.cfb{grid-template-columns:1fr}.cfb-cash{flex-direction:column;gap:14px}.cfb-cash-side{border-left:none;border-top:1px solid rgba(255,255,255,.12);padding-left:0;padding-top:14px;flex-direction:row;gap:24px}}
+
+/* ═══════ BIZ ONBOARDING — editorial, operational, warm ═══════ */
+.biz2{padding:8px 0 40px}
+.biz2-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;margin-bottom:44px}
+.biz2-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent-ink);margin-bottom:20px}
+.biz2-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:tlPulse2 1.6s ease-in-out infinite}
+.biz2-h1{font-family:"Space Grotesk",sans-serif;font-size:clamp(34px,4.4vw,54px);font-weight:700;line-height:1.02;letter-spacing:-.04em;color:var(--ink);margin-bottom:20px}
+.biz2-grad{background:linear-gradient(120deg,var(--accent),#12A88C);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.biz2-sub{font-size:16px;line-height:1.6;color:var(--ink-soft);max-width:440px;margin-bottom:28px}
+.biz2-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+.biz2-proof{display:flex;align-items:center;gap:18px}
+.biz2-proof-i{display:flex;flex-direction:column}
+.biz2-proof-i b{font-family:"Space Grotesk",sans-serif;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.biz2-proof-i span{font-size:12px;color:var(--ink-faint)}
+.biz2-proof-sep{width:1px;height:28px;background:var(--hairline-2)}
+/* storefront preview mockup */
+.biz2-hero-r{position:relative}
+.biz2-preview{background:var(--surface);border:1px solid var(--hairline-2);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg);transform:rotate(1.2deg);transition:transform .4s var(--ease)}
+.biz2-preview:hover{transform:rotate(0deg)}
+.biz2-pv-top{display:flex;align-items:center;gap:6px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--hairline)}
+.biz2-pv-dot{width:9px;height:9px;border-radius:50%;background:var(--hairline-2)}
+.biz2-pv-url{margin-left:10px;font-family:"Spline Sans Mono",monospace;font-size:11px;color:var(--ink-faint)}
+.biz2-pv-body{padding:18px}
+.biz2-pv-shop{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.biz2-pv-logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent-ink));color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:18px}
+.biz2-pv-name{font-weight:700;font-size:15px;color:var(--ink)}
+.biz2-pv-verified{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--go-ink);background:var(--go-soft);padding:2px 7px;border-radius:999px;margin-top:2px}
+.biz2-pv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.biz2-pv-card{border:1px solid var(--hairline);border-radius:10px;overflow:hidden}
+.biz2-pv-img{height:56px}
+.biz2-pv-img.a{background:linear-gradient(135deg,#0B6E5D,#12A88C)}
+.biz2-pv-img.b{background:linear-gradient(135deg,#B4472B,#D9663F)}
+.biz2-pv-img.c{background:linear-gradient(135deg,#2E5A88,#4B7BB5)}
+.biz2-pv-img.d{background:linear-gradient(135deg,#8A6D3B,#B5925A)}
+.biz2-pv-pn{font-size:11px;font-weight:600;color:var(--ink);padding:7px 9px 1px}
+.biz2-pv-pp{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:700;color:var(--ink);padding:0 9px 8px}
+.biz2-float{position:absolute;display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--hairline);border-radius:11px;padding:9px 13px;font-size:12.5px;font-weight:650;color:var(--ink);box-shadow:var(--shadow-md);animation:bizFloat 3.5s ease-in-out infinite}
+.biz2-float svg{color:var(--accent)}
+.biz2-float-1{top:-14px;left:-18px}
+.biz2-float-2{bottom:-14px;right:-10px;animation-delay:1.5s}
+.biz2-float-2 svg{color:var(--go)}
+@keyframes bizFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+/* operational how strip */
+.biz2-how{display:flex;align-items:stretch;gap:0;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:8px;box-shadow:var(--shadow-sm)}
+.biz2-how-step{flex:1;display:flex;gap:13px;align-items:flex-start;padding:18px}
+.biz2-how-n{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:700;color:var(--accent);background:var(--accent-soft);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.biz2-how-txt b{display:block;font-size:14px;font-weight:650;color:var(--ink);margin-bottom:3px}
+.biz2-how-txt span{font-size:12.5px;color:var(--ink-faint);line-height:1.5}
+.biz2-how-arrow{display:flex;align-items:center;color:var(--ink-ghost)}
+@media(max-width:900px){
+  .biz2-hero{grid-template-columns:1fr;gap:40px}
+  .biz2-hero-r{max-width:400px;margin:0 auto}
+  .biz2-how{flex-direction:column}
+  .biz2-how-arrow{transform:rotate(90deg);padding:0 18px}
+}
 </style>
 
 <style scoped>
@@ -517,4 +604,59 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
 .cfb-sig.up :deep(svg){color:var(--go)}
 .cfb-sig.down :deep(svg){color:var(--warn)}
 @media(max-width:760px){.cfb{grid-template-columns:1fr}.cfb-cash{flex-direction:column;gap:14px}.cfb-cash-side{border-left:none;border-top:1px solid rgba(255,255,255,.12);padding-left:0;padding-top:14px;flex-direction:row;gap:24px}}
+
+/* ═══════ BIZ ONBOARDING — editorial, operational, warm ═══════ */
+.biz2{padding:8px 0 40px}
+.biz2-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center;margin-bottom:44px}
+.biz2-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--accent-ink);margin-bottom:20px}
+.biz2-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:tlPulse2 1.6s ease-in-out infinite}
+.biz2-h1{font-family:"Space Grotesk",sans-serif;font-size:clamp(34px,4.4vw,54px);font-weight:700;line-height:1.02;letter-spacing:-.04em;color:var(--ink);margin-bottom:20px}
+.biz2-grad{background:linear-gradient(120deg,var(--accent),#12A88C);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.biz2-sub{font-size:16px;line-height:1.6;color:var(--ink-soft);max-width:440px;margin-bottom:28px}
+.biz2-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
+.biz2-proof{display:flex;align-items:center;gap:18px}
+.biz2-proof-i{display:flex;flex-direction:column}
+.biz2-proof-i b{font-family:"Space Grotesk",sans-serif;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.biz2-proof-i span{font-size:12px;color:var(--ink-faint)}
+.biz2-proof-sep{width:1px;height:28px;background:var(--hairline-2)}
+/* storefront preview mockup */
+.biz2-hero-r{position:relative}
+.biz2-preview{background:var(--surface);border:1px solid var(--hairline-2);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg);transform:rotate(1.2deg);transition:transform .4s var(--ease)}
+.biz2-preview:hover{transform:rotate(0deg)}
+.biz2-pv-top{display:flex;align-items:center;gap:6px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--hairline)}
+.biz2-pv-dot{width:9px;height:9px;border-radius:50%;background:var(--hairline-2)}
+.biz2-pv-url{margin-left:10px;font-family:"Spline Sans Mono",monospace;font-size:11px;color:var(--ink-faint)}
+.biz2-pv-body{padding:18px}
+.biz2-pv-shop{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.biz2-pv-logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent-ink));color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:18px}
+.biz2-pv-name{font-weight:700;font-size:15px;color:var(--ink)}
+.biz2-pv-verified{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--go-ink);background:var(--go-soft);padding:2px 7px;border-radius:999px;margin-top:2px}
+.biz2-pv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.biz2-pv-card{border:1px solid var(--hairline);border-radius:10px;overflow:hidden}
+.biz2-pv-img{height:56px}
+.biz2-pv-img.a{background:linear-gradient(135deg,#0B6E5D,#12A88C)}
+.biz2-pv-img.b{background:linear-gradient(135deg,#B4472B,#D9663F)}
+.biz2-pv-img.c{background:linear-gradient(135deg,#2E5A88,#4B7BB5)}
+.biz2-pv-img.d{background:linear-gradient(135deg,#8A6D3B,#B5925A)}
+.biz2-pv-pn{font-size:11px;font-weight:600;color:var(--ink);padding:7px 9px 1px}
+.biz2-pv-pp{font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:700;color:var(--ink);padding:0 9px 8px}
+.biz2-float{position:absolute;display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--hairline);border-radius:11px;padding:9px 13px;font-size:12.5px;font-weight:650;color:var(--ink);box-shadow:var(--shadow-md);animation:bizFloat 3.5s ease-in-out infinite}
+.biz2-float svg{color:var(--accent)}
+.biz2-float-1{top:-14px;left:-18px}
+.biz2-float-2{bottom:-14px;right:-10px;animation-delay:1.5s}
+.biz2-float-2 svg{color:var(--go)}
+@keyframes bizFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+/* operational how strip */
+.biz2-how{display:flex;align-items:stretch;gap:0;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:8px;box-shadow:var(--shadow-sm)}
+.biz2-how-step{flex:1;display:flex;gap:13px;align-items:flex-start;padding:18px}
+.biz2-how-n{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:700;color:var(--accent);background:var(--accent-soft);width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.biz2-how-txt b{display:block;font-size:14px;font-weight:650;color:var(--ink);margin-bottom:3px}
+.biz2-how-txt span{font-size:12.5px;color:var(--ink-faint);line-height:1.5}
+.biz2-how-arrow{display:flex;align-items:center;color:var(--ink-ghost)}
+@media(max-width:900px){
+  .biz2-hero{grid-template-columns:1fr;gap:40px}
+  .biz2-hero-r{max-width:400px;margin:0 auto}
+  .biz2-how{flex-direction:column}
+  .biz2-how-arrow{transform:rotate(90deg);padding:0 18px}
+}
 </style>

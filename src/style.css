@@ -84,7 +84,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 .tb-enk b{color:var(--ink-faint);font-weight:600}
 
 /* ── buttons ── */
-.btn{border:none;padding:11px 19px;border-radius:12px;font-family:inherit;font-weight:650;font-size:14px;letter-spacing:-.01em;
+.btn{border:none;padding:11px 20px;border-radius:11px;font-family:inherit;font-weight:650;font-size:14px;letter-spacing:-.01em;
   display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease);color:#fff;white-space:nowrap;position:relative}
 .btn:active:not(:disabled){transform:translateY(1px) scale(.985)} .btn:disabled{opacity:.4;cursor:not-allowed}
 
@@ -101,8 +101,10 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 .btn-owed:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px)}
 
 /* SECONDARY — recedes so primary pops: flat, quiet, no lift shadow */
-.btn-ghost{background:var(--surface);border:1px solid var(--hairline-2);color:var(--ink-soft);box-shadow:none;font-weight:600}
-.btn-ghost:hover:not(:disabled){background:var(--surface-2);border-color:var(--ink-ghost);color:var(--ink)}
+.btn-ghost{background:linear-gradient(180deg,#fff,var(--surface-2));border:1px solid var(--hairline-2);color:var(--ink);font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(20,24,31,.05),0 2px 5px rgba(20,24,31,.04)}
+.btn-ghost:hover:not(:disabled){background:linear-gradient(180deg,#fff,var(--surface));border-color:var(--ink-ghost);color:var(--ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 2px 4px rgba(20,24,31,.07),0 6px 14px rgba(20,24,31,.06);transform:translateY(-1px)}
 .btn-block{width:100%} .btn-lg{padding:15px 26px;font-size:15px;border-radius:13px}
 
 /* ── panels & cards ── */
@@ -377,9 +379,16 @@ select:focus, textarea:focus{outline:none;border-color:var(--accent);box-shadow:
 /* ═══════════════════════════════════════════════════════════════
    UI PASS — avatars, clickable stats, staleness, alignment, live dot
    ═══════════════════════════════════════════════════════════════ */
-/* #2 light-theme avatar (replaces dark #3A4150) */
-.avatar{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'Space Grotesk',sans-serif;flex-shrink:0}
+/* AVATAR — distinctive per-person: rounded-square, deterministic gradient, ring + depth */
+.avatar{width:42px;height:42px;border-radius:13px;position:relative;
+  background:linear-gradient(140deg, var(--av-1,#0E8873), var(--av-2,#0B6E5D));
+  color:#fff;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:15px;font-family:'Space Grotesk',sans-serif;letter-spacing:-.02em;flex-shrink:0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.08),0 2px 6px rgba(20,24,31,.14);
+  text-shadow:0 1px 2px rgba(0,0,0,.18)}
+.avatar::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.28),transparent 55%);pointer-events:none}
+.avatar.sm{width:34px;height:34px;border-radius:10px;font-size:13px}
+.avatar.lg{width:52px;height:52px;border-radius:15px;font-size:19px}
 
 /* #5 clickable stat cells */
 .cell.clickable{cursor:pointer}
