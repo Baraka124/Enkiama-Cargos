@@ -9,7 +9,7 @@ import EmptyState from '../components/EmptyState.vue'
 const stores = ref([])
 const products = ref([])
 const categories = ref([])
-const view = ref('shops')   // shops | products
+const view = ref('products')   // products | shops — products is the marketplace default
 const activeCategory = ref('')
 const loading = ref(true)
 const pub = usePublic()
@@ -19,6 +19,19 @@ const corridors = ['Mbeya', 'Arusha', 'Mwanza', 'Dodoma', 'Dar es Salaam']
 const search = ref('')
 const sort = ref('recommended')
 let searchTimer = null
+
+// group products by category → "same category" clusters, exposed all at once
+import { computed } from 'vue'
+const groupedProducts = computed(() => {
+  if (activeCategory.value) return null  // focused on one category → flat grid
+  const groups = {}
+  for (const p of products.value) {
+    const cat = p.category || 'Other'
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(p)
+  }
+  return Object.entries(groups).map(([category, items]) => ({ category, items }))
+})
 
 async function load() {
   loading.value = true
@@ -69,7 +82,7 @@ onMounted(() => { load(); loadCategories() })
         </nav>
 
         <section class="mk-hero">
-          <h1 class="mk-h1">Shops that <span class="grad">deliver</span>, tracked.</h1>
+          <h1 class="mk-h1">Everything you need, <span class="grad">delivered</span> &amp; tracked.</h1>
           <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
 
           <div class="mk-corridors">
@@ -96,24 +109,65 @@ onMounted(() => { load(); loadCategories() })
 
     <!-- PRODUCTS VIEW -->
     <div v-if="view==='products'">
+      <!-- category filter chips -->
+      <div v-if="categories.length" class="mk-cats">
+        <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All products</button>
+        <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">
+          {{ c.category }} <span class="mk-cat-n">{{ c.count }}</span>
+        </button>
+      </div>
+
       <div v-if="loading" class="mk-pgrid">
-        <div v-for="i in 4" :key="i" class="mk-pcard sk"></div>
+        <div v-for="i in 8" :key="i" class="mk-pcard sk"></div>
       </div>
       <EmptyState v-else-if="!products.length" icon="package" title="No products found" hint="Try a different search or category." />
-      <div v-else class="mk-pgrid">
+
+      <!-- FOCUSED: one category → flat grid -->
+      <div v-else-if="activeCategory" class="mk-pgrid">
         <RouterLink v-for="p in products" :key="p.id" :to="`/shop/${p.shop_slug}`" class="mk-pcard">
-          <div class="mk-pimg" :style="p.image_url ? {backgroundImage:`url(${p.image_url})`} : {background:p.shop_accent}">
+          <div class="mk-pimg" :style="p.image_url ? {backgroundImage:`url(${p.image_url})`} : {background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${p.shop_accent||'#075446'}99)`}">
             <span v-if="!p.image_url" class="mk-pimg-ph">{{ p.name.slice(0,1) }}</span>
+            <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-poff">{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}% off</span>
           </div>
           <div class="mk-pbody">
             <div class="mk-pname">{{ p.name }}</div>
             <div class="mk-pshop">{{ p.shop_name }}<Icon v-if="p.verified_delivery" name="check" :size="11" /></div>
             <div class="mk-pfoot">
-              <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
-              <span v-if="p.delivered_count>0" class="mk-pdel">{{ p.delivered_count }} delivered</span>
+              <div class="mk-pprice-wrap">
+                <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
+                <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
+              </div>
             </div>
           </div>
         </RouterLink>
+      </div>
+
+      <!-- BROWSE ALL: grouped into category sections (exposed to everything, organized) -->
+      <div v-else class="mk-sections">
+        <section v-for="g in groupedProducts" :key="g.category" class="mk-section">
+          <div class="mk-section-head">
+            <h2 class="mk-section-title">{{ g.category }}</h2>
+            <button class="mk-section-more" @click="setCategory(g.category)">See all {{ g.items.length }} <Icon name="arrowRight" :size="13" /></button>
+          </div>
+          <div class="mk-prow">
+            <RouterLink v-for="p in g.items.slice(0,6)" :key="p.id" :to="`/shop/${p.shop_slug}`" class="mk-pcard">
+              <div class="mk-pimg" :style="p.image_url ? {backgroundImage:`url(${p.image_url})`} : {background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${p.shop_accent||'#075446'}99)`}">
+                <span v-if="!p.image_url" class="mk-pimg-ph">{{ p.name.slice(0,1) }}</span>
+                <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-poff">{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}% off</span>
+              </div>
+              <div class="mk-pbody">
+                <div class="mk-pname">{{ p.name }}</div>
+                <div class="mk-pshop">{{ p.shop_name }}<Icon v-if="p.verified_delivery" name="check" :size="11" /></div>
+                <div class="mk-pfoot">
+                  <div class="mk-pprice-wrap">
+                    <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
+                    <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
+                  </div>
+                </div>
+              </div>
+            </RouterLink>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -159,7 +213,7 @@ onMounted(() => { load(); loadCategories() })
 .mk{min-height:100vh;background:var(--paper);padding-bottom:60px}
 .mk-dark{position:relative;background:var(--nav);overflow:hidden}
 .mk-dark::before{content:'';position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(800px 500px at 75% -20%, rgba(67,56,202,.35), transparent 60%),
+  radial-gradient(800px 500px at 75% -20%, rgba(11,110,93,.35), transparent 60%),
   radial-gradient(600px 400px at 15% 120%, rgba(15,157,88,.12), transparent 55%)}
 .mk-dark::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.35;
   background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
@@ -232,7 +286,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-viewtoggle{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
 .mk-vt{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:600;transition:all var(--dur-fast) var(--ease)}
 .mk-vt.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
-.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;max-width:1100px;margin:0 auto;padding:0 4px}
+.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
 .mk-pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
 .mk-pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
 .mk-pcard.sk{height:280px;background:var(--surface-2);animation:pulse 1.5s ease-in-out infinite}
@@ -267,4 +321,21 @@ onMounted(() => { load(); loadCategories() })
 .mk-badge{position:absolute;top:10px;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:5px 9px;border-radius:999px;z-index:2}
 .mk-badge.feat{left:10px;background:rgba(255,255,255,.92);color:var(--warn-ink)}
 .mk-badge.verif{right:10px;background:rgba(255,255,255,.92);color:var(--go-ink)}
+
+/* ═══ CATEGORY-GROUPED PRODUCT MARKETPLACE ═══ */
+.mk-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.mk-cat{padding:8px 16px;border-radius:999px;border:1px solid var(--hairline-2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.mk-cat:hover{border-color:var(--accent);color:var(--accent-ink)}
+.mk-cat.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mk-cat-n{font-size:11px;opacity:.6;font-variant-numeric:tabular-nums}
+.mk-cat.on .mk-cat-n{opacity:.8}
+.mk-sections{display:flex;flex-direction:column;gap:36px}
+.mk-section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--hairline)}
+.mk-section-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.mk-section-more{background:none;border:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.mk-section-more:hover{gap:7px}
+.mk-prow{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.mk-poff{position:absolute;top:8px;left:8px;background:var(--owed);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.02em}
+.mk-pprice-wrap{display:flex;align-items:baseline;gap:7px}
+.mk-pwas{font-size:12px;color:var(--ink-ghost);text-decoration:line-through}
 </style>

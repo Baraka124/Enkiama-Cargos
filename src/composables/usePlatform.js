@@ -46,11 +46,15 @@ export function usePlatform() {
   const intervene = (code, note) => supabase.rpc('admin_intervene', { p_code: code, p_note: note })
   const updateCarrier = (args) => supabase.rpc('update_carrier', args)
   const setCarrierStatus = (carrierId, status) => supabase.rpc('set_carrier_status', { p_carrier: carrierId, p_status: status })
+  const independentDrivers = () => supabase.rpc('platform_independent_drivers')
+  const unassignedParcels = () => supabase.rpc('platform_unassigned_parcels')
+  const assignIndependent = (code, driverId) => supabase.rpc('platform_assign_independent', { p_code: code, p_driver_id: driverId })
 
   return {
     listCarriers, listConsignmentsLite, listPaymentsLite, listDrivers, listProfiles,
     listApplications, listConsignmentsFull, revenue, carrierDrill,
     createCarrier, flagConsignment, approveApplication, rejectApplication,
     setBilling, recordPayment, findParcel, intervene, updateCarrier, setCarrierStatus,
+    independentDrivers, unassignedParcels, assignIndependent,
   }
 }

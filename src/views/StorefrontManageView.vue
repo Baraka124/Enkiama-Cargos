@@ -24,7 +24,7 @@ const setupIncomplete = computed(() => products.value.length === 0 || !selectedC
 const loading = ref(true)
 const saving = ref(false)
 
-const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#4338CA', cover_url:'', logo_url:'' })
+const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#0B6E5D', cover_url:'', logo_url:'' })
 const newProd = ref({ name:'', description:'', price_tzs:'', compare_at_tzs:'', delivery_included:false, delivery_fee_tzs:'', images:[], section_id:'', category:'' })
 const sections = ref([])
 const newSection = ref('')
@@ -69,7 +69,7 @@ async function load() {
   const { data } = await sf.myStore(profile.value?.user_id)
   if (data) {
     store.value = data
-    form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#4338CA', cover_url:data.cover_url||'', logo_url:data.logo_url||'' }
+    form.value = { slug:data.slug, name:data.name, tagline:data.tagline||'', about:data.about||'', region:data.region||'', delivers_to:data.delivers_to||'', phone:data.phone||'', accent:data.accent||'#0B6E5D', cover_url:data.cover_url||'', logo_url:data.logo_url||'' }
     const { data: prods } = await sf.listProducts(data.id)
     products.value = prods || []
   }

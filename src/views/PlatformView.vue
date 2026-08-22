@@ -25,6 +25,29 @@ const money = ref({ owed: 0, held: 0, settled: 0, byCarrier: [] })
 const problems = ref([])        // failed parcels + cash gaps across all carriers
 const analytics = ref({ byStage: [], byCarrier: [], topCorridors: [] })
 const people = ref([])          // all staff + drivers across carriers
+const independent = ref([])
+const indepLoading = ref(false)
+const unassigned = ref([])
+const assignDrv = ref(null)
+async function loadIndependent() {
+  indepLoading.value = true
+  try {
+    const { data } = await plat.independentDrivers()
+    independent.value = data?.drivers || []
+  } catch (e) {}
+  indepLoading.value = false
+}
+async function openAssign(d) {
+  assignDrv.value = d
+  try { const { data } = await plat.unassignedParcels(); unassigned.value = data?.parcels || [] } catch (e) { unassigned.value = [] }
+}
+async function doAssign(code) {
+  try {
+    const { data } = await plat.assignIndependent(code, assignDrv.value.id)
+    if (data?.ok) { toast(`${code} assigned to ${assignDrv.value.name}`, 'ok'); assignDrv.value = null; await loadIndependent() }
+    else toast(data?.error || 'Could not assign', 'warn')
+  } catch (e) { toast('Could not assign', 'warn') }
+}
 const applications = ref([])    // pending carrier applications
 const revenue = ref({ mrr: 0, paying_carriers: 0, overdue_carriers: 0, free_carriers: 0 })
 
@@ -347,6 +370,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
       <button class="ptab" :class="{on:ptab==='problems'}" @click="ptab='problems'"><Icon name="alert" :size="15" /> Problems <span v-if="problems.length" class="ptab-n owed">{{ problems.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='analytics'}" @click="ptab='analytics'"><Icon name="chart" :size="15" /> Analytics</button>
       <button class="ptab" :class="{on:ptab==='people'}" @click="ptab='people'"><Icon name="users" :size="15" /> People <span class="ptab-n">{{ people.length }}</span></button>
+      <button class="ptab" :class="{on:ptab==='drivers'}" @click="ptab='drivers'; loadIndependent()"><Icon name="bike" :size="15" /> Driver pool</button>
       <button class="ptab" :class="{on:ptab==='applications'}" @click="ptab='applications'"><Icon name="inbox" :size="15" /> Applications <span v-if="pendingApps.length" class="ptab-n owed">{{ pendingApps.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='revenue'}" @click="ptab='revenue'"><Icon name="cash" :size="15" /> Revenue</button>
     </div>
@@ -505,6 +529,42 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
           <div class="ptable-carrier"><span class="ppl-ic" :class="p.kind"><Icon :name="p.kind==='driver'?'bike':'user'" :size="14" /></span> {{ p.name }}</div>
           <div class="p-sub">{{ p.role }}<span v-if="p.vehicle"> · {{ p.vehicle }}</span></div>
           <div class="p-sub">{{ p.carrier?.name || '—' }}</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ══ DRIVER POOL TAB (platform-managed independent drivers) ══ -->
+    <template v-if="ptab==='drivers'">
+      <div class="psec-head"><div><h2 class="psec-title">Independent driver pool</h2><span class="psec-sub">Platform-managed drivers — assignable to any carrier's parcels</span></div></div>
+      <div v-if="indepLoading" class="ptable"><div class="skel skel-line"></div></div>
+      <template v-else>
+        <EmptyState v-if="!independent.length" icon="bike" title="No independent drivers yet" hint="Drivers who self-register without a carrier land here for you to manage and assign." />
+        <div v-else class="pdrv-grid">
+          <div v-for="d in independent" :key="d.id" class="pdrv-card">
+            <div class="pdrv-top">
+              <span class="ppl-ic driver"><Icon name="bike" :size="15" /></span>
+              <div class="pdrv-info"><b>{{ d.name }}</b><span>{{ d.phone }}<template v-if="d.vehicle"> · {{ d.vehicle }}</template></span></div>
+              <span class="pdrv-badge" :class="d.active_jobs>0?'busy':'free'">{{ d.active_jobs>0 ? d.active_jobs+' active' : 'Available' }}</span>
+            </div>
+            <div class="pdrv-stats"><span>{{ d.delivered }} delivered</span><span v-if="!d.has_login" class="pdrv-nologin">no login yet</span></div>
+            <button class="btn btn-accent btn-block btn-sm" @click="openAssign(d)"><Icon name="box" :size="14" /> Assign a parcel</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- assign modal -->
+      <div v-if="assignDrv" class="modal-back" @click.self="assignDrv=null">
+        <div class="modal">
+          <h3>Assign {{ assignDrv.name }}</h3>
+          <p class="sub">Pick a waiting parcel from any carrier for this independent driver to carry.</p>
+          <EmptyState v-if="!unassigned.length" icon="check" title="No parcels waiting" hint="Every parcel already has a driver." />
+          <div v-else class="passign-list">
+            <button v-for="pc in unassigned" :key="pc.code" class="passign-row" @click="doAssign(pc.code)">
+              <div><b class="mono">{{ pc.code }}</b><span>{{ pc.item }} → {{ pc.dest }}</span></div>
+              <span class="passign-carrier">{{ pc.carrier }}</span>
+            </button>
+          </div>
+          <button class="btn btn-ghost btn-block" @click="assignDrv=null" style="margin-top:12px">Close</button>
         </div>
       </div>
     </template>

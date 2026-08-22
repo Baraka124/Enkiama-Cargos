@@ -4,7 +4,7 @@
 import { supabase } from '../lib/supabase'
 
 export function useDriver() {
-  const registerDriver = (name, phone, vehicle) => supabase.rpc('register_driver', { p_name: name, p_phone: phone, p_vehicle: vehicle || null })
+  const registerDriver = (name, phone, vehicle, token) => supabase.rpc('register_driver', { p_name: name, p_phone: phone, p_vehicle: vehicle || null, p_token: token || null })
   const driverSignup = (name, vehicle) => supabase.rpc('driver_signup', { p_name: name || null, p_vehicle: vehicle || null })
   const mySpace = () => supabase.rpc('my_driver_space')
   const availableParcels = () => supabase.rpc('available_parcels')

@@ -11,6 +11,7 @@ export function useDispatch() {
   const addDriver = (row) => supabase.from('driver').insert(row)
   const createDriverInvite = (name, phone) => supabase.rpc('create_driver_invite', { p_name: name || null, p_phone: phone || null })
   const setDriverPassword = (driverId, newPassword) => supabase.rpc('admin_set_driver_password', { p_driver_id: driverId, p_new_password: newPassword })
+  const provisionDriverLogin = (driverId, password) => supabase.rpc('admin_provision_driver_login', { p_driver_id: driverId, p_password: password || null })
   const setDriverActive = (driverId, active) =>
     supabase.rpc('set_driver_active', { p_driver: driverId, p_active: active })
   const inviteStaff = (email) => supabase.rpc('invite_staff', { p_email: email, p_role: 'dispatch' })
@@ -20,6 +21,7 @@ export function useDispatch() {
   const reconciliation = () => supabase.rpc('carrier_reconciliation')
   const declareTrip = (from, to, depart, cap, note) => supabase.rpc('declare_trip', { p_from: from, p_to: to, p_depart: depart || null, p_capacity: cap || null, p_note: note || null })
   const tripMatches = () => supabase.rpc('trip_matches')
+  const claimTripCargo = (tripId, code) => supabase.rpc('claim_trip_cargo', { p_trip_id: tripId, p_code: code })
   const settleDriverCash = (driverId) => supabase.rpc('settle_driver_cash', { p_driver: driverId })
 
   // ---- notifications ----
@@ -38,8 +40,8 @@ export function useDispatch() {
     supabase.rpc('set_delivery_fee', { p_code: code, p_fee: fee, p_payer: payer, p_note: note })
 
   return {
-    listDrivers, addDriver, createDriverInvite, setDriverPassword, setDriverActive, inviteStaff,
-    cashLedger, reconciliation, declareTrip, tripMatches, settleDriverCash,
+    listDrivers, addDriver, createDriverInvite, setDriverPassword, provisionDriverLogin, setDriverActive, inviteStaff,
+    cashLedger, reconciliation, declareTrip, tripMatches, claimTripCargo, settleDriverCash,
     notifications, markNotificationsRead,
     customers, custodyEvents, setDeliveryFee,
   }

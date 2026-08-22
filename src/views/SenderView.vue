@@ -119,7 +119,7 @@ async function logout() { await signOut(); router.push('/login') }
 
 <template>
   <AppHeader title="My business" :subtitle="profile?.name || ''">
-    <RouterLink to="/my-shop" class="btn btn-accent">My storefront</RouterLink>
+    <RouterLink to="/my-shop" class="btn btn-accent">{{ shopData?.has_shop ? 'My storefront' : 'Open storefront' }}</RouterLink>
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
   </AppHeader>
 
@@ -459,7 +459,7 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
 .biz-onboard-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:44px}
 .biz-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left}
 .biz-step-c{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:22px;box-shadow:0 1px 2px rgba(11,14,20,.04),0 2px 6px rgba(11,14,20,.05),0 8px 20px rgba(11,14,20,.03)}
-.biz-step-num{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;margin-bottom:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(55,48,217,.3)}
+.biz-step-num{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;margin-bottom:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 6px rgba(11,110,93,.3)}
 .biz-step-t{font-weight:700;font-size:15px;color:var(--ink);margin-bottom:6px}
 .biz-step-d{font-size:13px;color:var(--ink-faint);line-height:1.55}
 @media(max-width:680px){.biz-steps{grid-template-columns:1fr}}

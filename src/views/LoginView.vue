@@ -96,7 +96,7 @@ const settledTZS = ref(48920000)
 const carriersLive = ref(0)
 const NAMES = ['Grace Mwangi','Peter Otieno','Neema Joseph','Hamisi Bakari','John Mkwawa','Asha Salum','Baraka Omari','Zainab Ali','Juma Hassan','Rehema Said']
 const PLACES = ['Mikocheni','Kariakoo','Msasani','Uyole','Kimara','Tabata','Mbezi','Sinza','Ilala','Temeke']
-const CARRIERS = [['USIRI','#3E5BD6'],['Sumry','#137A5E'],['Kimoto','#B4472B'],['Enkiama','#4338CA']]
+const CARRIERS = [['USIRI','#3E5BD6'],['Sumry','#137A5E'],['Kimoto','#B4472B'],['Enkiama','#0B6E5D']]
 const EVENTS = [['booked','booked'],['collected','collected'],['on road','linehaul'],['delivered','delivered'],['cash collected','cash'],['confirmed','confirmed']]
 const feed = ref([])
 const stats = ref(null)
@@ -303,8 +303,8 @@ async function sendFleetApplication() {
 <style scoped>
 .lp{min-height:100vh;position:relative;background:var(--nav);padding:0 0 40px;overflow:hidden}
 .lp::before{content:'';position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(900px 600px at 78% -8%, rgba(67,56,202,.35), transparent 60%),
-  radial-gradient(700px 500px at 10% 110%, rgba(55,48,217,.18), transparent 55%),
+  radial-gradient(900px 600px at 78% -8%, rgba(11,110,93,.35), transparent 60%),
+  radial-gradient(700px 500px at 10% 110%, rgba(11,110,93,.18), transparent 55%),
   radial-gradient(500px 400px at 95% 90%, rgba(15,157,88,.1), transparent 60%)}
 .lp::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
   background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
@@ -359,8 +359,8 @@ async function sendFleetApplication() {
 .fld input{width:100%;margin-top:8px;padding:14px 15px;border:1px solid var(--hairline-2);border-radius:12px;font-size:15px;font-family:inherit;background:var(--surface-2);color:var(--ink);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;box-shadow:inset 0 1px 2px rgba(11,14,20,.03)}
 .fld input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px var(--accent-soft),inset 0 1px 2px rgba(11,14,20,.02)}
 .otp-input{letter-spacing:.4em;text-align:center;font-size:22px !important}
-.auth-btn{width:100%;padding:15px 24px;border:none;border-radius:14px;background:linear-gradient(180deg,#4B40E0,var(--accent));color:#fff;font-family:inherit;font-weight:650;font-size:15px;letter-spacing:-.01em;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease);display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(45,38,140,.4),0 4px 12px rgba(55,48,217,.32),0 8px 24px rgba(55,48,217,.2)}
-.auth-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 4px rgba(45,38,140,.4),0 8px 20px rgba(55,48,217,.42),0 14px 34px rgba(55,48,217,.28)}
+.auth-btn{width:100%;padding:15px 24px;border:none;border-radius:14px;background:linear-gradient(180deg,#0E8873,var(--accent));color:#fff;font-family:inherit;font-weight:650;font-size:15px;letter-spacing:-.01em;cursor:pointer;transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),filter var(--dur-fast) var(--ease);display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(7,68,58,.4),0 4px 12px rgba(11,110,93,.32),0 8px 24px rgba(11,110,93,.2)}
+.auth-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 4px rgba(7,68,58,.4),0 8px 20px rgba(11,110,93,.42),0 14px 34px rgba(11,110,93,.28)}
 .auth-btn:active{transform:translateY(1px) scale(.99)}
 .auth-btn:active{transform:translateY(1px) scale(.99)} .auth-btn:disabled{opacity:.6}
 .auth-links{display:flex;justify-content:space-between;margin-top:14px;gap:10px}

@@ -100,10 +100,11 @@ async function logCustody(consId, stage, note) {
   })
 }
 async function assignDriver(p, driverId) {
-  const { error } = await supabase.from('consignment').update({ stage: 'with_driver', driver_id: driverId }).eq('id', p.id)
-  if (error) throw error
-  await logCustody(p.id, 'with_driver', 'Assigned to driver')
+  const { data, error } = await supabase.rpc('assign_driver_to_parcel', { p_code: p.code, p_driver_id: driverId })
+  if (error) return { error }
+  if (data && !data.ok) return { error: { message: data.error } }
   await fetchAll()
+  return { error: null }
 }
 async function markDelivered(p) {
   await supabase.from('consignment').update({ stage: 'delivered' }).eq('id', p.id)

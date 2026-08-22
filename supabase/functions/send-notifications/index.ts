@@ -24,7 +24,7 @@ async function sendEmail(to: string, subject: string, body: string, trackUrl?: s
     <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px">
       <h2 style="color:#0B0E14;font-size:18px">${subject}</h2>
       <p style="color:#464E5C;font-size:15px;line-height:1.6">${body}</p>
-      ${trackUrl ? `<a href="${trackUrl}" style="display:inline-block;margin-top:12px;background:#3730D9;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600">Track it</a>` : ''}
+      ${trackUrl ? `<a href="${trackUrl}" style="display:inline-block;margin-top:12px;background:#0B6E5D;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600">Track it</a>` : ''}
       <p style="color:#8B93A3;font-size:12px;margin-top:24px">Enkiama Cargos · One parcel, one truth.</p>
     </div>`
 

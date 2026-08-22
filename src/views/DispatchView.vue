@@ -133,19 +133,23 @@ async function submitBooking() {
 const newDriver = ref({ name: '', phone: '', vehicle: 'bajaji' })
 const inviteLink = ref('')
 const genBusy = ref(false)
-const resetPwDriver = ref(null)
-const resetPwValue = ref('')
-const resetPwBusy = ref(false)
-function openResetPw(d) { resetPwDriver.value = d; resetPwValue.value = '' }
-async function doResetPw() {
-  if (resetPwValue.value.length < 8) { toast('Password must be at least 8 characters', 'warn'); return }
-  resetPwBusy.value = true
+const loginDriver = ref(null)
+const loginPwValue = ref('')
+const loginBusy = ref(false)
+const loginCreds = ref(null)
+function openLoginAccess(d) { loginDriver.value = d; loginPwValue.value = ''; loginCreds.value = null }
+async function doLoginAccess() {
+  if (loginPwValue.value && loginPwValue.value.length < 8) { toast('Password must be at least 8 characters', 'warn'); return }
+  loginBusy.value = true
   try {
-    const { data } = await disp.setDriverPassword(resetPwDriver.value.id, resetPwValue.value)
-    if (data?.ok) { toast(`Password reset for ${resetPwDriver.value.name}`, 'ok'); resetPwDriver.value = null }
-    else toast(data?.error || 'Could not reset password', 'warn')
-  } catch (e) { toast('Could not reset password', 'warn') }
-  resetPwBusy.value = false
+    const { data } = await disp.provisionDriverLogin(loginDriver.value.id, loginPwValue.value || null)
+    if (data?.ok) { loginCreds.value = { email: data.email, password: data.password }; await loadDrivers?.() }
+    else toast(data?.error || 'Could not set up login', 'warn')
+  } catch (e) { toast('Could not set up login', 'warn') }
+  loginBusy.value = false
+}
+function copyText(t) {
+  try { navigator.clipboard.writeText(t); toast('Copied', 'ok') } catch (e) {}
 }
 async function generateDriverLink() {
   genBusy.value = true
@@ -257,7 +261,7 @@ const heldTotal = computed(() => consignments.value.filter(p => p.payMode==='cas
 const active = computed(() => consignments.value.filter(p => !['confirmed','cancelled'].includes(p.stage)))
 const filteredLedger = computed(() => consignments.value.filter(matchesSearch))
 const actionList = computed(() => consignments.value.filter(p =>
-  ['booked','collected','linehaul','failed'].includes(p.stage) || (p.payMode==='cash' && p.payState==='collected')))
+  ['booked','collected','linehaul','failed','returning'].includes(p.stage) || (p.payMode==='cash' && p.payState==='collected')))
 const actionSearch = ref('')
 const filteredAction = computed(() => {
   const q = actionSearch.value.trim().toLowerCase()
@@ -274,6 +278,7 @@ async function loadCustomers() {
 
 function whyLine(p) {
   if (p.stage==='failed') return `Failed: ${p.lastReason||'attempt failed'} — needs retry`
+  if (p.stage==='returning') return 'Returning to sender — retry or close it out'
   if (p.stage==='booked') return 'Awaiting pickup by carrier'
   if (p.stage==='linehaul' && !p.driver) return 'No local driver assigned'
   if (p.payMode==='cash' && p.payState==='collected') return 'Cash held by driver — awaiting remit'
@@ -289,6 +294,16 @@ async function doAssign(driverId) {
   }
 }
 async function retry(p) { await advance(p, 'with_driver', 'Retry scheduled'); toast(`${p.code} back on driver's run`, 'ok') }
+function confirmCancel(p) {
+  confirmDialog.value = {
+    title: `Close ${p.code}?`,
+    body: 'This marks the parcel as returned to sender and closes it out. This cannot be undone.',
+    onYes: async () => {
+      try { await advance(p, 'cancelled', 'Returned to sender, closed'); toast(`${p.code} closed`, 'ok') }
+      catch (e) { toast('Could not close', 'warn') }
+    }
+  }
+}
 function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase() }
 async function logout(){ await signOut(); router.push('/login') }
 
@@ -312,6 +327,14 @@ async function submitTrip() {
     trips.value = null
     await loadTrips()
   } catch (e) { toast(e.message || 'Could not post trip', 'warn') }
+}
+async function claimCargo(tripId, code) {
+  try {
+    const { data, error } = await disp.claimTripCargo(tripId, code)
+    if (error) throw error
+    if (data?.ok) { toast(`${code} claimed — it's on your run now`, 'ok'); trips.value = null; await loadTrips() }
+    else toast(data?.error || 'Could not claim', 'warn')
+  } catch (e) { toast(e.message || 'Could not claim', 'warn') }
 }
 async function loadCash() {
   try {
@@ -541,7 +564,22 @@ function fmtWhen(ts) {
         </div>
       </div>
       <Skeleton v-if="loading && !consignments.length" variant="card" :count="3" />
-      <EmptyState v-else-if="!filteredAction.length" icon="check" :title="actionSearch ? 'No matches' : 'All clear'" :hint="actionSearch ? 'Try a different code or name.' : 'New bookings and problems will surface here.'" />
+      <div v-else-if="!filteredAction.length" class="allclear">
+        <div v-if="actionSearch" class="allclear-inner">
+          <div class="allclear-ic"><Icon name="search" :size="24" /></div>
+          <div class="allclear-title">No matches</div>
+          <div class="allclear-hint">Try a different code or name.</div>
+        </div>
+        <div v-else class="allclear-inner">
+          <div class="allclear-badge"><span class="allclear-dot"></span> All clear</div>
+          <div class="allclear-title">Nothing needs you right now</div>
+          <div class="allclear-hint">New bookings and problems land here the moment they happen. Start one below.</div>
+          <div class="allclear-actions">
+            <button class="btn btn-accent" @click="bookModal=true"><Icon name="plus" :size="15" /> New consignment</button>
+            <button class="btn btn-ghost" @click="tab='ledger'">View the ledger</button>
+          </div>
+        </div>
+      </div>
       <div v-for="p in filteredAction" :key="p.id" :class="{selrow: bulkMode}" style="position:relative">
         <label v-if="bulkMode" class="selbox">
           <input type="checkbox" :checked="selected.has(p.id)" @change="toggleSelect(p.id)" />
@@ -550,6 +588,10 @@ function fmtWhen(ts) {
         <template v-if="p.stage==='failed'">
           <button class="btn btn-accent" @click="retry(p)">Schedule retry</button>
           <button class="btn btn-ghost" @click="advance(p,'returning','Returning to sender')">Return to sender</button>
+        </template>
+        <template v-else-if="p.stage==='returning'">
+          <button class="btn btn-accent" @click="advance(p,'booked','Re-booked for another attempt')">Retry delivery</button>
+          <button class="btn btn-ghost" @click="confirmCancel(p)">Close · returned to sender</button>
         </template>
         <button v-else-if="p.stage==='booked'" class="btn btn-accent" @click="advance(p,'collected','Collected by carrier')">Mark collected</button>
         <button v-else-if="p.stage==='collected'" class="btn btn-accent" @click="advance(p,'linehaul','Sent on road')">Send on road</button>
@@ -718,7 +760,10 @@ function fmtWhen(ts) {
                 <span class="trip-match-item">{{ m.item }}</span>
                 <span class="trip-match-dest"><Icon name="pin" :size="11" /> {{ m.dest }} · {{ m.weight }}kg</span>
               </div>
-              <div class="trip-match-fee"><Money :amount="m.fee" /></div>
+              <div class="trip-match-right">
+                <div class="trip-match-fee"><Money :amount="m.fee" /></div>
+                <button class="btn btn-accent btn-sm" @click="claimCargo(t.id, m.code)">Claim</button>
+              </div>
             </div>
           </div>
           <div v-else class="trip-nomatch">No waiting cargo on this corridor yet — we'll notify you when a match appears.</div>
@@ -767,7 +812,7 @@ function fmtWhen(ts) {
         <div class="avatar">{{ initials(d.name) }}</div>
         <div style="min-width:0"><div style="font-weight:600">{{ d.name }}</div><div class="p-sub">{{ d.phone }} · {{ d.vehicle }}</div></div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <button v-if="d.user_id" class="btn btn-ghost" @click="openResetPw(d)"><Icon name="link" :size="13" /> Reset password</button>
+          <button class="btn btn-ghost" @click="openLoginAccess(d)"><Icon name="link" :size="13" /> {{ d.user_id ? 'Login access' : 'Create login' }}</button>
           <button class="btn btn-ghost" @click="toggleDriver(d)">{{ d.active ? 'Deactivate' : 'Reactivate' }}</button>
           <span class="paychip" :class="d.active?'pay-prepaid':'pay-settled'">{{ d.active?'Active':'Off' }}</span>
         </div>
@@ -782,16 +827,27 @@ function fmtWhen(ts) {
     </div>
   </div>
 
-  <!-- RESET DRIVER PASSWORD -->
-  <div v-if="resetPwDriver" class="modal-back" @click.self="resetPwDriver=null">
+  <!-- DRIVER LOGIN ACCESS — create/reset + reveal credentials for testing -->
+  <div v-if="loginDriver" class="modal-back" @click.self="loginDriver=null">
     <div class="modal">
-      <h3>Reset password — {{ resetPwDriver.name }}</h3>
-      <p class="sub">Set a new password for this driver. Share it with them securely — they can change it after signing in.</p>
-      <div class="fg"><label>New password</label><input v-model="resetPwValue" type="text" placeholder="At least 8 characters" @keyup.enter="doResetPw" /></div>
-      <div style="display:flex;gap:10px;margin-top:16px">
-        <button class="btn btn-ghost" @click="resetPwDriver=null">Cancel</button>
-        <button class="btn btn-accent" :disabled="resetPwBusy" @click="doResetPw"><Spinner v-if="resetPwBusy" :size="15" /><span v-else>Set password</span></button>
-      </div>
+      <h3>Login access — {{ loginDriver.name }}</h3>
+      <template v-if="!loginCreds">
+        <p class="sub">{{ loginDriver.user_id ? 'Reset this driver\'s password.' : 'Create a login for this driver.' }} You'll see the email and password so you can share them — or sign in as this driver yourself to see their view.</p>
+        <div class="fg"><label>Password <span style="color:var(--ink-faint);font-weight:400">(leave blank to auto-generate)</span></label><input v-model="loginPwValue" type="text" placeholder="At least 8 characters" @keyup.enter="doLoginAccess" /></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-ghost" @click="loginDriver=null">Cancel</button>
+          <button class="btn btn-accent" :disabled="loginBusy" @click="doLoginAccess"><Spinner v-if="loginBusy" :size="15" /><span v-else>{{ loginDriver.user_id ? 'Reset password' : 'Create login' }}</span></button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="creds-done"><Icon name="check" :size="20" /> Login ready — use these to sign in</div>
+        <div class="creds-box">
+          <div class="creds-row"><span class="creds-lab">Email</span><code class="creds-val">{{ loginCreds.email }}</code><button class="creds-copy" @click="copyText(loginCreds.email)"><Icon name="link" :size="13" /></button></div>
+          <div class="creds-row"><span class="creds-lab">Password</span><code class="creds-val">{{ loginCreds.password }}</code><button class="creds-copy" @click="copyText(loginCreds.password)"><Icon name="link" :size="13" /></button></div>
+        </div>
+        <p class="sub" style="margin-top:12px">Open the login page in a private/incognito window, sign in with these, and you'll see exactly what this driver sees.</p>
+        <button class="btn btn-accent btn-block" @click="loginDriver=null; loginCreds=null" style="margin-top:12px">Done</button>
+      </template>
     </div>
   </div>
 

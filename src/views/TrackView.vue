@@ -244,7 +244,25 @@ onMounted(() => { if (code.value) track() })
       </div>
     </div>
 
-    <!-- REPORT MODAL -->
+    <!-- PRE-SEARCH: promote the platform (retain + convert receivers) -->
+    <div v-if="!parcel && !notFound && !code" class="trk-promo">
+      <div class="trk-promo-how">
+        <div class="trk-promo-lab">How Enkiama works</div>
+        <div class="trk-promo-steps">
+          <div class="trk-promo-step"><span class="trk-promo-n">1</span><div><b>Your sender ships it</b><span>A shop or person books your parcel with a tracked carrier.</span></div></div>
+          <div class="trk-promo-step"><span class="trk-promo-n">2</span><div><b>You follow every step</b><span>Booked, collected, on the road, with your driver — live.</span></div></div>
+          <div class="trk-promo-step"><span class="trk-promo-n">3</span><div><b>Delivered with proof</b><span>Photo proof and a timestamp. One parcel, one truth.</span></div></div>
+        </div>
+      </div>
+      <div class="trk-promo-shop">
+        <div class="trk-promo-shop-txt">
+          <div class="trk-promo-lab accent">Shop while you wait</div>
+          <h3>Order from Tanzanian shops — delivered &amp; tracked</h3>
+          <p>Fabric, spices, electronics and more, from trusted businesses. Every order ships with the same end-to-end tracking.</p>
+          <RouterLink to="/market" class="btn btn-accent"><Icon name="box" :size="15" /> Browse the marketplace</RouterLink>
+        </div>
+      </div>
+    </div>
     <div v-if="showReport" class="overlay" v-escape="() => { showReport=false }" @click.self="showReport=false">
       <div class="modal" style="max-width:420px">
         <h3>Report a problem</h3>
@@ -313,7 +331,7 @@ onMounted(() => { if (code.value) track() })
 <style scoped>
 .trk-hero{position:relative;background:var(--nav);overflow:hidden}
 .trk-hero::before{content:'';position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(700px 400px at 70% -20%, rgba(67,56,202,.32), transparent 60%),
+  radial-gradient(700px 400px at 70% -20%, rgba(11,110,93,.32), transparent 60%),
   radial-gradient(500px 350px at 15% 120%, rgba(15,157,88,.1), transparent 55%)}
 .trk-hero::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.3;
   background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
@@ -350,4 +368,21 @@ onMounted(() => { if (code.value) track() })
 .tl-time.muted{color:var(--ink-faint)}
 .tl-time.pending{color:var(--ink-ghost)}
 .tl-verify{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:var(--go-ink);margin-top:6px;padding:10px 12px;background:var(--go-soft);border-radius:10px}
+
+/* ═══ TRACK PRE-SEARCH PROMO — retain + convert ═══ */
+.trk-promo{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.trk-promo-how{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:24px;box-shadow:var(--shadow-sm)}
+.trk-promo-lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:16px}
+.trk-promo-lab.accent{color:var(--accent-ink)}
+.trk-promo-steps{display:flex;flex-direction:column;gap:16px}
+.trk-promo-step{display:flex;gap:14px;align-items:flex-start}
+.trk-promo-n{width:26px;height:26px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.trk-promo-step b{display:block;font-size:14px;font-weight:650;color:var(--ink);margin-bottom:2px}
+.trk-promo-step span{font-size:12.5px;color:var(--ink-faint);line-height:1.5}
+.trk-promo-shop{background:linear-gradient(135deg,var(--ink),#20262F);border-radius:var(--r-lg);padding:26px;color:#fff;overflow:hidden;position:relative}
+.trk-promo-shop::before{content:"";position:absolute;inset:0;background:radial-gradient(500px 300px at 90% 0%,rgba(11,110,93,.4),transparent 60%);pointer-events:none}
+.trk-promo-shop-txt{position:relative}
+.trk-promo-shop .trk-promo-lab{color:#4FD1B5}
+.trk-promo-shop h3{font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-bottom:8px;color:#fff}
+.trk-promo-shop p{font-size:13.5px;color:rgba(255,255,255,.62);line-height:1.55;margin-bottom:18px}
 </style>
