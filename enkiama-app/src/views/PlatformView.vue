@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { usePlatform } from '../composables/usePlatform'
+import CarrierProfile from '../components/CarrierProfile.vue'
 import { supabase, fmtTZS } from '../lib/supabase'
 import { humanError } from '../lib/humanError'
 import Icon from '../components/Icon.vue'
@@ -360,6 +361,8 @@ const drillStageCap = { booked:'Booked', collected:'Collected', linehaul:'On roa
 // ── manage a carrier (edit / suspend) ──
 const manageModal = ref(null)   // the carrier being managed
 const m = ref({ name:'', mark:'', accent:'', region:'' })
+const profileCarrierId = ref(null)
+function openProfile(c) { profileCarrierId.value = c.id }
 function openManage(c) {
   manageModal.value = c
   m.value = { name:c.name, mark:c.mark, accent:c.accent, region:c.region }
@@ -420,7 +423,6 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
       <button class="ptab" :class="{on:ptab==='problems'}" @click="ptab='problems'"><Icon name="alert" :size="15" /> Problems <span v-if="problems.length" class="ptab-n owed">{{ problems.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='analytics'}" @click="ptab='analytics'"><Icon name="chart" :size="15" /> Analytics</button>
       <button class="ptab" :class="{on:ptab==='people'}" @click="ptab='people'"><Icon name="users" :size="15" /> People <span class="ptab-n">{{ people.length }}</span></button>
-      <button class="ptab" :class="{on:ptab==='drivers'}" @click="ptab='drivers'; loadIndependent()"><Icon name="bike" :size="15" /> Driver pool</button>
       <button class="ptab" :class="{on:ptab==='property'}" @click="ptab='property'; loadPendingProps()"><Icon name="pin" :size="15" /> Property <span v-if="pendingProps.length" class="tb-count owed">{{ pendingProps.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='disputes'}" @click="ptab='disputes'; loadDisputes()"><Icon name="shield" :size="15" /> Disputes <span v-if="disputes.length" class="tb-count owed">{{ disputes.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='applications'}" @click="ptab='applications'"><Icon name="inbox" :size="15" /> Applications <span v-if="pendingApps.length" class="ptab-n owed">{{ pendingApps.length }}</span></button>
@@ -467,8 +469,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
         <div class="pcarrier-foot">
           <span class="pcarrier-pct"><b>{{ c._pct }}%</b> delivered</span>
           <div class="pcarrier-actions">
-            <button class="pc-act" @click="openDrill(c)"><Icon name="chart" :size="14" /> View</button>
-            <button class="pc-act primary" @click="openManage(c)"><Icon name="pen" :size="14" /> Manage</button>
+            <button class="pc-act primary" @click="openProfile(c)"><Icon name="chart" :size="14" /> Open profile</button>
           </div>
         </div>
       </div>
@@ -655,42 +656,6 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
           </div>
         </div>
       </template>
-    </template>
-
-    <!-- ══ DRIVER POOL TAB (platform-managed independent drivers) ══ -->
-    <template v-if="ptab==='drivers'">
-      <div class="psec-head"><div><h2 class="psec-title">Independent driver pool</h2><span class="psec-sub">Platform-managed drivers — assignable to any carrier's parcels</span></div></div>
-      <div v-if="indepLoading" class="ptable"><div class="skel skel-line"></div></div>
-      <template v-else>
-        <EmptyState v-if="!independent.length" icon="bike" title="No independent drivers yet" hint="Drivers who self-register without a carrier land here for you to manage and assign." />
-        <div v-else class="pdrv-grid">
-          <div v-for="d in independent" :key="d.id" class="pdrv-card">
-            <div class="pdrv-top">
-              <span class="ppl-ic driver"><Icon name="bike" :size="15" /></span>
-              <div class="pdrv-info"><b>{{ d.name }}</b><span>{{ d.phone }}<template v-if="d.vehicle"> · {{ d.vehicle }}</template></span></div>
-              <span class="pdrv-badge" :class="d.active_jobs>0?'busy':'free'">{{ d.active_jobs>0 ? d.active_jobs+' active' : 'Available' }}</span>
-            </div>
-            <div class="pdrv-stats"><span>{{ d.delivered }} delivered</span><span v-if="!d.has_login" class="pdrv-nologin">no login yet</span></div>
-            <button class="btn btn-accent btn-block btn-sm" @click="openAssign(d)"><Icon name="box" :size="14" /> Assign a parcel</button>
-          </div>
-        </div>
-      </template>
-
-      <!-- assign modal -->
-      <div v-if="assignDrv" class="modal-back" @click.self="assignDrv=null">
-        <div class="modal">
-          <h3>Assign {{ assignDrv.name }}</h3>
-          <p class="sub">Pick a waiting parcel from any carrier for this independent driver to carry.</p>
-          <EmptyState v-if="!unassigned.length" icon="check" title="No parcels waiting" hint="Every parcel already has a driver." />
-          <div v-else class="passign-list">
-            <button v-for="pc in unassigned" :key="pc.code" class="passign-row" @click="doAssign(pc.code)">
-              <div><b class="mono">{{ pc.code }}</b><span>{{ pc.item }} → {{ pc.dest }}</span></div>
-              <span class="passign-carrier">{{ pc.carrier }}</span>
-            </button>
-          </div>
-          <button class="btn btn-ghost btn-block" @click="assignDrv=null" style="margin-top:12px">Close</button>
-        </div>
-      </div>
     </template>
 
     <!-- ══ APPLICATIONS TAB ══ -->
@@ -897,6 +862,8 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
         <button class="btn btn-accent" style="flex:1" :disabled="busy" @click="onboard">Onboard carrier</button>
       </div>
     </div>
+
+    <CarrierProfile v-if="profileCarrierId" :carrier-id="profileCarrierId" @close="profileCarrierId=null" @changed="load" />
   </div>
 </template>
 
@@ -960,12 +927,12 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
 .pc-act.primary:hover{background:var(--accent-ink);border-color:var(--accent-ink);color:#fff}
 
 /* platform tabs */
-.ptabs{display:flex;gap:4px;margin-bottom:26px;border-bottom:1px solid var(--hairline);overflow-x:auto;-webkit-overflow-scrolling:touch}
-.ptab{display:inline-flex;align-items:center;gap:7px;padding:12px 16px;border:none;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-faint);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:.15s}
-.ptab:hover{color:var(--ink-soft)}
-.ptab.on{color:var(--accent-ink);border-bottom-color:var(--accent)}
-.ptab-n{background:var(--surface-2);color:var(--ink-faint);font-size:11px;font-weight:700;padding:1px 7px;border-radius:18px}
-.ptab-n.owed{background:var(--owed-soft);color:var(--owed-ink)}
+.ptabs{display:flex;gap:6px;margin-bottom:26px;flex-wrap:wrap}
+.ptab{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border:none;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-faint);cursor:pointer;border-radius:10px;white-space:nowrap;transition:color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease)}
+.ptab:hover{color:var(--ink);background:var(--surface-2)}
+.ptab.on{color:var(--accent-ink);background:var(--accent-soft);font-weight:700}
+.ptab-n{background:var(--surface-3);color:var(--ink-faint);font-size:11px;font-weight:700;min-width:18px;height:18px;padding:0 6px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.ptab.on .ptab-n{background:var(--accent);color:#fff}
 
 /* platform tables (money, people) */
 .ptable{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;overflow:hidden}
