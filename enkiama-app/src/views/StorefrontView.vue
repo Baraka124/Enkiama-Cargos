@@ -129,11 +129,25 @@ onMounted(load)
     </div>
 
     <div class="sf-body">
-      <div class="sf-main">
-        <p v-if="store.about" class="sf-about">{{ store.about }}</p>
-        <div v-if="store.ships_what" class="sf-ships"><Icon name="package" :size="14" /> Usually ships: {{ store.ships_what }}<span v-if="store.since_year"> · since {{ store.since_year }}</span></div>
-        <div v-if="store.delivers_to" class="sf-delivers"><Icon name="truck" :size="15" /> Delivers to {{ store.delivers_to }} — tracked via Enkiama Cargos</div>
+      <div class="sf-intro-row">
+        <div class="sf-intro">
+          <p v-if="store.about" class="sf-about">{{ store.about }}</p>
+          <div v-if="store.ships_what" class="sf-ships"><Icon name="package" :size="14" /> Usually ships: {{ store.ships_what }}<span v-if="store.since_year"> · since {{ store.since_year }}</span></div>
+          <div v-if="store.delivers_to" class="sf-delivers"><Icon name="truck" :size="15" /> Delivers to {{ store.delivers_to }} — tracked via Enkiama Cargos</div>
+        </div>
+        <aside class="sf-aside">
+          <div class="sf-order-card">
+            <div class="sf-trust"><Icon name="check" :size="18" /></div>
+            <div class="sf-trust-h">Every order tracked</div>
+            <p class="sf-trust-p">Orders from {{ store.name }} ship through platform carriers with end-to-end tracking and cash-on-delivery — you see every step.</p>
+            <a v-if="store.phone" :href="`tel:${store.phone}`" class="btn btn-accent btn-block btn-lg"><Icon name="phone" :size="16" /> Contact shop</a>
+            <button class="btn btn-ghost btn-block sf-share" @click="shareShop"><Icon name="box" :size="15" /> Share this shop</button>
+            <RouterLink to="/track" class="btn btn-ghost btn-block">Track an order</RouterLink>
+          </div>
+        </aside>
+      </div>
 
+      <div class="sf-products-wrap">
         <h2 class="sf-h2">Products</h2>
         <EmptyState v-if="!products.length" icon="package" title="No products listed yet" />
         <template v-else>
@@ -168,17 +182,6 @@ onMounted(load)
           </div>
         </template>
       </div>
-
-      <aside class="sf-aside">
-        <div class="sf-order-card">
-          <div class="sf-trust"><Icon name="check" :size="18" /></div>
-          <div class="sf-trust-h">Every order tracked</div>
-          <p class="sf-trust-p">Orders from {{ store.name }} ship through platform carriers with end-to-end tracking and cash-on-delivery — you see every step.</p>
-          <a v-if="store.phone" :href="`tel:${store.phone}`" class="btn btn-accent btn-block btn-lg"><Icon name="phone" :size="16" /> Contact shop</a>
-          <button class="btn btn-ghost btn-block sf-share" @click="shareShop"><Icon name="box" :size="15" /> Share this shop</button>
-          <RouterLink to="/track" class="btn btn-ghost btn-block">Track an order</RouterLink>
-        </div>
-      </aside>
     </div>
 
     <footer class="sf-foot"><BrandMark variant="full" :height="36" /><p>Powered by Enkiama Cargos · One parcel, one truth.</p></footer>
@@ -275,13 +278,15 @@ onMounted(load)
 .sf-rating{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#B5791E}
 .sf-rc{color:var(--ink-faint);font-weight:400}
 .sf-region{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-faint)}
-.sf-body{display:grid;grid-template-columns:1fr 300px;gap:28px}
-@media(max-width:800px){.sf-body{grid-template-columns:1fr}}
+.sf-body{display:block}
+.sf-intro-row{display:grid;grid-template-columns:1fr 300px;gap:28px;margin-bottom:36px;align-items:start}
+@media(max-width:800px){.sf-intro-row{grid-template-columns:1fr}}
+.sf-products-wrap{display:block}
 .sf-about{font-size:14px;color:var(--ink-soft);line-height:1.65;margin-bottom:16px}
 .sf-delivers{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--go-ink);background:var(--go-soft);padding:11px 14px;border-radius:12px;margin-bottom:24px}
 .sf-h2{font-size:18px;font-weight:700;margin:24px 0 14px}
 .sf-ships{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);margin-bottom:12px;flex-wrap:wrap}
-.sf-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.sf-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
 .sf-prod{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;padding:0;text-align:left;font-family:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease)}
 .sf-prod:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
 .sf-prod-img{position:relative;height:160px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
@@ -298,7 +303,7 @@ onMounted(load)
 .sf-review{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:14px 16px}
 .sf-stars{display:flex;gap:2px;color:#F59E0B;margin-bottom:6px}
 .sf-rev-text{font-size:13px;color:var(--ink-soft);font-style:italic}
-.sf-aside{position:sticky;top:20px;align-self:start}
+.sf-aside{align-self:start}
 .sf-order-card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:24px;text-align:center;box-shadow:var(--shadow-sm)}
 .sf-trust{width:48px;height:48px;border-radius:12px;background:var(--go-soft);color:var(--go-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
 .sf-trust-h{font-weight:700;font-size:16px;margin-bottom:8px}

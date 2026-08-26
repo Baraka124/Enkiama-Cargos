@@ -11,6 +11,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 const uploading = ref(false)
 const fileInput = ref(null)
+const camInput = ref(null)
+function pickCamera() { if (canAdd.value) camInput.value?.click() }
 const err = ref('')
 
 const photos = computed(() => props.modelValue || [])
@@ -60,6 +62,7 @@ function makeFirst(i) {
 <template>
   <div class="mpu">
     <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple style="display:none" @change="onFiles" />
+    <input ref="camInput" type="file" accept="image/*" capture="environment" style="display:none" @change="onFiles" />
     <div class="mpu-grid">
       <div v-for="(img,i) in photos" :key="img" class="mpu-item" :style="{backgroundImage:`url(${img})`}">
         <span v-if="i===0" class="mpu-main">Main</span>
@@ -68,10 +71,15 @@ function makeFirst(i) {
           <button type="button" class="mpu-act danger" title="Remove" @click="remove(i)"><Icon name="plus" :size="12" style="transform:rotate(45deg)" /></button>
         </div>
       </div>
-      <button v-if="canAdd" type="button" class="mpu-add" :disabled="uploading" @click="pick">
-        <Spinner v-if="uploading" :size="18" />
-        <template v-else><Icon name="camera" :size="20" /><span>Add photo</span><small>{{ photos.length }}/{{ max }}</small></template>
-      </button>
+      <div v-if="canAdd" class="mpu-add-group">
+        <button type="button" class="mpu-add cam" :disabled="uploading" @click="pickCamera">
+          <Spinner v-if="uploading" :size="18" />
+          <template v-else><Icon name="camera" :size="20" /><span>Take photo</span></template>
+        </button>
+        <button type="button" class="mpu-add gallery" :disabled="uploading" @click="pick">
+          <Icon name="package" :size="18" /><span>Gallery</span><small>{{ photos.length }}/{{ max }}</small>
+        </button>
+      </div>
     </div>
     <div v-if="err" class="mpu-err">{{ err }}</div>
     <div v-if="photos.length" class="mpu-hint">First photo is the main image customers see. Tap ★ to change which is main.</div>
@@ -92,4 +100,9 @@ function makeFirst(i) {
 .mpu-add small{font-size:10px;color:var(--ink-ghost);font-weight:500}
 .mpu-err{font-size:12.5px;color:var(--owed-ink);margin-top:8px}
 .mpu-hint{font-size:11px;color:var(--ink-faint);margin-top:10px;line-height:1.5}
+
+.mpu-add-group{display:flex;gap:8px}
+.mpu-add.cam{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.mpu-add.cam:hover{background:var(--accent);color:#fff}
+.mpu-add.gallery{background:var(--surface-2)}
 </style>

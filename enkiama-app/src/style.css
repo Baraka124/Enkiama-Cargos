@@ -90,14 +90,14 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
 
 /* PRIMARY — commands attention: gradient depth, inset top-highlight, layered shadow */
 .btn-accent{background:linear-gradient(180deg,#0E8873,var(--accent));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 2px rgba(7,68,58,.35),0 4px 12px rgba(11,110,93,.28),0 8px 24px rgba(11,110,93,.16)}
-.btn-accent:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 4px rgba(7,68,58,.35),0 8px 20px rgba(11,110,93,.38),0 14px 34px rgba(11,110,93,.24)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 1px 2px rgba(7,68,58,.2)}
+.btn-accent:hover:not(:disabled){filter:brightness(1.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 8px rgba(11,110,93,.22)}
 .btn-go{background:linear-gradient(180deg,#16B26A,var(--go));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(8,90,52,.4),0 4px 12px rgba(15,157,88,.32),0 8px 24px rgba(15,157,88,.2)}
-.btn-go:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 2px 4px rgba(8,90,52,.4),0 8px 20px rgba(15,157,88,.42),0 14px 34px rgba(15,157,88,.28)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 1px 2px rgba(8,90,52,.22)}
+.btn-go:hover:not(:disabled){filter:brightness(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 8px rgba(15,157,88,.22)}
 .btn-owed{background:linear-gradient(180deg,#E24433,var(--owed));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(120,25,15,.4),0 4px 12px rgba(214,59,42,.3),0 8px 22px rgba(214,59,42,.18)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 1px 2px rgba(120,25,15,.22)}
 .btn-owed:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-1.5px)}
 
 /* SECONDARY — recedes so primary pops: flat, quiet, no lift shadow */
@@ -883,8 +883,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 
 /* ── warm commerce button (Amazon "buy now" energy) — for order/buy actions only ── */
 .btn-buy{background:linear-gradient(180deg,var(--buy-hi),var(--buy));color:#3A2503;font-weight:700;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 1px 2px rgba(122,74,5,.35),0 4px 12px rgba(245,158,11,.3),0 8px 22px rgba(245,158,11,.18)}
-.btn-buy:hover:not(:disabled){filter:brightness(1.05);transform:translateY(-1.5px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 4px rgba(122,74,5,.35),0 8px 20px rgba(245,158,11,.42),0 14px 34px rgba(245,158,11,.26)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 1px 2px rgba(122,74,5,.2)}
+.btn-buy:hover:not(:disabled){filter:brightness(1.04);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 8px rgba(245,158,11,.22)}
 
 /* ═══ MOBILE FIXES — prevent horizontal overflow, fix header on small screens ═══ */
 html, body { overflow-x:hidden; max-width:100vw; }

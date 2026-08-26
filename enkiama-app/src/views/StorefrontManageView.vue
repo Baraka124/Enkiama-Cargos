@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
+import { supabase } from '../lib/supabase'
 import { useRouter } from 'vue-router'
 import { useStorefront } from '../composables/useStorefront'
 import { useAuth } from '../composables/useAuth'
@@ -26,6 +27,8 @@ const saving = ref(false)
 
 const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#0B6E5D', cover_url:'', logo_url:'' })
 const newProd = ref({ name:'', description:'', price_tzs:'', compare_at_tzs:'', delivery_included:false, delivery_fee_tzs:'', images:[], section_id:'', category:'' })
+const categories = ref([])
+async function loadCategories() { try { const { data } = await supabase.rpc('list_categories'); categories.value = data || [] } catch (e) {} }
 const sections = ref([])
 const newSection = ref('')
 async function loadSections() {
@@ -121,7 +124,7 @@ async function delProduct(id) {
   toast('Product removed', 'ok'); await load()
 }
 async function logout() { await signOut(); router.push('/login') }
-onMounted(async () => { await load(); await loadCarriers(); await loadSections(); selectedCarrier.value = store.value?.carrier_id })
+onMounted(async () => { await load(); await loadCarriers(); await loadSections(); await loadCategories(); selectedCarrier.value = store.value?.carrier_id })
 </script>
 
 <template>
@@ -240,7 +243,12 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
               <input v-if="!newProd.delivery_included" v-model="newProd.delivery_fee_tzs" type="number" inputmode="numeric" placeholder="Delivery fee (TZS) — leave blank if carrier quotes it" style="margin-top:8px" />
             </div>
             <div class="fg"><label>Description</label><input v-model="newProd.description" placeholder="Premium wax print" /></div>
-            <div class="fg"><label>Category <span class="fld-opt">helps buyers find it</span></label><input v-model="newProd.category" list="cat-suggestions" placeholder="e.g. Fabric, Electronics, Food" /><datalist id="cat-suggestions"><option>Fabric</option><option>Electronics</option><option>Food &amp; Spices</option><option>Beauty</option><option>Home</option><option>Clothing</option><option>Accessories</option></datalist></div>
+            <div class="fg"><label>Category <span class="fld-opt">helps buyers find it</span></label>
+              <select v-model="newProd.category">
+                <option value="">Choose a category…</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.name">{{ cat.name }}</option>
+              </select>
+            </div>
             <div v-if="sections.length" class="fg"><label>Section</label>
               <select v-model="newProd.section_id">
                 <option value="">No section</option>
