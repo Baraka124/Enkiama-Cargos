@@ -103,6 +103,7 @@ onMounted(() => { load(); loadCategories() })
           <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="32" light /></RouterLink>
           <div class="mk-navsearch">
             <input v-model="search" @input="onSearch" placeholder="Search shops or products across Tanzania…" aria-label="Search" />
+            <button v-if="search" class="mk-navsearch-clear" @click="search=''; onSearch()" aria-label="Clear"><Icon name="plus" :size="16" style="transform:rotate(45deg)" /></button>
             <button class="mk-navsearch-btn" @click="onSearch"><Icon name="search" :size="18" /></button>
           </div>
           <div class="mk-head-actions">
@@ -149,6 +150,10 @@ onMounted(() => { load(); loadCategories() })
 
     <!-- PRODUCTS VIEW -->
     <div v-if="view==='products'">
+      <div v-if="search" class="mk-searchinfo">
+        <span>{{ displayProducts.length }} result{{ displayProducts.length===1?'':'s' }} for "<b>{{ search }}</b>"</span>
+        <button class="mk-clearsearch" @click="search=''; onSearch()">Clear search</button>
+      </div>
       <!-- category filter chips -->
       <div v-if="categories.length" class="mk-cats">
         <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All products</button>
@@ -407,4 +412,10 @@ onMounted(() => { load(); loadCategories() })
 .mk-poff{z-index:2}
 
 .mk-badge.trusted{background:linear-gradient(135deg,rgba(11,110,93,.95),rgba(18,184,134,.95));color:#fff;box-shadow:0 2px 8px rgba(11,110,93,.4)}
+
+.mk-navsearch-clear{border:none;background:#fff;color:var(--ink-faint);padding:0 8px;cursor:pointer;display:flex;align-items:center}
+.mk-navsearch-clear:hover{color:var(--ink)}
+.mk-searchinfo{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;font-size:14px;color:var(--ink-soft)}
+.mk-searchinfo b{color:var(--ink)}
+.mk-clearsearch{font-size:13px;font-weight:600;color:var(--accent-ink);background:none;border:none;cursor:pointer}
 </style>
