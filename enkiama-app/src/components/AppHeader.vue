@@ -110,6 +110,7 @@ function isCurrent(path) { return router.currentRoute.value.path === path }
 .ah{position:sticky;top:0;z-index:60;background:var(--nav);box-shadow:0 1px 0 var(--nav-line),var(--shadow-sm)}
 .ah-inner{max-width:1180px;margin:0 auto;padding:var(--s3) var(--s6);display:flex;align-items:center;gap:var(--s4)}
 .ah-brand{display:flex;align-items:center;gap:var(--s3);min-width:0;cursor:pointer}
+.ah-brand :deep(img){background:rgba(255,255,255,.08);border-radius:9px;padding:5px 8px}
 .ah-id{min-width:0}
 .ah-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-lg);color:var(--nav-ink);line-height:1.1;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ah-sub{font-size:var(--t-xs);color:var(--nav-faint);text-transform:uppercase;letter-spacing:.03em;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

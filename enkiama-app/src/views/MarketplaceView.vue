@@ -250,7 +250,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
 .mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
-.mk-logo{text-decoration:none}
+.mk-logo{display:flex;align-items:center;padding:6px 10px;background:rgba(255,255,255,.08);border-radius:10px;flex-shrink:0}
 .mk-hero{text-align:center;padding:36px 0 30px}
 .mk-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,6vw,46px);font-weight:700;letter-spacing:-.03em;margin-bottom:14px;color:#fff}
 /* grad */

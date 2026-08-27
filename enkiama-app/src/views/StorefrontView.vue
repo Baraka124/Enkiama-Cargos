@@ -272,7 +272,7 @@ onMounted(load)
 </template>
 
 <style scoped>
-.sf{max-width:1000px;margin:0 auto;padding:0 20px 50px}
+.sf{margin:0;padding:0}
 .sf-banner{padding:22px 0 26px;border-bottom:1px solid var(--hairline);margin-bottom:26px}
 .sf-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-faint);text-decoration:none;margin-bottom:20px}
 .sf-back:hover{color:var(--accent-ink)}
@@ -285,10 +285,14 @@ onMounted(load)
 .sf-rating{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#B5791E}
 .sf-rc{color:var(--ink-faint);font-weight:400}
 .sf-region{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-faint)}
-.sf-body{display:block}
-.sf-intro-row{display:grid;grid-template-columns:1fr 300px;gap:28px;margin-bottom:36px;align-items:start}
-@media(max-width:800px){.sf-intro-row{grid-template-columns:1fr}}
-.sf-products-wrap{display:block}
+
+.sf-body{display:grid;grid-template-columns:1fr 300px;gap:32px;max-width:1040px;margin:0 auto;padding:28px 24px 60px;align-items:start}
+@media(max-width:800px){.sf-body{grid-template-columns:1fr}}
+.sf-intro-row{display:contents}
+.sf-intro{grid-column:1}
+.sf-aside{grid-column:2;grid-row:1 / span 3;position:sticky;top:20px}
+.sf-products-wrap{grid-column:1;display:block}
+@media(max-width:800px){.sf-aside{grid-column:1;grid-row:auto;position:static}.sf-products-wrap{grid-column:1}}
 .sf-about{font-size:14px;color:var(--ink-soft);line-height:1.65;margin-bottom:16px}
 .sf-delivers{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--go-ink);background:var(--go-soft);padding:11px 14px;border-radius:12px;margin-bottom:24px}
 .sf-h2{font-size:18px;font-weight:700;margin:24px 0 14px}
@@ -310,7 +314,7 @@ onMounted(load)
 .sf-review{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:14px 16px}
 .sf-stars{display:flex;gap:2px;color:#F59E0B;margin-bottom:6px}
 .sf-rev-text{font-size:13px;color:var(--ink-soft);font-style:italic}
-.sf-aside{align-self:start}
+
 .sf-order-card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:24px;text-align:center;box-shadow:var(--shadow-sm)}
 .sf-trust{width:48px;height:48px;border-radius:12px;background:var(--go-soft);color:var(--go-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
 .sf-trust-h{font-weight:700;font-size:16px;margin-bottom:8px}
@@ -369,7 +373,7 @@ onMounted(load)
 
 /* storefront hero — proper header frame */
 .sf-hero{background:linear-gradient(160deg, color-mix(in srgb, var(--sf) 14%, var(--surface)), var(--surface));border-bottom:1px solid var(--hairline)}
-.sf-hero-inner{max-width:1080px;margin:0 auto;padding:20px 24px 26px}
+.sf-hero-inner{max-width:1040px;margin:0 auto;padding:24px 24px 30px}
 .sf-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-faint);text-decoration:none;margin-bottom:18px}
 .sf-back:hover{color:var(--accent-ink)}
 .sf-id{display:flex;align-items:center;gap:16px}
@@ -384,7 +388,7 @@ onMounted(load)
 .sf-rating svg{color:#E0A82E}
 .sf-rc{color:var(--ink-faint);font-weight:400}
 .sf-region{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-faint)}
-.sf-body{max-width:1080px;margin:0 auto;padding:26px 24px 60px}
+.sf-body{}
 .sf-h2{font-family:"Space Grotesk",sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:16px}
 
 .pv-escrow{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;background:linear-gradient(135deg,var(--accent-soft),var(--go-soft));border:1px solid var(--accent);border-radius:11px;margin-bottom:18px}
