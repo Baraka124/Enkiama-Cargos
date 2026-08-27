@@ -153,6 +153,25 @@ async function delProduct(id) {
   toast('Product removed', 'ok'); await load()
 }
 async function logout() { await signOut(); router.push('/login') }
+
+// #6 setup checklist — guide a shop to a complete, credible storefront
+const setupSteps = computed(() => {
+  const s = store.value
+  return [
+    { key:'create', label:'Create your storefront', done: !!s, hint:'Your public page on the marketplace' },
+    { key:'logo', label:'Add a logo', done: !!(s?.logo_url), hint:'Shops with a logo look more trustworthy' },
+    { key:'cover', label:'Add a cover image', done: !!(s?.cover_url), hint:'A banner across the top of your shop' },
+    { key:'about', label:'Write a short description', done: !!(s?.about && s.about.length > 10), hint:'Tell buyers who you are' },
+    { key:'carrier', label:'Choose a delivery carrier', done: !!selectedCarrier.value, hint:'Who transports your orders' },
+    { key:'products', label:'Add at least 3 products', done: products.value.length >= 3, hint:`${products.value.length}/3 added`, count: products.value.length },
+    { key:'photo', label:'Add photos to products', done: products.value.some(p => p.image_url || (p.images && p.images.length)), hint:'Products with photos sell far better' },
+    { key:'verify', label:'Apply for verification', done: verifState.value !== 'unverified', hint:'Earn the Verified badge' },
+  ]
+})
+const setupDone = computed(() => setupSteps.value.filter(s => s.done).length)
+const setupPct = computed(() => Math.round(100 * setupDone.value / setupSteps.value.length))
+const setupComplete = computed(() => setupDone.value === setupSteps.value.length)
+const showChecklist = ref(true)
 onMounted(async () => { await load(); await loadCarriers(); await loadSections(); await loadCategories(); await loadVerification(); selectedCarrier.value = store.value?.carrier_id })
 </script>
 
@@ -188,6 +207,27 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
       </div>
 
       <div class="psec-head"><div><h2 class="psec-title">{{ store ? 'Edit your storefront' : 'Open your storefront' }}</h2><span class="psec-sub">Your public page on the marketplace — products shipped with tracked delivery.</span></div></div>
+
+      <!-- #6 setup checklist -->
+      <div v-if="store && !setupComplete && showChecklist" class="setup-card">
+        <div class="setup-head">
+          <div>
+            <div class="setup-title">Finish setting up your shop</div>
+            <div class="setup-sub">{{ setupDone }} of {{ setupSteps.length }} done — complete these to build buyer trust</div>
+          </div>
+          <div class="setup-ring" :style="{'--p': setupPct}">{{ setupPct }}%</div>
+        </div>
+        <div class="setup-bar"><div class="setup-bar-fill" :style="{width: setupPct + '%'}"></div></div>
+        <div class="setup-steps">
+          <div v-for="st in setupSteps" :key="st.key" class="setup-step" :class="{done: st.done}">
+            <span class="setup-check"><Icon :name="st.done ? 'check' : 'plus'" :size="13" /></span>
+            <div class="setup-step-body"><span class="setup-step-label">{{ st.label }}</span><span class="setup-step-hint">{{ st.hint }}</span></div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="store && setupComplete" class="setup-done-banner">
+        <Icon name="check" :size="16" /> Your shop is fully set up — nicely done.
+      </div>
 
       <!-- #10 verified shop -->
       <div v-if="store" class="verif-card" :class="verifState">
