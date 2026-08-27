@@ -158,7 +158,7 @@ onMounted(load)
           <div v-for="(g,gi) in grouped" :key="gi" class="sf-section">
             <h3 v-if="g.name && g.name !== 'More'" class="sf-section-h">{{ g.name }}</h3>
             <div class="sf-products">
-              <button v-for="p in g.items" :key="p.id" class="sf-prod" :class="{soldout: p.available === false}" @click="p.available === false ? null : openOrder(p)">
+              <component :is="p.available === false ? 'div' : 'RouterLink'" v-for="p in g.items" :key="p.id" :to="p.available === false ? undefined : `/shop/${store.slug}/product/${p.id}`" class="sf-prod" :class="{soldout: p.available === false}">
                 <div class="sf-prod-img" :style="galleryImg(p) ? {backgroundImage:`url(${galleryImg(p)})`} : {background:`linear-gradient(135deg, ${store.accent||'#0B6E5D'}, ${store.accent||'#075446'}bb)`}">
                   <span v-if="!galleryImg(p)" class="sf-prod-ph">{{ p.name.slice(0,1) }}</span>
                   <span v-if="p.available === false" class="sf-prod-soldout">Sold out</span>
@@ -174,7 +174,7 @@ onMounted(load)
                     <span v-else class="sf-prod-cta">Order <Icon name="arrowRight" :size="13" /></span>
                   </div>
                 </div>
-              </button>
+              </component>
             </div>
           </div>
         </template>

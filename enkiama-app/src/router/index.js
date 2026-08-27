@@ -18,6 +18,7 @@ const routes = [
   { path: '/deliveries', name: 'deliveries', component: () => import('../views/ReceiverView.vue'), meta: { roles: ['receiver'] } },
   { path: '/market', name: 'market', component: () => import('../views/MarketplaceView.vue'), meta: { public: true } },
   { path: '/shop/:slug', name: 'shop', component: () => import('../views/StorefrontView.vue'), meta: { public: true } },
+  { path: '/shop/:slug/product/:id', name: 'product', component: () => import('../views/ProductDetailView.vue'), meta: { public: true } },
   { path: '/my-shop', name: 'my-shop', component: () => import('../views/StorefrontManageView.vue') },
   { path: '/reset', name: 'reset', component: () => import('../views/ResetView.vue'), meta: { public: true } },
   { path: '/account', name: 'account', component: () => import('../views/AccountView.vue') },
