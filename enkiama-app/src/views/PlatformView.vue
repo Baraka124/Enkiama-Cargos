@@ -51,6 +51,32 @@ const indepLoading = ref(false)
 // #2 dispute resolution
 const disputes = ref([])
 const REASONS = { not_delivered:'Never delivered', damaged:'Arrived damaged', wrong_item:'Wrong item', not_as_described:'Not as described', other:'Other issue' }
+
+// #10 shop verification
+const shopApps = ref([])
+async function loadShopVerifications() {
+  try { const { data } = await supabase.rpc('admin_shop_verifications'); shopApps.value = data?.shops || [] } catch (e) {}
+}
+async function reviewShop(id, decision) {
+  try {
+    const { data } = await supabase.rpc('admin_review_shop', { p_id: id, p_decision: decision })
+    if (data?.ok) { toast(decision==='verified' ? 'Shop verified' : 'Application rejected', 'ok'); await loadShopVerifications() }
+    else toast(data?.error || 'Could not review', 'warn')
+  } catch (e) { toast('Could not review', 'warn') }
+}
+
+// enforced category taxonomy management
+const cats = ref([])
+async function loadCategories() {
+  try { const { data } = await supabase.rpc('admin_list_categories'); cats.value = data?.categories || [] } catch (e) {}
+}
+function newCategory() { cats.value.unshift({ id: null, name: 'New category', sort: 100, active: true, product_count: 0 }) }
+async function saveCat(cat) {
+  try {
+    const { data } = await supabase.rpc('admin_save_category', { p_id: cat.id, p_name: cat.name, p_sort: cat.sort || 100, p_active: cat.active })
+    if (data?.ok) { if (!cat.id) await loadCategories() } else toast(data?.error || 'Could not save', 'warn')
+  } catch (e) { toast('Could not save', 'warn') }
+}
 function reasonLabel(r) { return REASONS[r] || r }
 async function loadDisputes() {
   try { const { data } = await supabase.rpc('admin_disputes'); disputes.value = data?.disputes || [] } catch (e) { disputes.value = [] }
@@ -425,6 +451,8 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
       <button class="ptab" :class="{on:ptab==='people'}" @click="ptab='people'"><Icon name="users" :size="15" /> People <span class="ptab-n">{{ people.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='property'}" @click="ptab='property'; loadPendingProps()"><Icon name="pin" :size="15" /> Property <span v-if="pendingProps.length" class="tb-count owed">{{ pendingProps.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='disputes'}" @click="ptab='disputes'; loadDisputes()"><Icon name="shield" :size="15" /> Disputes <span v-if="disputes.length" class="tb-count owed">{{ disputes.length }}</span></button>
+      <button class="ptab" :class="{on:ptab==='categories'}" @click="ptab='categories'; loadCategories()"><Icon name="menu" :size="15" /> Categories</button>
+      <button class="ptab" :class="{on:ptab==='shops'}" @click="ptab='shops'; loadShopVerifications()"><Icon name="building" :size="15" /> Shops <span v-if="shopApps.length" class="ptab-n owed">{{ shopApps.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='applications'}" @click="ptab='applications'"><Icon name="inbox" :size="15" /> Applications <span v-if="pendingApps.length" class="ptab-n owed">{{ pendingApps.length }}</span></button>
       <button class="ptab" :class="{on:ptab==='revenue'}" @click="ptab='revenue'"><Icon name="cash" :size="15" /> Revenue</button>
     </div>
@@ -582,6 +610,45 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
           <div class="ptable-carrier"><span class="ppl-ic" :class="p.kind"><Icon :name="p.kind==='driver'?'bike':'user'" :size="14" /></span> {{ p.name }}</div>
           <div class="p-sub">{{ p.role }}<span v-if="p.vehicle"> · {{ p.vehicle }}</span></div>
           <div class="p-sub">{{ p.carrier?.name || '—' }}</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ══ SHOP VERIFICATIONS TAB ══ -->
+    <template v-if="ptab==='shops'">
+      <div class="psec-head"><div><h2 class="psec-title">Shop verification</h2><span class="psec-sub">Shops applying for the Verified badge. Check their business details and track record.</span></div></div>
+      <EmptyState v-if="!shopApps.length" icon="check" title="No pending shop applications" hint="Shops applying for verification appear here." />
+      <div v-else class="pshop-list">
+        <div v-for="sh in shopApps" :key="sh.id" class="pshop-card">
+          <div class="pshop-top">
+            <div><b>{{ sh.name }}</b><span class="pshop-slug mono">/shop/{{ sh.slug }}</span></div>
+            <div class="pshop-nums">{{ sh.products }} products · {{ sh.delivered }} delivered</div>
+          </div>
+          <div class="pshop-details">
+            <div class="pshop-field"><span>Business name</span><b>{{ sh.business_name || '—' }}</b></div>
+            <div class="pshop-field"><span>Reg. number</span><b>{{ sh.business_reg || '—' }}</b></div>
+            <div class="pshop-field"><span>Owner phone</span><b>{{ sh.owner_phone || '—' }}</b></div>
+          </div>
+          <div class="pshop-actions">
+            <button class="btn btn-accent" @click="reviewShop(sh.id, 'verified')"><Icon name="shield" :size="14" /> Grant verified badge</button>
+            <button class="btn btn-ghost" @click="reviewShop(sh.id, 'rejected')">Reject</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ══ CATEGORIES TAB — the enforced marketplace taxonomy ══ -->
+    <template v-if="ptab==='categories'">
+      <div class="psec-head">
+        <div><h2 class="psec-title">Marketplace categories</h2><span class="psec-sub">The fixed taxonomy every shop must choose from. Shops organize their own storefront into free sections — but products are categorized here.</span></div>
+        <button class="btn btn-accent" @click="newCategory"><Icon name="plus" :size="15" /> Add category</button>
+      </div>
+      <div class="pcat-list">
+        <div v-for="cat in cats" :key="cat.id" class="pcat-row" :class="{off:!cat.active}">
+          <input v-model="cat.name" class="pcat-name" @blur="saveCat(cat)" />
+          <input v-model.number="cat.sort" type="number" class="pcat-sort" @blur="saveCat(cat)" title="Sort order" />
+          <span class="pcat-count">{{ cat.product_count }} product{{ cat.product_count===1?'':'s' }}</span>
+          <label class="pcat-active"><input type="checkbox" v-model="cat.active" @change="saveCat(cat)" /> Active</label>
         </div>
       </div>
     </template>

@@ -154,17 +154,19 @@ onMounted(load)
           <div v-for="(g,gi) in grouped" :key="gi" class="sf-section">
             <h3 v-if="g.name && g.name !== 'More'" class="sf-section-h">{{ g.name }}</h3>
             <div class="sf-products">
-              <button v-for="p in g.items" :key="p.id" class="sf-prod" @click="openOrder(p)">
+              <button v-for="p in g.items" :key="p.id" class="sf-prod" :class="{soldout: p.available === false}" @click="p.available === false ? null : openOrder(p)">
                 <div class="sf-prod-img" :style="galleryImg(p) ? {backgroundImage:`url(${galleryImg(p)})`} : {background:`linear-gradient(135deg, ${store.accent||'#0B6E5D'}, ${store.accent||'#075446'}bb)`}">
                   <span v-if="!galleryImg(p)" class="sf-prod-ph">{{ p.name.slice(0,1) }}</span>
-                  <span v-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-off">{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}% off</span>
+                  <span v-if="p.available === false" class="sf-prod-soldout">Sold out</span>
+                  <span v-else-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-off">{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}% off</span>
                 </div>
                 <div class="sf-prod-body">
                   <div class="sf-prod-name">{{ p.name }}</div>
                   <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
                   <div class="sf-prod-foot">
                     <div class="sf-prod-price">{{ tzs(p.price_tzs) }}<span v-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-was">{{ tzs(p.compare_at_tzs) }}</span></div>
-                    <span class="sf-prod-cta">Order <Icon name="arrowRight" :size="13" /></span>
+                    <span v-if="p.available === false" class="sf-prod-cta soldtxt">Unavailable</span>
+                    <span v-else class="sf-prod-cta">Order <Icon name="arrowRight" :size="13" /></span>
                   </div>
                 </div>
               </button>
@@ -384,4 +386,8 @@ onMounted(load)
 .pv-escrow svg{color:var(--accent-ink);flex-shrink:0;margin-top:1px}
 .pv-escrow b{display:block;font-size:13px;color:var(--accent-ink);margin-bottom:2px}
 .pv-escrow span{font-size:12px;line-height:1.5;color:var(--ink-soft)}
+
+.sf-prod.soldout{opacity:.65;cursor:default}
+.sf-prod.soldout .sf-prod-cta{visibility:hidden}
+.sf-prod-soldout{position:absolute;top:10px;left:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;text-transform:uppercase;letter-spacing:.03em}
 </style>

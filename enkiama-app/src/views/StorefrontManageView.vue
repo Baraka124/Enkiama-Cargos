@@ -29,6 +29,27 @@ const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_t
 const newProd = ref({ name:'', description:'', price_tzs:'', compare_at_tzs:'', delivery_included:false, delivery_fee_tzs:'', images:[], section_id:'', category:'' })
 const categories = ref([])
 async function loadCategories() { try { const { data } = await supabase.rpc('list_categories'); categories.value = data || [] } catch (e) {} }
+
+// #10 shop verification
+const showVerify = ref(false)
+const verifBusy = ref(false)
+const verifState = ref('unverified')  // unverified | pending | verified | rejected
+const verifNote = ref('')
+const verifForm = ref({ business_name: '', business_reg: '', owner_phone: '' })
+async function loadVerification() {
+  try { const { data } = await supabase.rpc('my_shop_verification'); if (data) { verifState.value = data.status || 'unverified'; verifNote.value = data.note || '' } } catch (e) {}
+}
+async function submitVerify() {
+  if (!verifForm.value.business_name || !verifForm.value.owner_phone) { toast('Business name and phone are required', 'warn'); return }
+  verifBusy.value = true
+  try {
+    const { data } = await supabase.rpc('apply_shop_verification', {
+      p_business_name: verifForm.value.business_name, p_business_reg: verifForm.value.business_reg || null, p_owner_phone: verifForm.value.owner_phone })
+    if (data?.ok) { showVerify.value = false; verifState.value = 'pending'; toast('Application submitted — we\'ll review it shortly', 'ok') }
+    else toast(data?.error || 'Could not submit', 'warn')
+  } catch (e) { toast('Could not submit', 'warn') }
+  verifBusy.value = false
+}
 const sections = ref([])
 const newSection = ref('')
 async function loadSections() {
@@ -94,6 +115,14 @@ async function saveStore() {
   } catch (e) { toast(e.message || 'Could not save', 'warn') }
   saving.value = false
 }
+async function toggleAvailable(p) {
+  const next = p.available === false
+  try {
+    const { data } = await supabase.rpc('set_product_available', { p_product_id: p.id, p_available: next })
+    if (data?.ok) { p.available = next; toast(next ? 'Marked in stock' : 'Marked sold out', 'ok') }
+  } catch (e) { toast('Could not update', 'warn') }
+}
+
 async function addProduct() {
   if (!newProd.value.name) { toast('Product name required', 'warn'); return }
   if (!store.value) { toast('Save your storefront first', 'warn'); return }
@@ -124,7 +153,7 @@ async function delProduct(id) {
   toast('Product removed', 'ok'); await load()
 }
 async function logout() { await signOut(); router.push('/login') }
-onMounted(async () => { await load(); await loadCarriers(); await loadSections(); await loadCategories(); selectedCarrier.value = store.value?.carrier_id })
+onMounted(async () => { await load(); await loadCarriers(); await loadSections(); await loadCategories(); await loadVerification(); selectedCarrier.value = store.value?.carrier_id })
 </script>
 
 <template>
@@ -159,6 +188,27 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
       </div>
 
       <div class="psec-head"><div><h2 class="psec-title">{{ store ? 'Edit your storefront' : 'Open your storefront' }}</h2><span class="psec-sub">Your public page on the marketplace — products shipped with tracked delivery.</span></div></div>
+
+      <!-- #10 verified shop -->
+      <div v-if="store" class="verif-card" :class="verifState">
+        <div class="verif-ic"><Icon :name="verifState==='verified' ? 'shield' : verifState==='pending' ? 'clock' : 'shield'" :size="20" /></div>
+        <div class="verif-body">
+          <template v-if="verifState==='verified'">
+            <b>Verified shop</b><span>Buyers see the Verified badge on your storefront — a strong trust signal.</span>
+          </template>
+          <template v-else-if="verifState==='pending'">
+            <b>Verification under review</b><span>We're reviewing your business details. You'll get the Verified badge once approved.</span>
+          </template>
+          <template v-else-if="verifState==='rejected'">
+            <b>Verification not approved</b><span>{{ verifNote || 'Please check your details and apply again.' }}</span>
+            <button class="btn btn-accent verif-btn" @click="showVerify=true">Apply again</button>
+          </template>
+          <template v-else>
+            <b>Become a verified shop</b><span>Verified shops earn a trust badge that makes buyers far more likely to order. Apply with your business details.</span>
+            <button class="btn btn-accent verif-btn" @click="showVerify=true"><Icon name="shield" :size="14" /> Apply for verification</button>
+          </template>
+        </div>
+      </div>
 
       <div class="mgr-card">
         <div class="form-section-h"><Icon name="box" :size="13" /> Shop details</div>
@@ -215,9 +265,12 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
           <div class="form-section-h"><Icon name="package" :size="13" /> Products</div>
           <EmptyState v-if="!products.length" icon="package" title="No products yet" hint="Add your first product below." />
           <div v-else class="mgr-prods">
-            <div v-for="p in products" :key="p.id" class="mgr-prod">
-              <div style="flex:1"><div class="mgr-prod-name">{{ p.name }}</div><div v-if="p.description" class="p-sub">{{ p.description }}</div></div>
+            <div v-for="p in products" :key="p.id" class="mgr-prod" :class="{soldout: p.available === false}">
+              <div style="flex:1"><div class="mgr-prod-name">{{ p.name }}<span v-if="p.available === false" class="mgr-soldout">Sold out</span></div><div v-if="p.description" class="p-sub">{{ p.description }}</div></div>
               <div class="mgr-prod-price">{{ p.price_tzs ? 'TZS '+p.price_tzs.toLocaleString() : '—' }}</div>
+              <button class="mgr-stock" :class="{on: p.available !== false}" @click="toggleAvailable(p)" :title="p.available === false ? 'Mark in stock' : 'Mark sold out'">
+                {{ p.available === false ? 'Sold out' : 'In stock' }}
+              </button>
               <button aria-label="Close" class="btn btn-ghost" @click="delProduct(p.id)"><Icon name="plus" :size="14" style="transform:rotate(45deg)" /></button>
             </div>
           </div>
@@ -261,6 +314,21 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         </div>
       </template>
     </template>
+
+    <!-- verification apply modal -->
+    <div v-if="showVerify" class="overlay" @click.self="showVerify=false">
+      <div class="modal" style="max-width:440px">
+        <h3>Apply for verification</h3>
+        <p>Verified shops earn a trust badge buyers look for. Tell us about your business — our team reviews each application.</p>
+        <div class="fg"><label>Registered business name</label><input v-model="verifForm.business_name" placeholder="e.g. Amina Fabrics Ltd" /></div>
+        <div class="fg"><label>Business registration no. <span class="fld-opt">optional</span></label><input v-model="verifForm.business_reg" placeholder="BRELA / TIN number" /></div>
+        <div class="fg"><label>Owner phone</label><input v-model="verifForm.owner_phone" placeholder="+255…" /></div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" @click="showVerify=false">Cancel</button>
+          <button class="btn btn-accent" :disabled="verifBusy" @click="submitVerify"><Spinner v-if="verifBusy" :size="15" /><span v-else>Submit application</span></button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
