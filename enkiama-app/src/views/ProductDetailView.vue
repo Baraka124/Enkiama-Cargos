@@ -45,14 +45,22 @@ const showOrder = ref(false)
 const form = ref({ name: '', phone: '', addr: '', qty: 1 })
 const ordering = ref(false)
 const orderCode = ref('')
+const productOptions = computed(() => Array.isArray(p.value.options) ? p.value.options.filter(o => o?.name && o?.choices?.length) : [])
+const selectedOpts = ref({})
+const variantString = computed(() => productOptions.value.map(o => selectedOpts.value[o.name] ? `${o.name}: ${selectedOpts.value[o.name]}` : null).filter(Boolean).join(', '))
 async function placeOrder() {
   if (!form.value.name || !form.value.phone || !form.value.addr) { toast('Fill in your name, phone and address', 'warn'); return }
+  // require a choice for each option group
+  for (const o of productOptions.value) {
+    if (!selectedOpts.value[o.name]) { toast(`Please choose ${o.name.toLowerCase()}`, 'warn'); return }
+  }
   ordering.value = true
   try {
-    const { data: code, error } = await supabase.rpc('place_order', {
+    const { data: code, error } = await supabase.rpc('place_order_v2', {
       p_store_slug: route.params.slug, p_product_id: p.value.id,
       p_buyer_name: form.value.name, p_buyer_phone: form.value.phone,
-      p_buyer_addr: form.value.addr, p_qty: Number(form.value.qty) || 1 })
+      p_buyer_addr: form.value.addr, p_qty: Number(form.value.qty) || 1,
+      p_variant: variantString.value || null })
     if (error) throw error
     orderCode.value = code
     if (p.value.track_stock) { try { await supabase.rpc('decrement_stock', { p_product_id: p.value.id, p_qty: Number(form.value.qty) || 1 }) } catch (e) {} }
@@ -100,6 +108,11 @@ onMounted(load)
           </div>
           <p v-if="p.description" class="pd-desc">{{ p.description }}</p>
 
+          <div v-for="(opt,oi) in productOptions" :key="oi" class="pd-opt-preview">
+            <span class="pd-opt-label">{{ opt.name }}:</span>
+            <span v-for="ch in opt.choices" :key="ch" class="pd-opt-chip">{{ ch }}</span>
+          </div>
+
           <RouterLink :to="`/shop/${shop.slug}`" class="pd-shop">
             <Avatar :name="shop.name" :size="38" />
             <div class="pd-shop-id">
@@ -140,6 +153,12 @@ onMounted(load)
         <template v-if="!orderCode">
           <h3>Order {{ p.name }}</h3>
           <p>Pay {{ tzs(p.price_tzs * (Number(form.qty)||1)) }} on delivery. {{ shop.name }} ships it tracked via Enkiama.</p>
+          <div v-for="(opt,oi) in productOptions" :key="oi" class="fg">
+            <label>{{ opt.name }}</label>
+            <div class="pd-opts">
+              <button v-for="ch in opt.choices" :key="ch" type="button" class="pd-opt" :class="{on: selectedOpts[opt.name] === ch}" @click="selectedOpts[opt.name] = ch">{{ ch }}</button>
+            </div>
+          </div>
           <div class="fg"><label>Your name</label><input v-model="form.name" placeholder="Full name" /></div>
           <div class="row2">
             <div class="fg"><label>Phone</label><input v-model="form.phone" placeholder="+255…" /></div>
@@ -215,4 +234,12 @@ onMounted(load)
 
 .pd-success{text-align:center;padding:10px}
 .pd-success-ic{width:56px;height:56px;border-radius:50%;background:var(--go-soft);color:var(--go-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+
+.pd-opt-preview{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pd-opt-label{font-size:13px;font-weight:650;color:var(--ink)}
+.pd-opt-chip{font-size:12.5px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);padding:4px 11px;border-radius:999px;border:1px solid var(--hairline)}
+.pd-opts{display:flex;gap:8px;flex-wrap:wrap}
+.pd-opt{font-size:13.5px;font-weight:600;padding:8px 16px;border-radius:10px;border:1.5px solid var(--hairline-2);background:var(--surface);color:var(--ink-soft);cursor:pointer;font-family:inherit;transition:.15s}
+.pd-opt:hover{border-color:var(--accent)}
+.pd-opt.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
 </style>

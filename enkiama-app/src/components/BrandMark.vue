@@ -8,9 +8,13 @@ import { computed, ref } from 'vue'
 const props = defineProps({
   variant: { type: String, default: 'mark' },   // mark | full
   height: { type: [Number, String], default: 34 },
+  light: { type: Boolean, default: false },      // use the light logo for dark headers
 })
 const base = (import.meta.env.BASE_URL || '/')
-const src = computed(() => base + (props.variant === 'full' ? 'logo-transparent.png' : 'logo-mark.png'))
+const src = computed(() => {
+  const stem = props.variant === 'full' ? 'logo-transparent' : 'logo-mark'
+  return base + stem + (props.light ? '-light' : '') + '.png'
+})
 const failed = ref(false)
 const h = computed(() => (typeof props.height === 'number' ? props.height + 'px' : props.height))
 </script>

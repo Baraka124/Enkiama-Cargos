@@ -13,6 +13,20 @@ const products = ref([])
 const categories = ref([])
 const view = ref('products')   // products | shops — products is the marketplace default
 const activeCategory = ref('')
+const sortBy = ref('relevant')
+const filterVerified = ref(false)
+const filterInStock = ref(false)
+const filterDeal = ref(false)
+const displayProducts = computed(() => {
+  let list = [...products.value]
+  if (filterVerified.value) list = list.filter(p => p.verified_delivery || p.shop_verified)
+  if (filterInStock.value) list = list.filter(p => p.available !== false)
+  if (filterDeal.value) list = list.filter(p => p.compare_at_tzs && p.compare_at_tzs > p.price_tzs)
+  if (sortBy.value === 'price_low') list.sort((a,b) => (a.price_tzs||0) - (b.price_tzs||0))
+  else if (sortBy.value === 'price_high') list.sort((a,b) => (b.price_tzs||0) - (a.price_tzs||0))
+  else if (sortBy.value === 'newest') list.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0))
+  return list
+})
 const loading = ref(true)
 const pub = usePublic()
 const { session } = useAuth()
@@ -40,7 +54,7 @@ function brokenImg(e) { if (e && e.target) e.target.style.display = 'none' }
 const groupedProducts = computed(() => {
   if (activeCategory.value) return null  // focused on one category → flat grid
   const groups = {}
-  for (const p of products.value) {
+  for (const p of displayProducts.value) {
     const cat = p.category || 'Other'
     if (!groups[cat]) groups[cat] = []
     groups[cat].push(p)
@@ -86,7 +100,7 @@ onMounted(() => { load(); loadCategories() })
     <div class="mk-dark">
       <div class="mk-dark-inner">
         <header class="mk-nav">
-          <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="32" /></RouterLink>
+          <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="32" light /></RouterLink>
           <div class="mk-navsearch">
             <input v-model="search" @input="onSearch" placeholder="Search shops or products across Tanzania…" aria-label="Search" />
             <button class="mk-navsearch-btn" @click="onSearch"><Icon name="search" :size="18" /></button>
@@ -143,14 +157,32 @@ onMounted(() => { load(); loadCategories() })
         </button>
       </div>
 
+      <!-- sort + filter bar -->
+      <div class="mk-toolbar">
+        <div class="mk-filters">
+          <button class="mk-fchip" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><Icon name="shield" :size="13" /> Verified shops</button>
+          <button class="mk-fchip" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><Icon name="check" :size="13" /> In stock</button>
+          <button class="mk-fchip" :class="{on:filterDeal}" @click="filterDeal=!filterDeal"><Icon name="star" :size="13" /> On offer</button>
+        </div>
+        <div class="mk-sort">
+          <label>Sort</label>
+          <select v-model="sortBy">
+            <option value="relevant">Most relevant</option>
+            <option value="price_low">Price: low to high</option>
+            <option value="price_high">Price: high to low</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
+      </div>
+
       <div v-if="loading" class="mk-pgrid">
         <div v-for="i in 8" :key="i" class="mk-pcard sk"></div>
       </div>
-      <EmptyState v-else-if="!products.length" icon="package" title="No products found" hint="Try a different search or category." />
+      <EmptyState v-else-if="!displayProducts.length" icon="package" title="No products found" hint="Try a different search, category, or filter." />
 
       <!-- FOCUSED: one category → flat grid -->
       <div v-else-if="activeCategory" class="mk-pgrid">
-        <RouterLink v-for="p in products" :key="p.id" :to="`/shop/${p.shop_slug}`" class="mk-pcard">
+        <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
           <div class="mk-pimg" :style="{background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')}cc)`}">
             <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event)" />
             <span class="mk-pimg-ph">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
@@ -177,7 +209,7 @@ onMounted(() => { load(); loadCategories() })
             <button class="mk-section-more" @click="setCategory(g.category)">See all {{ g.items.length }} <Icon name="arrowRight" :size="13" /></button>
           </div>
           <div class="mk-prow">
-            <RouterLink v-for="p in g.items.slice(0,6)" :key="p.id" :to="`/shop/${p.shop_slug}`" class="mk-pcard">
+            <RouterLink v-for="p in g.items.slice(0,6)" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
               <div class="mk-pimg" :style="{background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')}cc)`}">
                 <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event)" />
                 <span class="mk-pimg-ph">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
@@ -250,7 +282,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
 .mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
-.mk-logo{display:flex;align-items:center;padding:6px 10px;background:rgba(255,255,255,.08);border-radius:10px;flex-shrink:0}
+.mk-logo{display:flex;align-items:center;flex-shrink:0}
 .mk-hero{text-align:center;padding:36px 0 30px}
 .mk-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,6vw,46px);font-weight:700;letter-spacing:-.03em;margin-bottom:14px;color:#fff}
 /* grad */

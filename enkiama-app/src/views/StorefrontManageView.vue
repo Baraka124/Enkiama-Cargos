@@ -133,6 +133,33 @@ async function saveStock(p, track, qty) {
   } catch (e) { toast('Could not update', 'warn') }
 }
 
+// product variants / options
+const optProduct = ref(null)
+const optDraft = ref([])
+const optBusy = ref(false)
+function openOptions(p) {
+  optProduct.value = p
+  optDraft.value = (Array.isArray(p.options) ? p.options : []).map(o => ({ name: o.name, choices: [...(o.choices||[])], newChoice: '' }))
+  if (!optDraft.value.length) optDraft.value = [{ name: '', choices: [], newChoice: '' }]
+}
+function addChoice(opt) {
+  const v = (opt.newChoice || '').trim()
+  if (v && !opt.choices.includes(v)) opt.choices.push(v)
+  opt.newChoice = ''
+}
+async function saveOptions() {
+  optBusy.value = true
+  const clean = optDraft.value
+    .filter(o => o.name?.trim() && o.choices.length)
+    .map(o => ({ name: o.name.trim(), choices: o.choices }))
+  try {
+    const { data } = await supabase.rpc('set_product_options', { p_product_id: optProduct.value.id, p_options: clean })
+    if (data?.ok) { optProduct.value.options = clean; toast('Options saved', 'ok'); optProduct.value = null }
+    else toast(data?.error || 'Could not save', 'warn')
+  } catch (e) { toast('Could not save', 'warn') }
+  optBusy.value = false
+}
+
 async function addProduct() {
   if (!newProd.value.name) { toast('Product name required', 'warn'); return }
   if (!store.value) { toast('Save your storefront first', 'warn'); return }
@@ -319,8 +346,10 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
               <div style="flex:1">
                 <div class="mgr-prod-name">{{ p.name }}<span v-if="p.available === false" class="mgr-soldout">Sold out</span><span v-else-if="p.track_stock && p.stock_qty <= 3" class="mgr-low">Only {{ p.stock_qty }} left</span></div>
                 <div v-if="p.description" class="p-sub">{{ p.description }}</div>
+                <div v-if="p.options && p.options.length" class="mgr-opts-line">{{ p.options.map(o => o.name + ' (' + o.choices.length + ')').join(' · ') }}</div>
               </div>
               <div class="mgr-prod-price">{{ p.price_tzs ? 'TZS '+p.price_tzs.toLocaleString() : '—' }}</div>
+              <button class="mgr-opt-btn" @click="openOptions(p)" title="Sizes, colours, variants"><Icon name="swap" :size="13" /> Options</button>
               <div class="mgr-stockbox">
                 <template v-if="p.track_stock">
                   <input type="number" min="0" class="mgr-qty" :value="p.stock_qty" @change="e => saveStock(p, true, +e.target.value)" title="Units in stock" />
@@ -374,6 +403,29 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         </div>
       </template>
     </template>
+
+    <!-- product options editor -->
+    <div v-if="optProduct" class="overlay" @click.self="optProduct=null">
+      <div class="modal" style="max-width:480px">
+        <h3>Options for {{ optProduct.name }}</h3>
+        <p>Add choices like size or colour. Buyers pick one when ordering — perfect for clothing, fabric, and anything with variants.</p>
+        <div v-for="(opt,oi) in optDraft" :key="oi" class="opt-group">
+          <div class="opt-group-head">
+            <input v-model="opt.name" class="opt-name-in" placeholder="e.g. Size" />
+            <button class="opt-del" @click="optDraft.splice(oi,1)"><Icon name="plus" :size="13" style="transform:rotate(45deg)" /></button>
+          </div>
+          <div class="opt-choices">
+            <span v-for="(ch,ci) in opt.choices" :key="ci" class="opt-choice">{{ ch }}<button @click="opt.choices.splice(ci,1)">×</button></span>
+            <input v-model="opt.newChoice" class="opt-choice-in" placeholder="Add choice + Enter" @keydown.enter.prevent="addChoice(opt)" />
+          </div>
+        </div>
+        <button class="btn btn-ghost opt-add-group" @click="optDraft.push({name:'',choices:[],newChoice:''})"><Icon name="plus" :size="14" /> Add an option group</button>
+        <div class="form-actions">
+          <button class="btn btn-ghost" @click="optProduct=null">Cancel</button>
+          <button class="btn btn-accent" :disabled="optBusy" @click="saveOptions"><Spinner v-if="optBusy" :size="15" /><span v-else>Save options</span></button>
+        </div>
+      </div>
+    </div>
 
     <!-- verification apply modal -->
     <div v-if="showVerify" class="overlay" @click.self="showVerify=false">
