@@ -122,6 +122,16 @@ async function toggleAvailable(p) {
     if (data?.ok) { p.available = next; toast(next ? 'Marked in stock' : 'Marked sold out', 'ok') }
   } catch (e) { toast('Could not update', 'warn') }
 }
+async function saveStock(p, track, qty) {
+  try {
+    const { data } = await supabase.rpc('set_product_stock', { p_product_id: p.id, p_track: track, p_qty: track ? (qty ?? p.stock_qty ?? 0) : null })
+    if (data?.ok) {
+      p.track_stock = track
+      if (track) { p.stock_qty = qty ?? p.stock_qty ?? 0; p.available = p.stock_qty > 0 }
+      toast(track ? 'Stock count on' : 'Back to simple in-stock', 'ok')
+    }
+  } catch (e) { toast('Could not update', 'warn') }
+}
 
 async function addProduct() {
   if (!newProd.value.name) { toast('Product name required', 'warn'); return }
@@ -306,11 +316,21 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
           <EmptyState v-if="!products.length" icon="package" title="No products yet" hint="Add your first product below." />
           <div v-else class="mgr-prods">
             <div v-for="p in products" :key="p.id" class="mgr-prod" :class="{soldout: p.available === false}">
-              <div style="flex:1"><div class="mgr-prod-name">{{ p.name }}<span v-if="p.available === false" class="mgr-soldout">Sold out</span></div><div v-if="p.description" class="p-sub">{{ p.description }}</div></div>
+              <div style="flex:1">
+                <div class="mgr-prod-name">{{ p.name }}<span v-if="p.available === false" class="mgr-soldout">Sold out</span><span v-else-if="p.track_stock && p.stock_qty <= 3" class="mgr-low">Only {{ p.stock_qty }} left</span></div>
+                <div v-if="p.description" class="p-sub">{{ p.description }}</div>
+              </div>
               <div class="mgr-prod-price">{{ p.price_tzs ? 'TZS '+p.price_tzs.toLocaleString() : '—' }}</div>
-              <button class="mgr-stock" :class="{on: p.available !== false}" @click="toggleAvailable(p)" :title="p.available === false ? 'Mark in stock' : 'Mark sold out'">
-                {{ p.available === false ? 'Sold out' : 'In stock' }}
-              </button>
+              <div class="mgr-stockbox">
+                <template v-if="p.track_stock">
+                  <input type="number" min="0" class="mgr-qty" :value="p.stock_qty" @change="e => saveStock(p, true, +e.target.value)" title="Units in stock" />
+                  <button class="mgr-stock-off" @click="saveStock(p, false)" title="Stop counting stock">×</button>
+                </template>
+                <template v-else>
+                  <button class="mgr-stock" :class="{on: p.available !== false}" @click="toggleAvailable(p)" :title="p.available === false ? 'Mark in stock' : 'Mark sold out'">{{ p.available === false ? 'Sold out' : 'In stock' }}</button>
+                  <button class="mgr-track-btn" @click="saveStock(p, true, 10)" title="Track exact quantity">Count stock</button>
+                </template>
+              </div>
               <button aria-label="Close" class="btn btn-ghost" @click="delProduct(p.id)"><Icon name="plus" :size="14" style="transform:rotate(45deg)" /></button>
             </div>
           </div>

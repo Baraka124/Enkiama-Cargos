@@ -99,6 +99,10 @@ async function placeOrder() {
     })
     if (error) throw error
     orderCode.value = code
+    // decrement stock if this product tracks quantity
+    if (orderProduct.value.track_stock) {
+      try { await supabase.rpc('decrement_stock', { p_product_id: orderProduct.value.id, p_qty: Number(orderForm.value.qty) || 1 }) } catch (e) {}
+    }
   } catch (e) { alert(e.message || 'Could not place order') }
   ordering.value = false
 }
@@ -158,6 +162,7 @@ onMounted(load)
                 <div class="sf-prod-img" :style="galleryImg(p) ? {backgroundImage:`url(${galleryImg(p)})`} : {background:`linear-gradient(135deg, ${store.accent||'#0B6E5D'}, ${store.accent||'#075446'}bb)`}">
                   <span v-if="!galleryImg(p)" class="sf-prod-ph">{{ p.name.slice(0,1) }}</span>
                   <span v-if="p.available === false" class="sf-prod-soldout">Sold out</span>
+                  <span v-else-if="p.track_stock && p.stock_qty <= 5 && p.stock_qty > 0" class="sf-prod-low">Only {{ p.stock_qty }} left</span>
                   <span v-else-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-off">{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}% off</span>
                 </div>
                 <div class="sf-prod-body">
@@ -390,4 +395,6 @@ onMounted(load)
 .sf-prod.soldout{opacity:.65;cursor:default}
 .sf-prod.soldout .sf-prod-cta{visibility:hidden}
 .sf-prod-soldout{position:absolute;top:10px;left:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;text-transform:uppercase;letter-spacing:.03em}
+
+.sf-prod-low{position:absolute;top:10px;left:10px;background:var(--warn);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;letter-spacing:.02em}
 </style>
