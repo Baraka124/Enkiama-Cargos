@@ -12,7 +12,7 @@ const router = useRouter()
   <!-- top bar: brand + demoted sign-in -->
   <header class="ld-nav">
     <div class="ld-nav-in">
-      <BrandMark variant="full" :height="30" />
+      <BrandMark variant="full" :height="30" light />
       <div class="ld-nav-r">
         <RouterLink to="/market" class="ld-nav-link">Marketplace</RouterLink>
         <RouterLink to="/track" class="ld-nav-link">Track a parcel</RouterLink>

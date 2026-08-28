@@ -58,7 +58,8 @@ const events = ref([])
 function stageTime(s) {
   const e = events.value.find(ev => ev.stage === s)
   if (!e) return ''
-  const d = new Date(e.at)
+  const d = new Date(e.at || e.created_at)
+  if (isNaN(d)) return ''
   return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
 }
 // #15 trust depth — who performed each step (the verifiable "one truth")
@@ -247,7 +248,7 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
             <div v-for="(s,i) in STAGE_ORDER" :key="s" class="tl-row" :class="{done:stageOn(s,i), current:parcel.stage===s}">
               <div class="tl-marker">
                 <div class="tl-node"><Icon v-if="stageOn(s,i)" name="check" :size="11" /></div>
-                <div v-if="i < STAGE_ORDER.length-1" class="tl-line" :class="{filled:stageOn(STAGE_ORDER[i+1], i+1)}"></div>
+                <div v-if="i < STAGE_ORDER.length-1" class="tl-line" :class="{filled:stageOn(STAGE_ORDER[i+1], i+1), active: parcel.stage===STAGE_ORDER[i+1]}"></div>
               </div>
               <div class="tl-body">
                 <div class="tl-stage">{{ STAGE_CAP[s] }}<span v-if="parcel.stage===s" class="tl-live"><span class="tl-live-dot"></span>now</span></div>
@@ -458,13 +459,25 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
 
 /* ═══ TRUST-LEDGER TIMELINE — the beautiful vertical journey ═══ */
 .tl{display:flex;flex-direction:column;margin-top:6px}
-.tl-row{display:flex;gap:14px;min-height:52px}
+.tl-row{display:flex;gap:16px;min-height:56px}
 .tl-marker{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
-.tl-node{width:26px;height:26px;border-radius:50%;background:var(--surface-3);border:2px solid var(--hairline-2);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:all .3s ease;z-index:1}
-.tl-line{width:2px;flex:1;background:var(--hairline-2);margin:2px 0;transition:background .4s ease}
-.tl-line.filled{background:var(--go)}
-.tl-row.done .tl-node{background:var(--go);border-color:var(--go)}
-.tl-row.current .tl-node{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px var(--accent-soft);animation:tlPulse 2s ease-in-out infinite}
+.tl-node{width:28px;height:28px;border-radius:50%;background:var(--surface-3);border:2px solid var(--hairline-2);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);z-index:1;position:relative}
+.tl-line{width:2.5px;flex:1;background:var(--hairline-2);margin:2px 0;border-radius:2px;position:relative;overflow:hidden;transition:background .5s ease}
+.tl-line.filled{background:linear-gradient(180deg,var(--go),var(--accent))}
+.tl-row.done .tl-node{background:linear-gradient(135deg,var(--go),#0FA968);border-color:transparent;box-shadow:0 2px 6px rgba(15,157,88,.3)}
+.tl-row.current .tl-node{background:linear-gradient(135deg,var(--accent),#12B886);border-color:transparent;box-shadow:0 0 0 5px var(--accent-soft),0 3px 10px rgba(11,110,93,.35)}
+.tl-row.current .tl-node::before{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--accent);animation:tlRadiate 1.8s ease-out infinite}
+.tl-row.current .tl-node::after{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--accent);animation:tlRadiate 1.8s ease-out infinite .9s}
+@keyframes tlRadiate{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.1);opacity:0}}
+/* the in-progress line to the current stage gets a traveling shimmer */
+.tl-row.current .tl-line, .tl-line.active{background:var(--hairline-2)}
+.tl-line.active::after{content:'';position:absolute;left:0;right:0;height:40%;background:linear-gradient(180deg,transparent,var(--accent),transparent);animation:tlTravel 1.6s ease-in-out infinite}
+@keyframes tlTravel{0%{top:-40%}100%{top:100%}}
+.tl-stage{font-size:14px;font-weight:600;color:var(--ink-faint);display:flex;align-items:center;gap:8px;transition:color .3s ease}
+.tl-row.done .tl-stage{color:var(--ink)}
+.tl-row.current .tl-stage{color:var(--accent-ink);font-weight:700;font-size:15px}
+.tl-live{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:999px}
+.tl-live-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:tlPulse2 1.4s ease-in-out infinite}
 @keyframes tlPulse{0%,100%{box-shadow:0 0 0 5px var(--accent-soft)}50%{box-shadow:0 0 0 9px transparent}}
 .tl-body{padding-bottom:18px;padding-top:2px}
 .tl-stage{font-weight:650;font-size:14px;color:var(--ink-faint);display:flex;align-items:center;gap:8px}
