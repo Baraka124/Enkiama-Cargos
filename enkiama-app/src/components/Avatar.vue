@@ -2,18 +2,17 @@
 import { computed } from 'vue'
 const props = defineProps({
   name: { type: String, default: '' },
-  size: { type: String, default: '' } // '', 'sm', 'lg'
+  size: { type: [String, Number], default: '' }
 })
-// deterministic hue from the name → each person keeps their own colour
 const palette = [
-  ['#0E8873', '#0B6E5D'], // teal (brand)
-  ['#C2603A', '#A84A28'], // terracotta
-  ['#3E6DB0', '#2E5488'], // steel blue
-  ['#B58A3C', '#946B25'], // ochre
-  ['#7A5AA8', '#5E4287'], // plum
-  ['#4A8C6A', '#357050'], // sage
-  ['#C24D6B', '#9E3450'], // rose
-  ['#5B8C8C', '#3F6E6E'], // slate teal
+  ['#12A585', '#0B6E5D'],
+  ['#C2603A', '#9E4A28'],
+  ['#3E6DB0', '#2A4E82'],
+  ['#C79A3E', '#946B25'],
+  ['#4A8C6A', '#2F6048'],
+  ['#4F9B9B', '#356E6E'],
+  ['#B5544A', '#8E362E'],
+  ['#6E8B3D', '#516A28'],
 ]
 const initials = computed(() => {
   const parts = (props.name || '').trim().split(/\s+/).filter(Boolean)
@@ -21,14 +20,42 @@ const initials = computed(() => {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 })
-const grad = computed(() => {
+const style = computed(() => {
   const s = props.name || ''
   let h = 0
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
   const [a, b] = palette[h % palette.length]
-  return { '--av-1': a, '--av-2': b }
+  const out = { '--av-1': a, '--av-2': b }
+  if (typeof props.size === 'number' || /^\d+$/.test(props.size)) {
+    const px = Number(props.size)
+    out.width = px + 'px'; out.height = px + 'px'
+    out.fontSize = Math.round(px * 0.4) + 'px'; out.borderRadius = Math.round(px * 0.3) + 'px'
+  }
+  return out
 })
+const sizeClass = computed(() => (typeof props.size === 'string' && !/^\d+$/.test(props.size)) ? props.size : '')
 </script>
 <template>
-  <div class="avatar" :class="size" :style="grad">{{ initials }}</div>
+  <div class="avatar" :class="sizeClass" :style="style">
+    <span class="avatar-txt">{{ initials }}</span>
+  </div>
 </template>
+
+<style scoped>
+.avatar{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;letter-spacing:-.02em;
+  color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(140deg, var(--av-1), var(--av-2));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 6px rgba(0,0,0,.16), 0 1px 3px rgba(20,24,31,.18);
+}
+.avatar::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:55%;
+  background:linear-gradient(180deg, rgba(255,255,255,.16), transparent);
+  pointer-events:none;
+}
+.avatar-txt{position:relative;z-index:1;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+.avatar.sm{width:30px;height:30px;font-size:12px;border-radius:9px}
+.avatar.lg{width:56px;height:56px;font-size:21px;border-radius:16px}
+</style>

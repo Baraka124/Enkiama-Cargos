@@ -190,7 +190,7 @@ onMounted(() => { load(); loadCategories() })
         <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
           <div class="mk-pimg" :style="{background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')}cc)`}">
             <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event)" />
-            <span class="mk-pimg-ph">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
+            <div class="mk-pimg-ph"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
             <span v-if="pctOff(p)" class="mk-poff">{{ pctOff(p) }}% off</span>
           </div>
           <div class="mk-pbody">
@@ -217,7 +217,7 @@ onMounted(() => { load(); loadCategories() })
             <RouterLink v-for="p in g.items.slice(0,6)" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
               <div class="mk-pimg" :style="{background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')}cc)`}">
                 <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event)" />
-                <span class="mk-pimg-ph">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
+                <div class="mk-pimg-ph"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
                 <span v-if="pctOff(p)" class="mk-poff">{{ pctOff(p) }}% off</span>
               </div>
               <div class="mk-pbody">
@@ -286,6 +286,7 @@ onMounted(() => { load(); loadCategories() })
   background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 75%)}
 .mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
 .mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
+.mk-toolbar{max-width:1000px;margin:-32px auto 20px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;box-shadow:0 8px 28px rgba(20,24,31,.10),0 2px 6px rgba(20,24,31,.05);position:relative;z-index:5}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
 .mk-logo{display:flex;align-items:center;flex-shrink:0}
 .mk-hero{text-align:center;padding:36px 0 30px}
@@ -338,7 +339,6 @@ onMounted(() => { load(); loadCategories() })
 .mk-search-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ink-faint);pointer-events:none}
 .mk-searchbar input{width:100%;padding:14px 16px 14px 46px;border:1px solid var(--hairline-2);border-radius:var(--r-full);font-size:var(--t-base);background:var(--surface);box-shadow:var(--shadow-sm)}
 .mk-searchbar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.mk-toolbar{max-width:1000px;margin:26px auto 14px;padding:0 4px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .mk-count{font-size:var(--t-sm);color:var(--ink-faint);font-weight:550}
 .mk-sort{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
 .mk-sort-b{padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:550;transition:all var(--dur-fast) var(--ease)}
@@ -359,7 +359,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-pcard.sk{height:280px;background:var(--surface-2);animation:pulse 1.5s ease-in-out infinite}
 .mk-pimg{position:relative;height:180px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .mk-pimg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(20,24,31,.12));pointer-events:none}
-.mk-pimg-ph{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:rgba(255,255,255,.7)}
+
 .mk-pbody{padding:15px 16px 16px;display:flex;flex-direction:column;gap:5px;flex:1}
 .mk-pname{font-family:"Space Grotesk",sans-serif;font-weight:650;font-size:15px;letter-spacing:-.01em;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mk-pshop{display:flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--ink-faint)}
@@ -399,7 +399,8 @@ onMounted(() => { load(); loadCategories() })
 .mk-cat.on .mk-cat-n{opacity:.8}
 .mk-sections{display:flex;flex-direction:column;gap:36px}
 .mk-section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--hairline)}
-.mk-section-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.mk-section-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink);display:flex;align-items:center;gap:10px}
+.mk-section-title::before{content:"";width:4px;height:20px;background:linear-gradient(180deg,var(--accent),var(--go));border-radius:3px}
 .mk-section-more{background:none;border:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .mk-section-more:hover{gap:7px}
 .mk-prow{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
@@ -408,7 +409,10 @@ onMounted(() => { load(); loadCategories() })
 .mk-pwas{font-size:12.5px;color:var(--ink-ghost);text-decoration:line-through}
 
 .mk-pimg-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
-.mk-pimg-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-size:40px;font-weight:700;color:rgba(255,255,255,.85);z-index:0}
+.mk-pimg-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:0}
+.mk-pimg-ph::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 38%, rgba(255,255,255,.22), transparent 60%);}
+.mk-pimg-ph::after{content:"";position:absolute;inset:0;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px);background-size:14px 14px;}
+.mk-ph-chip{position:relative;z-index:1;width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#fff;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.28);backdrop-filter:blur(2px);box-shadow:0 4px 14px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)}
 .mk-poff{z-index:2}
 
 .mk-badge.trusted{background:linear-gradient(135deg,rgba(11,110,93,.95),rgba(18,184,134,.95));color:#fff;box-shadow:0 2px 8px rgba(11,110,93,.4)}
