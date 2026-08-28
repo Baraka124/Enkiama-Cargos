@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { supabase } from '../lib/supabase'
+import RegionSelect from '../components/RegionSelect.vue'
 import { useRouter } from 'vue-router'
 import { useStorefront } from '../composables/useStorefront'
 import { useAuth } from '../composables/useAuth'
@@ -26,6 +27,10 @@ const loading = ref(true)
 const saving = ref(false)
 
 const form = ref({ slug:'', name:'', tagline:'', about:'', region:'', delivers_to:'', phone:'', accent:'#0B6E5D', cover_url:'', logo_url:'' })
+const deliversToArr = computed({
+  get() { return form.value.delivers_to ? form.value.delivers_to.split(',').map(s => s.trim()).filter(Boolean) : [] },
+  set(arr) { form.value.delivers_to = (arr || []).join(', ') }
+})
 const newProd = ref({ name:'', description:'', price_tzs:'', compare_at_tzs:'', delivery_included:false, delivery_fee_tzs:'', images:[], section_id:'', category:'' })
 const categories = ref([])
 async function loadCategories() { try { const { data } = await supabase.rpc('list_categories'); categories.value = data || [] } catch (e) {} }
@@ -305,10 +310,10 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         <div class="fg"><label>Tagline</label><input v-model="form.tagline" placeholder="Kitenge & kanga, delivered nationwide" /></div>
         <div class="fg"><label>About</label><input v-model="form.about" placeholder="Tell buyers about your business" /></div>
         <div class="row2">
-          <div class="fg"><label>Based in</label><input v-model="form.region" placeholder="Dar es Salaam" /></div>
+          <div class="fg"><label>Based in</label><RegionSelect v-model="form.region" placeholder="Choose your region…" /></div>
           <div class="fg"><label>Phone</label><input v-model="form.phone" type="tel" inputmode="tel" placeholder="+255…" /></div>
         </div>
-        <div class="fg"><label>Delivers to (corridors)</label><input v-model="form.delivers_to" placeholder="Mbeya, Arusha, Mwanza" /></div>
+        <div class="fg"><label>Delivers to <span class="fld-opt">tap all regions you deliver to</span></label><RegionSelect v-model="deliversToArr" multiple /></div>
         <div class="fg"><label>Brand colour</label><input v-model="form.accent" type="color" style="height:44px;padding:4px;cursor:pointer;width:80px" /></div>
         <button class="btn btn-accent btn-lg" :disabled="saving" @click="saveStore"><Spinner v-if="saving" :size="15" /><span v-else>{{ store ? 'Save changes' : 'Create storefront' }}</span></button>
       </div>

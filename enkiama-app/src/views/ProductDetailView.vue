@@ -23,9 +23,16 @@ async function load() {
   loading.value = true
   try {
     const { data: res } = await supabase.rpc('get_product', { p_shop_slug: route.params.slug, p_product_id: route.params.id })
-    if (res?.ok) { data.value = res; activeImg.value = 0 } else notFound.value = true
+    if (res?.ok) { data.value = res; activeImg.value = 0; loadConfidence() } else notFound.value = true
   } catch (e) { notFound.value = true }
   loading.value = false
+}
+const confidence = ref(null)
+async function loadConfidence() {
+  try {
+    const { data: c } = await supabase.rpc('delivery_confidence', { p_storefront_id: data.value.shop.id, p_dest: null })
+    if (c?.has_data) confidence.value = c
+  } catch (e) {}
 }
 const p = computed(() => data.value?.product || {})
 const shop = computed(() => data.value?.shop || {})
@@ -123,6 +130,23 @@ onMounted(load)
           </RouterLink>
 
           <div class="pd-trust"><Icon name="shield" :size="15" /> <div><b>Protected by Enkiama</b><span>Tracked delivery, cash on delivery, and your payment held until it arrives.</span></div></div>
+
+          <div v-if="confidence" class="pd-confidence">
+            <div class="pd-conf-row">
+              <div v-if="confidence.typical_days" class="pd-conf-stat">
+                <Icon name="clock" :size="16" />
+                <div><b>~{{ confidence.typical_days }} day{{ confidence.typical_days===1?'':'s' }}</b><span>typical delivery</span></div>
+              </div>
+              <div v-if="confidence.on_time_pct !== null" class="pd-conf-stat">
+                <Icon name="check" :size="16" />
+                <div><b>{{ confidence.on_time_pct }}% on-time</b><span>arrival rate</span></div>
+              </div>
+              <div class="pd-conf-stat">
+                <Icon name="package" :size="16" />
+                <div><b>{{ confidence.delivered }}</b><span>parcels delivered</span></div>
+              </div>
+            </div>
+          </div>
 
           <div class="pd-actions">
             <button v-if="!soldOut" class="btn btn-buy btn-lg pd-order" @click="showOrder=true">Order now · {{ tzs(p.price_tzs) }}</button>
@@ -242,4 +266,12 @@ onMounted(load)
 .pd-opt{font-size:13.5px;font-weight:600;padding:8px 16px;border-radius:10px;border:1.5px solid var(--hairline-2);background:var(--surface);color:var(--ink-soft);cursor:pointer;font-family:inherit;transition:.15s}
 .pd-opt:hover{border-color:var(--accent)}
 .pd-opt.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+
+.pd-confidence{margin-bottom:22px}
+.pd-conf-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pd-conf-stat{display:flex;align-items:center;gap:9px;padding:12px 13px;background:var(--surface-2);border-radius:12px}
+.pd-conf-stat svg{color:var(--accent-ink);flex-shrink:0}
+.pd-conf-stat b{display:block;font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.pd-conf-stat span{font-size:11px;color:var(--ink-faint);line-height:1.3}
+@media(max-width:520px){.pd-conf-row{grid-template-columns:1fr}}
 </style>

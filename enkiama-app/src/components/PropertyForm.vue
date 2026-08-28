@@ -1,4 +1,5 @@
 <script setup>
+import RegionSelect from './RegionSelect.vue'
 import { ref, inject } from 'vue'
 import { supabase } from '../lib/supabase'
 import Icon from './Icon.vue'
@@ -66,7 +67,7 @@ async function submit() {
       <div class="pf-section">Details</div>
       <div class="fg"><label>Title</label><input v-model="f.title" placeholder="e.g. 2-acre plot near Mbeya town" /></div>
       <div class="row2">
-        <div class="fg"><label>Region</label><input v-model="f.region" placeholder="Mbeya" /></div>
+        <div class="fg"><label>Region</label><RegionSelect v-model="f.region" /></div>
         <div class="fg"><label>Area / ward / village</label><input v-model="f.location" placeholder="Iyunga" /></div>
       </div>
       <div class="row2">
