@@ -1,11 +1,13 @@
 <script setup>
 import RegionSelect from './RegionSelect.vue'
-import { ref, inject } from 'vue'
+import { ref, inject, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { supabase } from '../lib/supabase'
 import Icon from './Icon.vue'
 import Spinner from './Spinner.vue'
 import MultiPhotoUpload from './MultiPhotoUpload.vue'
 import { humanError } from '../lib/humanError'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const emit = defineEmits(['close', 'submitted'])
 const toast = inject('toast')
@@ -16,9 +18,49 @@ const f = ref({
   neighbours: '', services_5km: '', has_electricity: false, has_water: false, water_potable: false,
   ownership_declared: false, contact_phone: '',
   lister_role: 'owner', owner_name: '', owner_relation: 'family', owner_contact: '', rep_note: '',
+  lat: null, lng: null,
+  price_negotiable: false, installments_ok: false, deposit_pct: '', installment_months: '',
 })
 const busy = ref(false)
 const isLand = () => f.value.kind === 'plot' || f.value.kind === 'farm'
+
+// region centres for centring the pin map (mirror of DB region_center)
+const REGION_CENTERS = {
+  'Arusha':[-3.3869,36.6830],'Dar es Salaam':[-6.7924,39.2083],'Dodoma':[-6.1630,35.7516],
+  'Geita':[-2.8725,32.2317],'Iringa':[-7.7669,35.6997],'Kagera':[-1.3350,31.8093],
+  'Katavi':[-6.4300,31.1300],'Kigoma':[-4.8769,29.6267],'Kilimanjaro':[-3.3349,37.3400],
+  'Lindi':[-9.9989,39.7167],'Manyara':[-4.3150,36.9500],'Mara':[-1.7754,34.1500],
+  'Mbeya':[-8.9094,33.4608],'Morogoro':[-6.8278,37.6591],'Mtwara':[-10.2692,40.1817],
+  'Mwanza':[-2.5164,32.9175],'Njombe':[-9.3333,34.7667],'Pwani':[-7.0000,38.9000],
+  'Rukwa':[-8.0000,31.4500],'Ruvuma':[-10.6858,35.6500],'Shinyanga':[-3.6619,33.4231],
+  'Simiyu':[-2.8333,34.0000],'Singida':[-4.8161,34.7439],'Songwe':[-8.8000,32.8000],
+  'Tabora':[-5.0167,32.8000],'Tanga':[-5.0689,39.0988],'Zanzibar Urban/West':[-6.1650,39.2000],
+}
+let pinMap = null, pinMarker = null
+onMounted(async () => {
+  await nextTick()
+  try {
+    pinMap = L.map('pinmap', { zoomControl: true, attributionControl: false }).setView([-6.4, 35.0], 5)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(pinMap)
+    pinMap.on('click', (e) => dropPin(e.latlng.lat, e.latlng.lng))
+    setTimeout(() => pinMap && pinMap.invalidateSize(), 200)
+  } catch (e) {}
+})
+onBeforeUnmount(() => { if (pinMap) { pinMap.remove(); pinMap = null } })
+function dropPin(lat, lng) {
+  f.value.lat = lat; f.value.lng = lng
+  if (pinMarker) pinMarker.setLatLng([lat, lng])
+  else pinMarker = L.marker([lat, lng]).addTo(pinMap)
+}
+function clearPin() {
+  f.value.lat = null; f.value.lng = null
+  if (pinMarker) { pinMap.removeLayer(pinMarker); pinMarker = null }
+}
+function onRegionChange(region) {
+  f.value.region = region
+  const c = REGION_CENTERS[region]
+  if (c && pinMap && !f.value.lat) pinMap.setView(c, 9)
+}
 
 async function submit() {
   if (!f.value.title) { toast('Give the listing a title', 'warn'); return }
@@ -42,7 +84,15 @@ async function submit() {
       p_owner_relation: f.value.owner_relation || null, p_owner_contact: f.value.owner_contact || null,
       p_rep_note: f.value.rep_note || null,
     })
-    if (data?.ok) emit('submitted')
+    if (data?.ok) {
+      if (f.value.lat && f.value.lng && data.id) {
+        try { await supabase.rpc('set_property_location', { p_id: data.id, p_lat: f.value.lat, p_lng: f.value.lng }) } catch (e) {}
+      }
+      if (data.id && (f.value.installments_ok || f.value.price_negotiable)) {
+        try { await supabase.rpc('set_property_terms', { p_id: data.id, p_installments: f.value.installments_ok, p_deposit_pct: f.value.deposit_pct ? Number(f.value.deposit_pct) : null, p_months: f.value.installment_months ? Number(f.value.installment_months) : null, p_negotiable: f.value.price_negotiable }) } catch (e) {}
+      }
+      emit('submitted')
+    }
     else toast(data?.error || 'Could not submit', 'warn')
   } catch (e) { toast(humanError(e), 'warn') }
   busy.value = false
@@ -67,8 +117,17 @@ async function submit() {
       <div class="pf-section">Details</div>
       <div class="fg"><label>Title</label><input v-model="f.title" placeholder="e.g. 2-acre plot near Mbeya town" /></div>
       <div class="row2">
-        <div class="fg"><label>Region</label><RegionSelect v-model="f.region" /></div>
+        <div class="fg"><label>Region</label><RegionSelect v-model="f.region" @update:modelValue="onRegionChange" /></div>
         <div class="fg"><label>Area / ward / village</label><input v-model="f.location" placeholder="Iyunga" /></div>
+      </div>
+
+      <div class="fg">
+        <label>Pin the exact location <span class="fld-opt">tap the map — helps buyers find it</span></label>
+        <div class="pinmap-wrap">
+          <div id="pinmap" class="pinmap"></div>
+          <div v-if="!f.lat" class="pinmap-hint"><Icon name="pin" :size="14" /> Tap on the map to drop a pin</div>
+          <div v-else class="pinmap-set"><Icon name="check" :size="13" /> Location pinned<button type="button" @click="clearPin">clear</button></div>
+        </div>
       </div>
       <div class="row2">
         <div class="fg"><label>Size</label><input v-model="f.size_value" type="number" placeholder="2" /></div>
@@ -78,6 +137,16 @@ async function submit() {
         <div class="fg"><label>Price (TZS)</label><input v-model="f.price_tzs" type="number" placeholder="15000000" /></div>
         <div class="fg"><label>Basis</label><select v-model="f.price_basis"><option value="total">total</option><option value="per_acre">per acre</option><option value="per_month">per month (rental)</option></select></div>
       </div>
+
+      <div class="pf-terms">
+        <label class="pf-check"><input type="checkbox" v-model="f.price_negotiable" /> <span>Price is negotiable</span></label>
+        <label class="pf-check"><input type="checkbox" v-model="f.installments_ok" /> <span>Payment plan / installments available</span></label>
+        <div v-if="f.installments_ok" class="row2 pf-terms-detail">
+          <div class="fg"><label>Deposit %</label><input v-model="f.deposit_pct" type="number" min="0" max="100" placeholder="30" /></div>
+          <div class="fg"><label>Over how many months?</label><input v-model="f.installment_months" type="number" min="1" placeholder="12" /></div>
+        </div>
+      </div>
+
       <div class="fg"><label>Description</label><textarea v-model="f.description" rows="2" placeholder="Anything a buyer should know."></textarea></div>
 
       <div class="pf-section">Photos <span class="pf-hint">1–5 required</span></div>

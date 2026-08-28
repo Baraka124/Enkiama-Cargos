@@ -197,6 +197,22 @@ function stageOn(s, i) {
   return i <= STAGE_ORDER.indexOf(parcel.value.stage)
 }
 const owed = computed(() => (parcel.value?.payMode==='cash' && !['collected','remitted','settled'].includes(parcel.value?.payState)) ? parcel.value.cod : 0)
+const statusHeadline = computed(() => {
+  const s = parcel.value?.stage
+  return ({ booked:'Order booked', collected:'Picked up by carrier', linehaul:'On the road to you',
+    with_driver:'Out for delivery', delivered:'Delivered', confirmed:'Delivered & confirmed',
+    failed:'Delivery issue' }[s]) || 'In progress'
+})
+const statusSub = computed(() => {
+  const s = parcel.value?.stage; const d = parcel.value?.driver
+  if (s==='with_driver') return `${d || 'Your driver'} is bringing it today`
+  if (s==='linehaul') return 'Moving toward your area'
+  if (s==='collected') return 'Your parcel is with the carrier'
+  if (s==='booked') return 'Waiting to be picked up'
+  if (s==='delivered' || s==='confirmed') return 'This parcel has arrived'
+  if (s==='failed') return 'Contact the carrier for details'
+  return ''
+})
 onMounted(() => { if (code.value) track() })
 onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.remove(); trkMap = null } })
 </script>
@@ -231,6 +247,20 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
         <span class="paychip" :class="parcel.stage==='confirmed'?'pay-settled':parcel.stage==='failed'?'pay-cod':'pay-collected'">{{ STAGE_CAP[parcel.stage] }}</span>
       </div>
       <div class="cons-bd">
+        <!-- prominent current-status statement — the first thing a receiver wants -->
+        <div class="trk-statusline" :class="'st-'+parcel.stage">
+          <div class="trk-statusline-ic"><Icon :name="parcel.stage==='confirmed'||parcel.stage==='delivered'?'check':parcel.stage==='with_driver'?'route':'package'" :size="20" /></div>
+          <div class="trk-statusline-txt">
+            <div class="trk-statusline-h">{{ statusHeadline }}</div>
+            <div class="trk-statusline-sub">{{ statusSub }}</div>
+          </div>
+        </div>
+
+        <div v-if="owed>0" class="trk-codsummary">
+          <div><span class="trk-cod-lab">Pay on delivery</span><span class="trk-cod-amt mono">{{ fmtTZS(owed) }}</span></div>
+          <span class="trk-cod-hint">Have this ready for {{ parcel.driver || 'the driver' }}</span>
+        </div>
+
         <div class="party">
           <div><div class="p-lab">To</div><div class="p-val">{{ parcel.receiver }}</div><div class="p-sub">{{ parcel.addr }}</div></div>
           <div style="text-align:right"><div class="p-lab">Parcel</div><div class="p-val">{{ parcel.item }}</div><div class="p-sub">{{ parcel.weight }}kg</div></div>
@@ -261,10 +291,6 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
             </div>
           </div>
           <div class="tl-verify"><Icon name="check" :size="12" /> Verified record · every step logged, nothing can be altered</div>
-        </div>
-
-        <div v-if="owed>0" class="money-bar owed" style="margin-top:16px">
-          <Icon name="cash" :size="16" /><span class="m-txt">Have this ready for the driver</span><span class="m-amt mono">{{ fmtTZS(owed) }}</span>
         </div>
 
         <!-- proof shown once delivered -->
@@ -447,7 +473,7 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
   background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
   background-size:40px 40px;mask-image:radial-gradient(circle at 50% 20%,black,transparent 72%)}
 .trk-hero-inner{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:40px 24px 44px;text-align:center}
-.trk-hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 13px;border-radius:999px;margin-bottom:18px}
+.trk-hero-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:6px 13px;border-radius:10px;margin-bottom:18px}
 .trk-hero-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,6vw,40px);font-weight:700;letter-spacing:-.03em;color:#fff;margin-bottom:10px}
 .trk-hero-h1 .grad{background:linear-gradient(100deg,#818CF8,#34D399) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
 .trk-hero-sub{font-size:15px;color:rgba(255,255,255,.6);line-height:1.6;max-width:400px;margin:0 auto 24px}
@@ -520,4 +546,18 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
 @keyframes trkpulse{0%,100%{opacity:1}50%{opacity:.3}}
 .trk-map{height:260px;width:100%}
 :global(.trk-driver-pin .tdp){width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 4px rgba(11,110,93,.3),0 2px 6px rgba(0,0,0,.3)}
+
+.trk-statusline{display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;margin-bottom:14px;background:var(--surface-2)}
+.trk-statusline.st-with_driver{background:linear-gradient(135deg,var(--accent-soft),var(--go-soft));border:1px solid var(--accent)}
+.trk-statusline.st-delivered,.trk-statusline.st-confirmed{background:var(--go-soft)}
+.trk-statusline.st-failed{background:var(--owed-soft)}
+.trk-statusline-ic{width:48px;height:48px;border-radius:13px;background:var(--surface);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadow-sm)}
+.trk-statusline.st-with_driver .trk-statusline-ic{background:var(--accent);color:#fff}
+.trk-statusline.st-delivered .trk-statusline-ic,.trk-statusline.st-confirmed .trk-statusline-ic{background:var(--go);color:#fff}
+.trk-statusline-h{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;color:var(--ink);letter-spacing:-.02em;line-height:1.15}
+.trk-statusline-sub{font-size:13.5px;color:var(--ink-soft);margin-top:2px}
+.trk-codsummary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:13px;background:var(--owed-soft);border:1px solid rgba(214,59,42,.25);margin-bottom:16px}
+.trk-cod-lab{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--owed-ink);margin-bottom:2px}
+.trk-cod-amt{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--owed-ink);letter-spacing:-.02em}
+.trk-cod-hint{font-size:12px;color:var(--ink-soft);text-align:right;max-width:130px}
 </style>

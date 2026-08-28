@@ -19,7 +19,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
-const { session, profile, signOut } = useAuth()
+const { session, profile, signOut, isPlatformAdmin } = useAuth()
 const menuOpen = ref(false)
 
 const isLoggedIn = computed(() => !!session?.value)
@@ -71,11 +71,12 @@ function isCurrent(path) { return router.currentRoute.value.path === path }
 
         <!-- LOGGED-IN: identity chip + account menu -->
         <div v-else class="ah-account">
-          <button class="ah-chip" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen">
+          <button class="ah-chip" :class="{'ah-chip-admin': isPlatformAdmin}" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen">
             <Avatar :name="displayName" size="sm" />
             <span class="ah-chip-id">
               <span class="ah-chip-name">{{ displayName }}</span>
-              <span v-if="roleLabel" class="ah-chip-role">{{ roleLabel }}</span>
+              <span v-if="isPlatformAdmin" class="ah-chip-role ah-admin-tag"><Icon name="shield" :size="10" /> Admin</span>
+              <span v-else-if="roleLabel" class="ah-chip-role">{{ roleLabel }}</span>
             </span>
             <Icon name="arrow" :size="13" class="ah-chip-caret" />
           </button>
@@ -83,7 +84,7 @@ function isCurrent(path) { return router.currentRoute.value.path === path }
             <div v-if="menuOpen" class="ah-menu" v-click-outside="() => menuOpen=false">
               <div class="ah-menu-head">
                 <Avatar :name="displayName" />
-                <div><div class="ah-menu-name">{{ displayName }}</div><div class="ah-menu-role">{{ session?.user?.email }}</div></div>
+                <div><div class="ah-menu-name">{{ displayName }}<span v-if="isPlatformAdmin" class="ah-admin-tag ah-admin-tag-menu"><Icon name="shield" :size="10" /> Admin</span></div><div class="ah-menu-role">{{ session?.user?.email }}</div></div>
               </div>
               <div class="ah-menu-spaces-l">You're in</div>
               <RouterLink :to="homePath" class="ah-menu-item ah-space" :class="{cur: isCurrent(homePath)}" @click="menuOpen=false">
@@ -160,4 +161,8 @@ function isCurrent(path) { return router.currentRoute.value.path === path }
 .ah-space.cur{background:var(--accent-soft)}
 .ah-space.cur span{color:var(--accent-ink);font-weight:650}
 .ah-cur-dot{position:absolute;right:12px;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:auto}
+
+.ah-admin-tag{display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#C79A3E,#946B25);color:#fff;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px}
+.ah-chip-admin{box-shadow:inset 0 0 0 1.5px rgba(199,154,62,.5)}
+.ah-admin-tag-menu{margin-left:8px;vertical-align:middle}
 </style>

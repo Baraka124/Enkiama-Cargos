@@ -99,10 +99,6 @@ async function placeOrder() {
     })
     if (error) throw error
     orderCode.value = code
-    // decrement stock if this product tracks quantity
-    if (orderProduct.value.track_stock) {
-      try { await supabase.rpc('decrement_stock', { p_product_id: orderProduct.value.id, p_qty: Number(orderForm.value.qty) || 1 }) } catch (e) {}
-    }
   } catch (e) { alert(e.message || 'Could not place order') }
   ordering.value = false
 }

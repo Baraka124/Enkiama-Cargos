@@ -951,7 +951,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
 
 /* section head */
 .psec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
-.psec-title{font-size:18px;font-weight:700;margin:0}
+.psec-title{margin:0}
 .psec-sub{font-size:13px;color:var(--ink-faint)}
 
 /* carrier cards — a responsive grid, not full-width rows */

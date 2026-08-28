@@ -138,7 +138,7 @@ const router = useRouter()
 .ld-hero{background:linear-gradient(165deg,var(--ink),#141C24 55%,#0B3A32);color:#fff;position:relative;overflow:hidden}
 .ld-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(700px 400px at 78% 8%,rgba(79,209,181,.16),transparent 60%);pointer-events:none}
 .ld-hero-in{max-width:1140px;margin:0 auto;padding:70px 24px 60px;position:relative;z-index:1;max-width:640px;margin-left:max(24px,calc((100vw - 1140px)/2 + 24px))}
-.ld-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.82);margin-bottom:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:7px 14px;border-radius:999px}
+.ld-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.82);margin-bottom:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:7px 14px;border-radius:10px}
 .ld-dot{width:7px;height:7px;border-radius:50%;background:#4FD1B5;box-shadow:0 0 0 4px rgba(79,209,181,.2)}
 .ld-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,5vw,54px);font-weight:700;letter-spacing:-.035em;line-height:1.05;margin-bottom:20px;color:#fff}
 .ld-grad{background:linear-gradient(110deg,#4FD1B5,#7EE8CF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}

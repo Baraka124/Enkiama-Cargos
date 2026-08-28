@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from '../composables/useI18n'
 import { usePublic } from '../composables/usePublic'
 import { useAuth } from '../composables/useAuth'
+import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -29,7 +30,16 @@ const displayProducts = computed(() => {
 })
 const loading = ref(true)
 const pub = usePublic()
-const { session } = useAuth()
+const { session, profile, isPlatformAdmin } = useAuth()
+const mkDisplayName = computed(() => profile?.value?.name || session?.value?.user?.email?.split('@')[0] || 'Account')
+const mkRoleLabel = computed(() => {
+  const r = profile?.value?.role
+  return ({ carrier_admin:'Carrier admin', dispatch:'Dispatch', driver:'Driver', sender:'Business', receiver:'Receiver' }[r]) || (r ? r.replace('_',' ') : '')
+})
+const homePath = computed(() => {
+  const r = profile?.value?.role
+  return r === 'driver' ? '/driver' : (r === 'dispatch' || r === 'carrier_admin') ? '/dispatch' : r === 'sender' ? '/send' : r === 'receiver' ? '/deliveries' : '/'
+})
 const corridor = ref('')
 const corridors = ['Dar es Salaam', 'Arusha', 'Mwanza', 'Dodoma', 'Mbeya', 'Tanga', 'Morogoro', 'Zanzibar Urban/West']
 const search = ref('')
@@ -37,7 +47,6 @@ const sort = ref('recommended')
 let searchTimer = null
 
 // group products by category → "same category" clusters, exposed all at once
-import { computed } from 'vue'
 
 // product image helpers — robust fallback to gradient+letter tile
 function pImg(p) {
@@ -108,7 +117,14 @@ onMounted(() => { load(); loadCategories() })
           </div>
           <div class="mk-head-actions">
             <template v-if="session">
-              <RouterLink to="/" class="mk-navlink">← My dashboard</RouterLink>
+              <RouterLink :to="homePath" class="mk-userchip" :class="{'mk-userchip-admin': isPlatformAdmin}">
+                <Avatar :name="mkDisplayName" size="sm" />
+                <span class="mk-userchip-id">
+                  <span class="mk-userchip-name">{{ mkDisplayName }}</span>
+                  <span v-if="isPlatformAdmin" class="mk-userchip-role mk-admin-tag"><Icon name="shield" :size="9" /> Admin</span>
+                  <span v-else-if="mkRoleLabel" class="mk-userchip-role">{{ mkRoleLabel }}</span>
+                </span>
+              </RouterLink>
             </template>
             <template v-else>
               <RouterLink to="/join/business" class="mk-navlink">Sell on Enkiama</RouterLink>
@@ -248,9 +264,8 @@ onMounted(() => { load(); loadCategories() })
           <span v-if="s.verified_delivery" class="mk-badge verif"><Icon name="check" :size="11" /> Verified</span>
         </div>
         <div class="mk-card-body">
-          <div class="mk-avatar" :style="{background:s.accent || 'var(--accent)'}">
-            <img v-if="s.logo_url" :src="s.logo_url" alt="" />
-            <span v-else>{{ s.name.slice(0,2).toUpperCase() }}</span>
+          <div class="mk-avatar-wrap">
+            <Avatar :name="s.name" :accent="s.accent" :logo="s.logo_url" :size="56" />
           </div>
           <div class="mk-name">{{ s.name }}</div>
           <div class="mk-tag">{{ s.tagline }}</div>
@@ -303,10 +318,12 @@ onMounted(() => { load(); loadCategories() })
 .mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
 .mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
 .mk-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
-.mk-cover{position:relative;height:88px;background:linear-gradient(135deg, var(--sf,var(--accent)), color-mix(in srgb, var(--sf,var(--accent)) 55%, #000));background-size:cover;background-position:center}
+.mk-cover{position:relative;height:92px;background:linear-gradient(135deg, var(--sf,var(--accent)), color-mix(in srgb, var(--sf,var(--accent)) 50%, #000));background-size:cover;background-position:center}
+.mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%,rgba(0,0,0,.12))}
 .mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.12))}
 .mk-card-body{padding:0 18px 18px;position:relative}
-.mk-avatar{width:56px;height:56px;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:-28px;border:3px solid var(--surface);box-shadow:0 4px 12px rgba(0,0,0,.15);position:relative;z-index:2;overflow:hidden}
+.mk-avatar-wrap{margin-top:-28px;position:relative;z-index:2;width:max-content;border-radius:16px;border:3px solid var(--surface);box-shadow:0 4px 14px rgba(20,24,31,.16)}
+.mk-avatar-wrap :deep(.avatar){border-radius:13px}
 .mk-avatar img{width:100%;height:100%;object-fit:cover}
 .mk-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
 .mk-card.sk{height:180px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--hairline) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:mksh 1.4s infinite}
@@ -328,7 +345,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-cta p{font-size:14px;color:var(--ink-soft);margin-bottom:22px}
 
 .mk-badge.feat{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:4px;background:var(--warn-soft);color:var(--warn-ink);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:var(--r-full)}
-.mk-name{font-family:'Space Grotesk',sans-serif;font-weight:650;font-size:var(--t-md);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:60px}
+
 .mk-tag{font-size:var(--t-sm);color:var(--ink-faint);margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .mk-meta{margin:14px 0}
 .mk-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -422,4 +439,12 @@ onMounted(() => { load(); loadCategories() })
 .mk-searchinfo{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;font-size:14px;color:var(--ink-soft)}
 .mk-searchinfo b{color:var(--ink)}
 .mk-clearsearch{font-size:13px;font-weight:600;color:var(--accent-ink);background:none;border:none;cursor:pointer}
+
+.mk-userchip{display:inline-flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);text-decoration:none;transition:background .15s}
+.mk-userchip:hover{background:rgba(255,255,255,.14)}
+.mk-userchip-admin{border-color:rgba(199,154,62,.55)}
+.mk-userchip-id{display:flex;flex-direction:column;line-height:1.1}
+.mk-userchip-name{font-size:13.5px;font-weight:650;color:#fff;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk-userchip-role{font-size:10.5px;color:rgba(255,255,255,.6);font-weight:500}
+.mk-admin-tag{display:inline-flex;align-items:center;gap:3px;color:#E8C877;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
 </style>

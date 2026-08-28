@@ -1,6 +1,6 @@
 <script setup>
 // Enkiama Property & Land — a focused, verified category on the marketplace.
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../composables/useAuth'
 import AppHeader from '../components/AppHeader.vue'
@@ -8,9 +8,46 @@ import Icon from '../components/Icon.vue'
 import EmptyState from '../components/EmptyState.vue'
 import Spinner from '../components/Spinner.vue'
 import { humanError } from '../lib/humanError'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const toast = inject('toast')
 const { session } = useAuth()
+
+// map-first browsing
+const propView = ref('list')
+const selectedPin = ref(null)
+let propMap = null
+let markers = []
+async function setMapView() {
+  propView.value = 'map'
+  await nextTick()
+  await renderMap()
+}
+async function renderMap() {
+  try {
+    const { data } = await supabase.rpc('property_map', { p_kind: activeKind.value || null, p_region: null, p_max_price: null })
+    const pins = (data || []).filter(p => p.lat && p.lng)
+    if (!propMap) {
+      propMap = L.map('propmap', { zoomControl: true, attributionControl: false, scrollWheelZoom: true }).setView([-6.4, 35.0], 6)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(propMap)
+    }
+    markers.forEach(m => propMap.removeLayer(m)); markers = []
+    const green = '#0B6E5D'
+    for (const p of pins) {
+      const price = p.price_tzs ? 'TZS ' + Number(p.price_tzs).toLocaleString() : ''
+      const icon = L.divIcon({ className: 'prop-pin', html: `<div class="prop-pin-badge">${price || 'View'}</div>`, iconSize: [1, 1] })
+      const m = L.marker([p.lat, p.lng], { icon }).addTo(propMap)
+      m.on('click', () => { selectedPin.value = p })
+      markers.push(m)
+    }
+    if (pins.length) {
+      const grp = L.featureGroup(markers)
+      propMap.fitBounds(grp.getBounds().pad(0.3), { maxZoom: 12 })
+    }
+    setTimeout(() => propMap && propMap.invalidateSize(), 100)
+  } catch (e) {}
+}
 
 const KINDS = [
   { k: 'plot', label: 'Land plots', icon: 'pin' },
@@ -41,7 +78,7 @@ async function load() {
   } catch (e) { listings.value = [] }
   loading.value = false
 }
-function setKind(k) { activeKind.value = activeKind.value === k ? '' : k; load() }
+function setKind(k) { activeKind.value = activeKind.value === k ? '' : k; load(); if (propView.value==='map') renderMap() }
 function fmtPrice(l) {
   if (!l.price_tzs) return 'Price on request'
   const basis = l.price_basis === 'per_acre' ? '/acre' : l.price_basis === 'per_month' ? '/month' : ''
@@ -98,8 +135,26 @@ onMounted(() => { load(); loadMine() })
       <button v-for="k in KINDS" :key="k.k" class="prop-kind" :class="{on:activeKind===k.k}" @click="setKind(k.k)">
         <Icon :name="k.icon" :size="14" /> {{ k.label }}
       </button>
+      <div class="prop-viewtoggle">
+        <button class="prop-vt" :class="{on:propView==='list'}" @click="propView='list'"><Icon name="menu" :size="14" /> List</button>
+        <button class="prop-vt" :class="{on:propView==='map'}" @click="setMapView"><Icon name="pin" :size="14" /> Map</button>
+      </div>
     </div>
 
+    <!-- MAP VIEW -->
+    <div v-show="propView==='map'" class="prop-maparea">
+      <div id="propmap" class="prop-map"></div>
+      <div v-if="selectedPin" class="prop-mapcard">
+        <button class="prop-mapcard-x" @click="selectedPin=null"><Icon name="plus" :size="15" style="transform:rotate(45deg)" /></button>
+        <div class="prop-mapcard-kind">{{ kindLabel(selectedPin.kind) }}<span v-if="selectedPin.status==='verified'" class="prop-mapcard-vf"><Icon name="shield" :size="10" /> Verified</span></div>
+        <div class="prop-mapcard-title">{{ selectedPin.title }}</div>
+        <div class="prop-mapcard-loc"><Icon name="pin" :size="12" /> {{ selectedPin.location || selectedPin.region }}<span v-if="!selectedPin.exact" class="prop-approx">approx.</span></div>
+        <div class="prop-mapcard-price">{{ fmtPrice(selectedPin) }}</div>
+        <RouterLink :to="`/property/${selectedPin.id}`" class="btn btn-accent btn-block">View full details</RouterLink>
+      </div>
+    </div>
+
+    <div v-show="propView==='list'">
     <div v-if="loading" class="prop-grid">
       <div v-for="i in 6" :key="i" class="prop-card sk"></div>
     </div>
@@ -126,6 +181,7 @@ onMounted(() => { load(); loadMine() })
           </div>
         </div>
       </RouterLink>
+    </div>
     </div>
   </div>
 

@@ -19,6 +19,7 @@ const routes = [
   { path: '/market', name: 'market', component: () => import('../views/MarketplaceView.vue'), meta: { public: true } },
   { path: '/shop/:slug', name: 'shop', component: () => import('../views/StorefrontView.vue'), meta: { public: true } },
   { path: '/shop/:slug/product/:id', name: 'product', component: () => import('../views/ProductDetailView.vue'), meta: { public: true } },
+  { path: '/property-deal/:id', name: 'property-deal', component: () => import('../views/PropertyDealView.vue') },
   { path: '/my-shop', name: 'my-shop', component: () => import('../views/StorefrontManageView.vue') },
   { path: '/reset', name: 'reset', component: () => import('../views/ResetView.vue'), meta: { public: true } },
   { path: '/account', name: 'account', component: () => import('../views/AccountView.vue') },

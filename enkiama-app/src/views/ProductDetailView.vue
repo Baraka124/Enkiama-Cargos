@@ -70,7 +70,6 @@ async function placeOrder() {
       p_variant: variantString.value || null })
     if (error) throw error
     orderCode.value = code
-    if (p.value.track_stock) { try { await supabase.rpc('decrement_stock', { p_product_id: p.value.id, p_qty: Number(form.value.qty) || 1 }) } catch (e) {} }
   } catch (e) { toast(e.message || 'Could not place order', 'warn') }
   ordering.value = false
 }
