@@ -155,20 +155,21 @@ onMounted(load)
             <h3 v-if="g.name && g.name !== 'More'" class="sf-section-h">{{ g.name }}</h3>
             <div class="sf-products">
               <component :is="p.available === false ? 'div' : 'RouterLink'" v-for="p in g.items" :key="p.id" :to="p.available === false ? undefined : `/shop/${store.slug}/product/${p.id}`" class="sf-prod" :class="{soldout: p.available === false}">
-                <div class="sf-prod-img" :style="galleryImg(p) ? {backgroundImage:`url(${galleryImg(p)})`} : {background:`linear-gradient(135deg, ${store.accent||'#0B6E5D'}, ${store.accent||'#075446'}bb)`}">
-                  <span v-if="!galleryImg(p)" class="sf-prod-ph">{{ p.name.slice(0,1) }}</span>
+                <div class="sf-prod-img">
+                  <img v-if="galleryImg(p)" :src="galleryImg(p)" :alt="p.name" class="sf-prod-img-el" loading="lazy" />
+                  <div v-else class="sf-prod-ph" :style="{background:`linear-gradient(150deg, ${store.accent||'#0B6E5D'}, ${store.accent||'#075446'})`}"><span class="sf-ph-chip">{{ p.name.slice(0,1).toUpperCase() }}</span></div>
                   <span v-if="p.available === false" class="sf-prod-soldout">Sold out</span>
                   <span v-else-if="p.track_stock && p.stock_qty <= 5 && p.stock_qty > 0" class="sf-prod-low">Only {{ p.stock_qty }} left</span>
-                  <span v-else-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-off">{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}% off</span>
+                  <span v-else-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-off">-{{ Math.round((1 - p.price_tzs/p.compare_at_tzs)*100) }}%</span>
                 </div>
                 <div class="sf-prod-body">
-                  <div class="sf-prod-name">{{ p.name }}</div>
-                  <div v-if="p.description" class="sf-prod-desc">{{ p.description }}</div>
-                  <div class="sf-prod-foot">
-                    <div class="sf-prod-price">{{ tzs(p.price_tzs) }}<span v-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-was">{{ tzs(p.compare_at_tzs) }}</span></div>
-                    <span v-if="p.available === false" class="sf-prod-cta soldtxt">Unavailable</span>
-                    <span v-else class="sf-prod-cta">Order <Icon name="arrowRight" :size="13" /></span>
+                  <div class="sf-prod-price-row">
+                    <span class="sf-prod-price">{{ tzs(p.price_tzs) }}</span>
+                    <span v-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-was">{{ tzs(p.compare_at_tzs) }}</span>
                   </div>
+                  <div class="sf-prod-name">{{ p.name }}</div>
+                  <span v-if="p.available === false" class="sf-prod-cta soldtxt">Unavailable</span>
+                  <span v-else class="sf-prod-cta">Order now <Icon name="arrowRight" :size="12" /></span>
                 </div>
               </component>
             </div>
@@ -293,19 +294,24 @@ onMounted(load)
 .sf-delivers{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--go-ink);background:var(--go-soft);padding:11px 14px;border-radius:12px;margin-bottom:24px}
 .sf-h2{font-size:18px;font-weight:700;margin:24px 0 14px}
 .sf-ships{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);margin-bottom:12px;flex-wrap:wrap}
-.sf-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.sf-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
 .sf-prod{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;padding:0;text-align:left;font-family:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease)}
 .sf-prod:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
-.sf-prod-img{position:relative;height:160px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
-.sf-prod-ph{font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:rgba(255,255,255,.7)}
-.sf-prod-off{position:absolute;top:8px;left:8px;background:var(--owed);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px}
-.sf-prod-body{padding:14px}
-.sf-prod-name{font-weight:650;font-size:14px;color:var(--ink);line-height:1.3}
+.sf-prod-img{position:relative;aspect-ratio:1/1;background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sf-prod-img-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sf-prod-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.sf-prod-ph::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.2),transparent 60%)}
+.sf-prod-ph::after{content:'';position:absolute;inset:0;opacity:.4;background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1px);background-size:13px 13px}
+.sf-ph-chip{position:relative;z-index:1;width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)}
+.sf-prod-off{position:absolute;top:7px;left:7px;background:var(--owed);color:#fff;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;box-shadow:0 2px 6px rgba(214,59,42,.35)}
+.sf-prod-body{padding:10px 11px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
+.sf-prod-price-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.sf-prod-name{font-size:13px;font-weight:500;color:var(--ink-soft);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
 .sf-prod-desc{font-size:12.5px;color:var(--ink-faint);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sf-prod-foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
-.sf-prod-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink);white-space:nowrap;display:flex;flex-direction:column;line-height:1.1}
+.sf-prod-price{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;color:var(--owed-ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
 .sf-prod-was{font-size:11px;color:var(--ink-ghost);text-decoration:line-through;font-weight:400}
-.sf-prod-cta{display:inline-flex;align-items:center;gap:3px;font-size:12.5px;font-weight:600;color:var(--buy-ink);background:var(--buy-soft);padding:6px 11px;border-radius:8px;white-space:nowrap}
+.sf-prod-cta{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;color:var(--buy-ink);margin-top:auto;padding-top:7px;border-top:1px solid var(--hairline)}
 .sf-reviews{display:flex;flex-direction:column;gap:10px}
 .sf-review{background:var(--surface);border:1px solid var(--hairline);border-radius:12px;padding:14px 16px}
 .sf-stars{display:flex;gap:2px;color:#F59E0B;margin-bottom:6px}
@@ -394,7 +400,7 @@ onMounted(load)
 
 .sf-prod.soldout{opacity:.65;cursor:default}
 .sf-prod.soldout .sf-prod-cta{visibility:hidden}
-.sf-prod-soldout{position:absolute;top:10px;left:10px;background:var(--ink);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;text-transform:uppercase;letter-spacing:.03em}
+.sf-prod-soldout{position:absolute;top:7px;left:7px;background:rgba(20,24,31,.78);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em}
 
-.sf-prod-low{position:absolute;top:10px;left:10px;background:var(--warn);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;letter-spacing:.02em}
+.sf-prod-low{position:absolute;top:7px;left:7px;background:var(--warn);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.02em}
 </style>
