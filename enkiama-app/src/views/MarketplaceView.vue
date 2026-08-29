@@ -133,10 +133,6 @@ onMounted(() => { load(); loadCategories() })
           </div>
         </header>
 
-        <nav class="mk-utilbar">
-          <button v-for="c in categories.slice(0,7)" :key="c.category" class="mk-utilcat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">{{ c.category }}</button>
-        </nav>
-
         <section class="mk-hero">
           <h1 class="mk-h1">Everything you need, <span class="grad">delivered</span> &amp; tracked.</h1>
           <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
@@ -150,18 +146,46 @@ onMounted(() => { load(); loadCategories() })
     </div>
 
     <div class="mk-body">
-    <div class="mk-toolbar">
-      <div class="mk-viewtoggle">
-        <button class="mk-vt" :class="{on:view==='shops'}" @click="setView('shops')"><Icon name="building" :size="14" /> Shops</button>
-        <button class="mk-vt" :class="{on:view==='products'}" @click="setView('products')"><Icon name="package" :size="14" /> Products</button>
-        <RouterLink to="/property" class="mk-vt"><Icon name="pin" :size="14" /> Property &amp; Land</RouterLink>
+    <div class="mk-controls">
+      <div class="mk-controls-top">
+        <div class="mk-viewtoggle">
+          <button class="mk-vt" :class="{on:view==='shops'}" @click="setView('shops')"><Icon name="building" :size="14" /> Shops</button>
+          <button class="mk-vt" :class="{on:view==='products'}" @click="setView('products')"><Icon name="package" :size="14" /> Products</button>
+          <RouterLink to="/property" class="mk-vt"><Icon name="pin" :size="14" /> Property &amp; Land</RouterLink>
+        </div>
+        <div v-if="view==='shops'" class="mk-sort">
+          <button class="mk-sort-b" :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
+          <button class="mk-sort-b" :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
+          <button class="mk-sort-b" :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
+        </div>
+        <span v-else class="mk-count">{{ products.length }} product{{ products.length===1?'':'s' }}</span>
       </div>
-      <div v-if="view==='shops'" class="mk-sort">
-        <button class="mk-sort-b" :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
-        <button class="mk-sort-b" :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
-        <button class="mk-sort-b" :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
-      </div>
-      <span v-else class="mk-count">{{ products.length }} product{{ products.length===1?'':'s' }}</span>
+
+      <!-- PRODUCTS: categories + filters live INSIDE the same panel -->
+      <template v-if="view==='products'">
+        <div v-if="categories.length" class="mk-cats">
+          <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All products</button>
+          <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">
+            {{ c.category }} <span class="mk-cat-n">{{ c.count }}</span>
+          </button>
+        </div>
+        <div class="mk-controls-bottom">
+          <div class="mk-filters">
+            <button class="mk-fchip" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><Icon name="shield" :size="13" /> Verified shops</button>
+            <button class="mk-fchip" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><Icon name="check" :size="13" /> In stock</button>
+            <button class="mk-fchip" :class="{on:filterDeal}" @click="filterDeal=!filterDeal"><Icon name="star" :size="13" /> On offer</button>
+          </div>
+          <div class="mk-sort">
+            <label>Sort</label>
+            <select v-model="sortBy">
+              <option value="relevant">Most relevant</option>
+              <option value="price_low">Price: low to high</option>
+              <option value="price_high">Price: high to low</option>
+              <option value="newest">Newest</option>
+            </select>
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- PRODUCTS VIEW -->
@@ -169,31 +193,6 @@ onMounted(() => { load(); loadCategories() })
       <div v-if="search" class="mk-searchinfo">
         <span>{{ displayProducts.length }} result{{ displayProducts.length===1?'':'s' }} for "<b>{{ search }}</b>"</span>
         <button class="mk-clearsearch" @click="search=''; onSearch()">Clear search</button>
-      </div>
-      <!-- category filter chips -->
-      <div v-if="categories.length" class="mk-cats">
-        <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All products</button>
-        <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">
-          {{ c.category }} <span class="mk-cat-n">{{ c.count }}</span>
-        </button>
-      </div>
-
-      <!-- sort + filter bar -->
-      <div class="mk-toolbar mk-filterbar">
-        <div class="mk-filters">
-          <button class="mk-fchip" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><Icon name="shield" :size="13" /> Verified shops</button>
-          <button class="mk-fchip" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><Icon name="check" :size="13" /> In stock</button>
-          <button class="mk-fchip" :class="{on:filterDeal}" @click="filterDeal=!filterDeal"><Icon name="star" :size="13" /> On offer</button>
-        </div>
-        <div class="mk-sort">
-          <label>Sort</label>
-          <select v-model="sortBy">
-            <option value="relevant">Most relevant</option>
-            <option value="price_low">Price: low to high</option>
-            <option value="price_high">Price: high to low</option>
-            <option value="newest">Newest</option>
-          </select>
-        </div>
       </div>
 
       <div v-if="loading" class="mk-pgrid">
@@ -307,8 +306,10 @@ onMounted(() => { load(); loadCategories() })
   background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 75%)}
 .mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
 .mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
-.mk-toolbar{max-width:1000px;margin:-32px auto 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;box-shadow:0 8px 28px rgba(20,24,31,.10),0 2px 6px rgba(20,24,31,.05);position:relative;z-index:5}
-.mk-filterbar{margin:0 auto 22px;box-shadow:var(--shadow-sm)}
+.mk-controls{max-width:1000px;margin:-32px auto 24px;background:var(--surface);border:1px solid var(--hairline);border-radius:18px;box-shadow:0 8px 28px rgba(20,24,31,.10),0 2px 6px rgba(20,24,31,.05);position:relative;z-index:5;overflow:hidden}
+.mk-controls-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
+.mk-controls .mk-cats{margin:0;padding:14px 18px;border-top:1px solid var(--hairline);justify-content:flex-start;gap:8px}
+.mk-controls-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-top:1px solid var(--hairline);background:var(--surface-2)}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
 .mk-logo{display:flex;align-items:center;flex-shrink:0}
 .mk-hero{text-align:center;padding:36px 0 30px}
@@ -423,7 +424,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-badge.verif{right:10px;background:rgba(255,255,255,.92);color:var(--go-ink)}
 
 /* ═══ CATEGORY-GROUPED PRODUCT MARKETPLACE ═══ */
-.mk-cats{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 14px;justify-content:center}
+.mk-cats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin:0;padding:14px 18px;border-top:1px solid var(--hairline)}
 .mk-cat{padding:8px 16px;border-radius:999px;border:1px solid var(--hairline-2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .mk-cat:hover{border-color:var(--accent);color:var(--accent-ink)}
 .mk-cat.on{background:var(--ink);color:#fff;border-color:var(--ink)}

@@ -95,7 +95,7 @@ onMounted(load)
         <!-- gallery -->
         <div class="pd-gallery">
           <div class="pd-main" :class="{soldout: soldOut}" :style="images.length ? {backgroundImage:`url(${images[activeImg]})`} : {background:`linear-gradient(135deg, ${shop.accent||'#0B6E5D'}, ${shop.accent||'#075446'}bb)`}">
-            <span v-if="!images.length" class="pd-ph">{{ (p.name||'?').slice(0,1) }}</span>
+            <span v-if="!images.length" class="pd-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
             <span v-if="soldOut" class="pd-badge sold">Sold out</span>
             <span v-else-if="lowStock" class="pd-badge low">Only {{ p.stock_qty }} left</span>
             <span v-else-if="discount" class="pd-badge off">{{ discount }}% off</span>
@@ -111,7 +111,9 @@ onMounted(load)
           <div class="pd-price-row">
             <span class="pd-price">{{ tzs(p.price_tzs) }}</span>
             <span v-if="discount" class="pd-was">{{ tzs(p.compare_at_tzs) }}</span>
+            <span v-if="discount" class="pd-save">Save {{ tzs(p.compare_at_tzs - p.price_tzs) }} · {{ discount }}%</span>
           </div>
+          <div v-if="lowStock && !soldOut" class="pd-urgency"><Icon name="star" :size="13" /> Only {{ p.stock_qty }} left — order soon</div>
           <p v-if="p.description" class="pd-desc">{{ p.description }}</p>
 
           <div v-for="(opt,oi) in productOptions" :key="oi" class="pd-opt-preview">
@@ -273,4 +275,11 @@ onMounted(load)
 .pd-conf-stat b{display:block;font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
 .pd-conf-stat span{font-size:11px;color:var(--ink-faint);line-height:1.3}
 @media(max-width:520px){.pd-conf-row{grid-template-columns:1fr}}
+
+.pd-save{font-size:12.5px;font-weight:700;color:#fff;background:var(--owed);padding:3px 10px;border-radius:7px;letter-spacing:.01em}
+.pd-urgency{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--warn-ink);background:var(--warn-soft);padding:6px 12px;border-radius:9px;margin-bottom:14px}
+.pd-urgency svg{color:var(--warn-ink)}
+.pd-main{position:relative;overflow:hidden}
+.pd-main::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 32%,rgba(255,255,255,.16),transparent 60%);pointer-events:none}
+.pd-ph-chip{position:relative;z-index:1;width:88px;height:88px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.28);box-shadow:0 6px 20px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.3)}
 </style>
