@@ -560,4 +560,11 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
 .trk-cod-lab{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--owed-ink);margin-bottom:2px}
 .trk-cod-amt{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--owed-ink);letter-spacing:-.02em}
 .trk-cod-hint{font-size:12px;color:var(--ink-soft);text-align:right;max-width:130px}
+
+/* calm-premium tracking result card */
+.cons{background:var(--surface);border:1px solid var(--hairline-soft,rgba(20,24,31,.05));border-radius:22px;box-shadow:0 8px 32px rgba(20,24,31,.08)}
+.cons-bd{padding:18px}
+.trk-statusline{border-radius:16px}
+.trk-statusline.st-with_driver{background:linear-gradient(135deg,var(--accent-soft),var(--go-soft));border:1px solid var(--hairline-soft,rgba(20,24,31,.06))}
+.trk-codsummary{border-radius:16px}
 </style>
