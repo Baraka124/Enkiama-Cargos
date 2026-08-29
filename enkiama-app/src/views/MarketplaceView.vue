@@ -204,20 +204,23 @@ onMounted(() => { load(); loadCategories() })
       <!-- FOCUSED: one category → flat grid -->
       <div v-else-if="activeCategory" class="mk-pgrid">
         <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
-          <div class="mk-pimg" :style="{background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')}cc)`}">
+          <div class="mk-pimg">
             <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event)" />
-            <div class="mk-pimg-ph"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
-            <span v-if="pctOff(p)" class="mk-poff">{{ pctOff(p) }}% off</span>
+            <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(150deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')})`}"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
+            <span v-if="pctOff(p)" class="mk-poff">-{{ pctOff(p) }}%</span>
+            <span v-if="p.available === false" class="mk-psold">Sold out</span>
           </div>
           <div class="mk-pbody">
-            <div class="mk-pname">{{ p.name }}</div>
-            <div class="mk-pshop">{{ p.shop_name }}<Icon v-if="p.verified_delivery" name="check" :size="11" /></div>
-            <div class="mk-pfoot">
-              <div class="mk-pprice-wrap">
-                <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
-                <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
-              </div>
+            <div class="mk-pprice-row">
+              <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
+              <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
             </div>
+            <div class="mk-pname">{{ p.name }}</div>
+            <div class="mk-pmeta">
+              <span v-if="p.delivered_count > 0" class="mk-psold-n">{{ p.delivered_count }}+ sold</span>
+              <span v-if="p.verified_delivery" class="mk-pverif"><Icon name="check" :size="10" /> Verified</span>
+            </div>
+            <div class="mk-pshop"><Avatar :name="p.shop_name" :accent="p.shop_accent" size="16" /> {{ p.shop_name }}</div>
           </div>
         </RouterLink>
       </div>
@@ -231,20 +234,23 @@ onMounted(() => { load(); loadCategories() })
           </div>
           <div class="mk-prow">
             <RouterLink v-for="p in g.items.slice(0,6)" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
-              <div class="mk-pimg" :style="{background:`linear-gradient(135deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')}cc)`}">
+              <div class="mk-pimg">
                 <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event)" />
-                <div class="mk-pimg-ph"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
-                <span v-if="pctOff(p)" class="mk-poff">{{ pctOff(p) }}% off</span>
+                <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(150deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')})`}"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
+                <span v-if="pctOff(p)" class="mk-poff">-{{ pctOff(p) }}%</span>
+                <span v-if="p.available === false" class="mk-psold">Sold out</span>
               </div>
               <div class="mk-pbody">
-                <div class="mk-pname">{{ p.name }}</div>
-                <div class="mk-pshop">{{ p.shop_name }}<Icon v-if="p.verified_delivery" name="check" :size="11" /></div>
-                <div class="mk-pfoot">
-                  <div class="mk-pprice-wrap">
-                    <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
-                    <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
-                  </div>
+                <div class="mk-pprice-row">
+                  <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
+                  <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
                 </div>
+                <div class="mk-pname">{{ p.name }}</div>
+                <div class="mk-pmeta">
+                  <span v-if="p.delivered_count > 0" class="mk-psold-n">{{ p.delivered_count }}+ sold</span>
+                  <span v-if="p.verified_delivery" class="mk-pverif"><Icon name="check" :size="10" /> Verified</span>
+                </div>
+                <div class="mk-pshop"><Avatar :name="p.shop_name" :accent="p.shop_accent" size="16" /> {{ p.shop_name }}</div>
               </div>
             </RouterLink>
           </div>
@@ -318,10 +324,11 @@ onMounted(() => { load(); loadCategories() })
 .mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:10px}
 .mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
 .mk-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
-.mk-cover{position:relative;height:92px;background:linear-gradient(135deg, var(--sf,var(--accent)), color-mix(in srgb, var(--sf,var(--accent)) 50%, #000));background-size:cover;background-position:center}
+.mk-cover{position:relative;height:92px;background:linear-gradient(135deg, var(--sf,var(--accent)), color-mix(in srgb, var(--sf,var(--accent)) 50%, #000));background-size:cover;background-position:center;overflow:hidden}
+.mk-cover::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 78% 15%, rgba(255,255,255,.18), transparent 55%);pointer-events:none}
 .mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%,rgba(0,0,0,.12))}
 .mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.12))}
-.mk-card-body{padding:0 18px 18px;position:relative}
+.mk-card-body{padding:0 18px 18px;position:relative;display:flex;flex-direction:column;flex:1}
 .mk-avatar-wrap{margin-top:-28px;position:relative;z-index:2;width:max-content;border-radius:16px;border:3px solid var(--surface);box-shadow:0 4px 14px rgba(20,24,31,.16)}
 .mk-avatar-wrap :deep(.avatar){border-radius:13px}
 .mk-avatar img{width:100%;height:100%;object-fit:cover}
@@ -333,7 +340,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink);margin-top:10px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mk-badge.feat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;gap:3px}
 .mk-tag{font-size:13px;color:var(--ink-faint);margin-top:2px}
-.mk-meta{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.mk-meta{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;min-height:20px}
 .mk-verified{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:18px}
 .mk-rating{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#B5791E}
 .mk-rc{color:var(--ink-faint);font-weight:400}
@@ -369,21 +376,28 @@ onMounted(() => { load(); loadCategories() })
 .mk-viewtoggle{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
 .mk-vt{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:600;transition:all var(--dur-fast) var(--ease)}
 .mk-vt.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
-.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
-.mk-pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;overflow:hidden;text-decoration:none;transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease);box-shadow:var(--shadow-sm)}
-.mk-pcard:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
-.mk-pcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.mk-pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;text-decoration:none;transition:box-shadow .18s ease,transform .12s ease}
+.mk-pcard:hover{box-shadow:0 8px 24px rgba(20,24,31,.13);transform:translateY(-3px)}
 .mk-pcard.sk{height:280px;background:var(--surface-2);animation:pulse 1.5s ease-in-out infinite}
-.mk-pimg{position:relative;height:180px;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.mk-pimg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(20,24,31,.12));pointer-events:none}
+.mk-pimg{position:relative;aspect-ratio:1/1;background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mk-pimg-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.mk-pimg-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.mk-pimg-ph::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.2),transparent 60%)}
+.mk-pimg-ph::after{content:"";position:absolute;inset:0;opacity:.4;background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1px);background-size:13px 13px}
+.mk-ph-chip{position:relative;z-index:1;width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)}
 
-.mk-pbody{padding:15px 16px 16px;display:flex;flex-direction:column;gap:5px;flex:1}
-.mk-pname{font-family:"Space Grotesk",sans-serif;font-weight:650;font-size:15px;letter-spacing:-.01em;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mk-pshop{display:flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--ink-faint)}
-.mk-pshop :deep(svg){color:var(--go-ink)}
-.mk-pfoot{margin-top:auto;padding-top:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
-.mk-pprice{font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:17px;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
-.mk-pdel{font-size:10px;color:var(--go-ink);font-weight:600;white-space:nowrap}
+.mk-pbody{padding:10px 11px 11px;display:flex;flex-direction:column;gap:5px;flex:1}
+.mk-pprice-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+.mk-pprice{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.02em;color:var(--owed-ink);font-variant-numeric:tabular-nums;line-height:1}
+.mk-pwas{font-size:12px;color:var(--ink-ghost);text-decoration:line-through}
+.mk-pname{font-size:13px;font-weight:500;color:var(--ink-soft);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.mk-pmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:16px}
+.mk-psold-n{font-size:11px;color:var(--ink-faint);font-weight:600}
+.mk-pverif{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--go-ink);background:var(--go-soft);padding:1px 6px;border-radius:5px}
+.mk-pshop{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-faint);margin-top:auto;padding-top:7px;border-top:1px solid var(--hairline)}
+.mk-poff{position:absolute;top:7px;left:7px;z-index:2;background:var(--owed);color:#fff;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.01em;box-shadow:0 2px 6px rgba(214,59,42,.35)}
+.mk-psold{position:absolute;top:7px;right:7px;z-index:2;background:rgba(20,24,31,.78);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em}
 .mk-head-actions{display:flex;align-items:center;gap:10px}
 
 .mk-head-actions .btn-ghost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
@@ -420,17 +434,9 @@ onMounted(() => { load(); loadCategories() })
 .mk-section-title::before{content:"";width:4px;height:20px;background:linear-gradient(180deg,var(--accent),var(--go));border-radius:3px}
 .mk-section-more{background:none;border:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .mk-section-more:hover{gap:7px}
-.mk-prow{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}
+.mk-prow{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
 .mk-poff{position:absolute;top:8px;left:8px;background:var(--owed);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.02em}
 .mk-pprice-wrap{display:flex;align-items:baseline;gap:7px}
-.mk-pwas{font-size:12.5px;color:var(--ink-ghost);text-decoration:line-through}
-
-.mk-pimg-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
-.mk-pimg-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:0}
-.mk-pimg-ph::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 38%, rgba(255,255,255,.22), transparent 60%);}
-.mk-pimg-ph::after{content:"";position:absolute;inset:0;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px);background-size:14px 14px;}
-.mk-ph-chip{position:relative;z-index:1;width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:#fff;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.28);backdrop-filter:blur(2px);box-shadow:0 4px 14px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)}
-.mk-poff{z-index:2}
 
 .mk-badge.trusted{background:linear-gradient(135deg,rgba(11,110,93,.95),rgba(18,184,134,.95));color:#fff;box-shadow:0 2px 8px rgba(11,110,93,.4)}
 
