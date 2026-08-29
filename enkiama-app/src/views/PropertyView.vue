@@ -205,20 +205,20 @@ export default { components: { PropertyForm } }
 .prop-kind{display:inline-flex;align-items:center;gap:6px;padding:8px 15px;border-radius:999px;border:1px solid var(--hairline-2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s}
 .prop-kind:hover{border-color:var(--accent);color:var(--accent-ink)}
 .prop-kind.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.prop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
-.prop-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;text-decoration:none;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur) var(--ease),transform var(--dur-fast) var(--ease)}
+.prop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.prop-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline-soft,rgba(20,24,31,.05));border-radius:20px;overflow:hidden;text-decoration:none;box-shadow:0 1px 3px rgba(20,24,31,.04);transition:box-shadow .25s ease,transform .2s ease}
 .prop-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
 .prop-card.sk{height:320px;background:var(--surface-2)}
 .prop-card-img{position:relative;height:180px;background:linear-gradient(135deg,var(--accent),var(--accent-ink));background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7)}
 .prop-card-kind{position:absolute;top:10px;left:10px;background:rgba(20,24,31,.8);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:8px;backdrop-filter:blur(4px)}
-.prop-card-verified{position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:3px;background:var(--go);color:#fff;font-size:10px;font-weight:700;padding:4px 9px;border-radius:8px}
+.prop-card-verified{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);color:var(--go-ink);font-size:10px;font-weight:600;padding:4px 9px;border-radius:8px;box-shadow:0 1px 4px rgba(20,24,31,.12)}
 .prop-card-body{padding:15px}
 .prop-card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink);letter-spacing:-.01em;margin-bottom:5px}
 .prop-card-loc{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-faint);margin-bottom:10px}
 .prop-card-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .prop-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--hairline);padding:3px 9px;border-radius:999px}
 .prop-card-foot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--hairline);padding-top:12px}
-.prop-card-price{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink)}
+.prop-card-price{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;letter-spacing:-.02em;color:var(--ink)}
 .prop-fair{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--go-ink);background:var(--go-soft);padding:3px 8px;border-radius:999px}
 
 .mine-panel{background:var(--surface);border:1px solid var(--hairline-2);border-radius:14px;padding:18px;margin-bottom:24px;box-shadow:var(--shadow-sm)}
