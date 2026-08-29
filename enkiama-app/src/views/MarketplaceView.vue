@@ -179,7 +179,7 @@ onMounted(() => { load(); loadCategories() })
       </div>
 
       <!-- sort + filter bar -->
-      <div class="mk-toolbar">
+      <div class="mk-toolbar mk-filterbar">
         <div class="mk-filters">
           <button class="mk-fchip" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><Icon name="shield" :size="13" /> Verified shops</button>
           <button class="mk-fchip" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><Icon name="check" :size="13" /> In stock</button>
@@ -307,7 +307,8 @@ onMounted(() => { load(); loadCategories() })
   background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 75%)}
 .mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
 .mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
-.mk-toolbar{max-width:1000px;margin:-32px auto 20px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;box-shadow:0 8px 28px rgba(20,24,31,.10),0 2px 6px rgba(20,24,31,.05);position:relative;z-index:5}
+.mk-toolbar{max-width:1000px;margin:-32px auto 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;box-shadow:0 8px 28px rgba(20,24,31,.10),0 2px 6px rgba(20,24,31,.05);position:relative;z-index:5}
+.mk-filterbar{margin:0 auto 22px;box-shadow:var(--shadow-sm)}
 .mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
 .mk-logo{display:flex;align-items:center;flex-shrink:0}
 .mk-hero{text-align:center;padding:36px 0 30px}
@@ -422,7 +423,7 @@ onMounted(() => { load(); loadCategories() })
 .mk-badge.verif{right:10px;background:rgba(255,255,255,.92);color:var(--go-ink)}
 
 /* ═══ CATEGORY-GROUPED PRODUCT MARKETPLACE ═══ */
-.mk-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.mk-cats{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 14px;justify-content:center}
 .mk-cat{padding:8px 16px;border-radius:999px;border:1px solid var(--hairline-2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .mk-cat:hover{border-color:var(--accent);color:var(--accent-ink)}
 .mk-cat.on{background:var(--ink);color:#fff;border-color:var(--ink)}
