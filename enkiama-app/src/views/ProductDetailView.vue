@@ -37,8 +37,9 @@ async function loadConfidence() {
 const p = computed(() => data.value?.product || {})
 const shop = computed(() => data.value?.shop || {})
 const images = computed(() => {
-  const arr = Array.isArray(p.value.images) ? p.value.images.filter(Boolean) : []
-  if (p.value.image_url && !arr.includes(p.value.image_url)) arr.unshift(p.value.image_url)
+  const valid = (u) => { const s = String(u || '').trim(); return s && s !== 'null' && s.startsWith('http') }
+  const arr = (Array.isArray(p.value.images) ? p.value.images : []).filter(valid)
+  if (valid(p.value.image_url) && !arr.includes(p.value.image_url)) arr.unshift(p.value.image_url)
   return arr
 })
 const discount = computed(() => p.value.compare_at_tzs > p.value.price_tzs
@@ -136,15 +137,15 @@ onMounted(load)
             <div class="pd-conf-row">
               <div v-if="confidence.typical_days" class="pd-conf-stat">
                 <Icon name="clock" :size="16" />
-                <div><b>~{{ confidence.typical_days }} day{{ confidence.typical_days===1?'':'s' }}</b><span>typical delivery</span></div>
+                <div class="pd-conf-txt"><b>~{{ confidence.typical_days }} day{{ confidence.typical_days===1?'':'s' }}</b><span>typical delivery</span></div>
               </div>
               <div v-if="confidence.on_time_pct !== null" class="pd-conf-stat">
                 <Icon name="check" :size="16" />
-                <div><b>{{ confidence.on_time_pct }}% on-time</b><span>arrival rate</span></div>
+                <div class="pd-conf-txt"><b>{{ confidence.on_time_pct }}%</b><span>on-time arrival</span></div>
               </div>
               <div class="pd-conf-stat">
                 <Icon name="package" :size="16" />
-                <div><b>{{ confidence.delivered }}</b><span>parcels delivered</span></div>
+                <div class="pd-conf-txt"><b>{{ confidence.delivered }}</b><span>parcel{{ confidence.delivered===1?'':'s' }} delivered</span></div>
               </div>
             </div>
           </div>
@@ -209,18 +210,18 @@ onMounted(load)
 </template>
 
 <style scoped>
-.pd-wrap{max-width:1000px}
+.pd-wrap{max-width:1120px;padding-top:20px}
 .pd-load{display:flex;justify-content:center;padding:80px}
 .pd-back{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--ink-soft);text-decoration:none;margin-bottom:20px}
 .pd-back:hover{color:var(--accent-ink)}
-.pd-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
+.pd-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:start}
 @media(max-width:760px){.pd-grid{grid-template-columns:1fr;gap:24px}}
 
-.pd-main{aspect-ratio:1;border-radius:18px;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)}
+.pd-main{aspect-ratio:1;border-radius:24px;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px rgba(20,24,31,.10);background-color:var(--surface-2)}
 .pd-main.soldout{opacity:.7}
 .pd-ph{font-family:'Space Grotesk',sans-serif;font-size:80px;font-weight:700;color:rgba(255,255,255,.9)}
-.pd-badge{position:absolute;top:14px;left:14px;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px;color:#fff}
-.pd-badge.off{background:var(--owed)}
+.pd-badge{position:absolute;top:14px;left:14px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;color:#fff;background:rgba(20,24,31,.72);backdrop-filter:blur(8px);letter-spacing:.01em}
+.pd-badge.off{background:rgba(20,24,31,.72)}
 .pd-badge.low{background:var(--warn)}
 .pd-badge.sold{background:var(--ink)}
 .pd-thumbs{display:flex;gap:10px;margin-top:12px}
@@ -228,10 +229,10 @@ onMounted(load)
 .pd-thumb.on{border-color:var(--accent)}
 
 .pd-name{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.15;color:var(--ink);margin-bottom:12px}
-.pd-price-row{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
-.pd-price{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.pd-price-row{display:flex;align-items:baseline;gap:12px;margin-bottom:8px}
+.pd-price{font-family:'Space Grotesk',sans-serif;font-size:27px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .pd-was{font-size:17px;color:var(--ink-faint);text-decoration:line-through}
-.pd-desc{font-size:14.5px;line-height:1.65;color:var(--ink-soft);margin-bottom:20px}
+.pd-desc{font-size:15.5px;line-height:1.7;color:var(--ink-soft);margin-bottom:28px;max-width:44ch}
 
 .pd-shop{display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface-2);border-radius:13px;text-decoration:none;margin-bottom:16px;transition:background var(--dur) var(--ease)}
 .pd-shop:hover{background:var(--surface-3)}
@@ -245,7 +246,8 @@ onMounted(load)
 .pd-trust span{font-size:12px;line-height:1.5;color:var(--ink-soft)}
 
 .pd-actions{display:flex;gap:10px}
-.pd-order{flex:1}
+.pd-order{flex:1;background:linear-gradient(180deg,var(--accent),var(--accent-ink));border:none;color:#fff;font-weight:600;letter-spacing:.01em;box-shadow:0 4px 16px rgba(11,110,93,.28);border-radius:14px}
+.pd-order:hover{filter:brightness(1.06)}
 
 .pd-more{margin-top:48px}
 .pd-more-h{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:18px;color:var(--ink)}
@@ -269,14 +271,15 @@ onMounted(load)
 .pd-opt.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
 
 .pd-confidence{margin-bottom:22px}
-.pd-conf-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.pd-conf-stat{display:flex;align-items:center;gap:9px;padding:12px 13px;background:var(--surface-2);border-radius:12px}
-.pd-conf-stat svg{color:var(--accent-ink);flex-shrink:0}
+.pd-conf-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:stretch}
+.pd-conf-stat{display:flex;align-items:flex-start;gap:8px;padding:12px;background:var(--surface-2);border-radius:12px}
+.pd-conf-txt{min-width:0}
+.pd-conf-stat svg{color:var(--accent-ink);flex-shrink:0;margin-top:1px}
 .pd-conf-stat b{display:block;font-size:14px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
-.pd-conf-stat span{font-size:11px;color:var(--ink-faint);line-height:1.3}
+.pd-conf-stat span{font-size:11px;color:var(--ink-faint);line-height:1.3;display:block}
 @media(max-width:520px){.pd-conf-row{grid-template-columns:1fr}}
 
-.pd-save{font-size:12.5px;font-weight:700;color:#fff;background:var(--owed);padding:3px 10px;border-radius:7px;letter-spacing:.01em}
+.pd-save{font-size:13px;font-weight:600;color:var(--go-ink);letter-spacing:0}
 .pd-urgency{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--warn-ink);background:var(--warn-soft);padding:6px 12px;border-radius:9px;margin-bottom:14px}
 .pd-urgency svg{color:var(--warn-ink)}
 .pd-main{position:relative;overflow:hidden}
