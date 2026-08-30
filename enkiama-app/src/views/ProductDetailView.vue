@@ -1,6 +1,6 @@
 <script setup>
 // A product's own shareable page — a shop can send this link straight to a buyer.
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import AppHeader from '../components/AppHeader.vue'
@@ -82,6 +82,14 @@ function shareProduct() {
 }
 
 onMounted(load)
+// reload when navigating between products (e.g. "More from shop") — route changes but component is reused
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    confidence.value = null
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    load()
+  }
+})
 </script>
 
 <template>

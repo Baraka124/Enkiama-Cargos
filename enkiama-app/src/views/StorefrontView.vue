@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import Avatar from '../components/Avatar.vue'
 import { useRoute } from 'vue-router'
 import { usePublic } from '../composables/usePublic'
 import Icon from '../components/Icon.vue'
@@ -41,6 +42,7 @@ async function load() {
   loading.value = false
   if (res?.store?.id) {
     try { const { data: r } = await supabase.rpc('shop_reputation', { p_storefront_id: res.store.id }); shopRep.value = r } catch (e) {}
+    try { const { data: pr } = await supabase.rpc('storefront_product_ratings', { p_storefront_id: res.store.id }); productRatings.value = pr || {} } catch (e) {}
   }
 }
 function tzs(n) { return n ? 'TZS ' + Number(n).toLocaleString() : '' }
@@ -55,6 +57,8 @@ function sfBrokenImg(p) { if (p?.id) { sfBroken.value.add(p.id); sfBroken.value 
 
 // ── order → auto-booking ──
 const shopRep = ref(null)
+const productRatings = ref({})
+function prodRating(p) { return productRatings.value[p.id] || null }
 const orderProduct = ref(null)
 const orderForm = ref({ name: '', phone: '', addr: '', qty: 1 })
 const ordering = ref(false)
@@ -117,7 +121,7 @@ onMounted(load)
       <div class="sf-hero-inner">
         <RouterLink to="/market" class="sf-back"><Icon name="arrow" :size="15" style="transform:rotate(180deg)" /> All shops &amp; products</RouterLink>
         <div class="sf-id">
-          <div class="sf-avatar" :style="{background:`linear-gradient(140deg, ${store.accent}, ${store.accent}bb)`}">{{ store.name.slice(0,2).toUpperCase() }}</div>
+          <Avatar :name="store.name" :accent="store.accent" :logo="store.logo_url" :size="72" class="sf-avatar-c" />
           <div class="sf-id-txt">
             <h1 class="sf-name">{{ store.name }}</h1>
             <p v-if="store.tagline" class="sf-tag">{{ store.tagline }}</p>
@@ -172,6 +176,7 @@ onMounted(load)
                     <span v-if="p.compare_at_tzs > p.price_tzs" class="sf-prod-was">{{ tzs(p.compare_at_tzs) }}</span>
                   </div>
                   <div class="sf-prod-name">{{ p.name }}</div>
+                  <div v-if="prodRating(p)" class="sf-prod-rating"><Icon name="star" :size="11" /> {{ prodRating(p).avg }} <span>({{ prodRating(p).count }})</span></div>
                   <span v-if="p.available === false" class="sf-prod-cta soldtxt">Unavailable</span>
                   <span v-else class="sf-prod-cta">Order now <Icon name="arrowRight" :size="12" /></span>
                 </div>
@@ -181,7 +186,8 @@ onMounted(load)
         </template>
 
         <template v-if="reviews.length">
-          <h2 class="sf-h2">Delivery reviews</h2>
+          <h2 class="sf-h2">Delivery experience</h2>
+          <p class="sf-reviews-sub">How buyers rated delivery from this shop. Product reviews appear on each product's page.</p>
           <div class="sf-reviews">
             <div v-for="(r,i) in reviews" :key="i" class="sf-review">
               <div class="sf-stars"><Icon v-for="n in r.rating" :key="n" name="star" :size="13" /></div>
@@ -278,7 +284,7 @@ onMounted(load)
 .sf-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-faint);text-decoration:none;margin-bottom:20px}
 .sf-back:hover{color:var(--accent-ink)}
 .sf-id{display:flex;gap:16px;align-items:flex-start}
-.sf-avatar{width:64px;height:64px;border-radius:16px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
 .sf-name{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sf-verified{font-size:12.5px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:18px;display:inline-flex;align-items:center;gap:4px}
 .sf-tag{font-size:14px;color:var(--ink-soft);margin-top:3px}
@@ -383,7 +389,7 @@ onMounted(load)
 .sf-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-faint);text-decoration:none;margin-bottom:18px}
 .sf-back:hover{color:var(--accent-ink)}
 .sf-id{display:flex;align-items:center;gap:16px}
-.sf-avatar{width:72px;height:72px;border-radius:18px;color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:24px;letter-spacing:-.02em;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 4px 14px rgba(20,24,31,.14)}
+
 .sf-id-txt{min-width:0}
 .sf-name{font-family:"Space Grotesk",sans-serif;font-size:clamp(24px,3vw,32px);font-weight:700;letter-spacing:-.03em;color:var(--ink);line-height:1.1}
 .sf-tag{font-size:14px;color:var(--ink-soft);margin-top:5px}
@@ -407,4 +413,9 @@ onMounted(load)
 .sf-prod-soldout{position:absolute;top:10px;left:10px;background:rgba(20,24,31,.7);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:600;padding:4px 9px;border-radius:8px;text-transform:uppercase;letter-spacing:.03em}
 
 .sf-prod-low{position:absolute;top:7px;left:7px;background:var(--warn);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.02em}
+
+.sf-prod-rating{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;color:#B5791E}
+.sf-prod-rating span{color:var(--ink-faint);font-weight:500}
+.sf-reviews-sub{font-size:13px;color:var(--ink-faint);margin:-4px 0 14px;line-height:1.5}
+.sf-avatar-c{box-shadow:0 4px 16px rgba(20,24,31,.16);flex-shrink:0}
 </style>
