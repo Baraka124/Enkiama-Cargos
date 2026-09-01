@@ -1350,7 +1350,7 @@ input.in-code{max-width:220px;font-family:'Spline Sans Mono',monospace;letter-sp
 .prop-map{height:560px;width:100%;background:var(--surface-2)}
 .prop-pin-badge{background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 8px rgba(11,110,93,.4);border:2px solid #fff;transform:translate(-50%,-50%);cursor:pointer;font-family:'Space Grotesk',sans-serif}
 .prop-pin-badge:hover{background:var(--accent-ink);z-index:1000}
-.prop-mapcard{position:absolute;bottom:18px;left:18px;width:300px;background:var(--surface);border-radius:16px;padding:16px;box-shadow:0 12px 40px rgba(20,24,31,.22);z-index:500}
+.prop-mapcard{position:absolute;bottom:18px;left:18px;width:300px;max-width:calc(100% - 36px);background:var(--surface);border-radius:16px;padding:16px;box-shadow:0 12px 40px rgba(20,24,31,.22);z-index:500}
 .prop-mapcard-x{position:absolute;top:12px;right:12px;width:26px;height:26px;border:none;background:var(--surface-2);border-radius:50%;cursor:pointer;color:var(--ink-faint);display:flex;align-items:center;justify-content:center}
 .prop-mapcard-kind{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--accent-ink);margin-bottom:6px;display:flex;align-items:center;gap:8px}
 .prop-mapcard-vf{display:inline-flex;align-items:center;gap:3px;background:var(--go-soft);color:var(--go-ink);padding:2px 7px;border-radius:999px;letter-spacing:0}

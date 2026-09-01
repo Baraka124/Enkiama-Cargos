@@ -224,4 +224,15 @@ onMounted(load)
 .pd-plan-v{display:block;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
 .pd-plan-v small{font-size:11px;font-weight:600;color:var(--ink-faint);margin-left:5px}
 .pd-plan-note{font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin-top:11px}
+
+@media(max-width:560px){
+  .pd-wrap{padding-left:14px;padding-right:14px}
+  .pd-title{font-size:24px}
+  .pd-facts{grid-template-columns:1fr 1fr;gap:8px}
+  .pd-fact{padding:11px 12px}
+  .pd-amenities{gap:6px}
+  .pd-am{font-size:12px;padding:6px 10px}
+  .pd-plan-grid{grid-template-columns:1fr}
+  .pd-price{font-size:22px}
+}
 </style>

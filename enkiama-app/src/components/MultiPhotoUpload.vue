@@ -8,8 +8,10 @@ const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   max: { type: Number, default: 5 },
 })
+import { analyzeImage } from '../lib/imageQuality'
 const emit = defineEmits(['update:modelValue'])
 const uploading = ref(false)
+const qualityTips = ref([])
 const fileInput = ref(null)
 const camInput = ref(null)
 function pickCamera() { if (canAdd.value) camInput.value?.click() }
@@ -24,11 +26,19 @@ async function onFiles(e) {
   const files = Array.from(e.target.files || [])
   if (!files.length) return
   err.value = ''
+  qualityTips.value = []
   uploading.value = true
   const added = []
   for (const file of files) {
     if (photos.value.length + added.length >= props.max) break
     if (file.size > 5 * 1024 * 1024) { err.value = 'Each photo must be under 5MB'; continue }
+    // analyze quality before committing (advice only — never blocks)
+    try {
+      const q = await analyzeImage(file)
+      if (q?.issues?.length) {
+        qualityTips.value.push({ name: file.name, severity: q.severity, issues: q.issues })
+      }
+    } catch (e3) { /* analysis is best-effort */ }
     try {
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
@@ -82,6 +92,20 @@ function makeFirst(i) {
       </div>
     </div>
     <div v-if="err" class="mpu-err">{{ err }}</div>
+
+    <div v-if="qualityTips.length" class="mpu-quality">
+      <div v-for="(t,ti) in qualityTips" :key="ti" class="mpu-qtip" :class="t.severity">
+        <div class="mpu-qtip-head">
+          <Icon :name="t.severity==='poor' ? 'x' : 'star'" :size="13" />
+          <span v-if="t.severity==='poor'">This photo may put buyers off</span>
+          <span v-else>Tip to make this photo better</span>
+        </div>
+        <ul class="mpu-qtip-list">
+          <li v-for="(iss,ii) in t.issues" :key="ii">{{ iss.msg }}</li>
+        </ul>
+        <div class="mpu-qtip-foot">It's uploaded — but a clearer photo sells more. You can replace it anytime.</div>
+      </div>
+    </div>
     <div v-if="photos.length" class="mpu-hint">First photo is the main image customers see. Tap ★ to change which is main.</div>
   </div>
 </template>
@@ -105,4 +129,13 @@ function makeFirst(i) {
 .mpu-add.cam{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
 .mpu-add.cam:hover{background:var(--accent);color:#fff}
 .mpu-add.gallery{background:var(--surface-2)}
+
+.mpu-quality{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.mpu-qtip{border-radius:11px;padding:12px 14px;font-size:12.5px}
+.mpu-qtip.warn{background:var(--warn-soft);color:var(--warn-ink)}
+.mpu-qtip.poor{background:var(--owed-soft);color:var(--owed-ink)}
+.mpu-qtip-head{display:flex;align-items:center;gap:6px;font-weight:700;margin-bottom:6px}
+.mpu-qtip-list{margin:0;padding-left:18px;line-height:1.55}
+.mpu-qtip-list li{margin-bottom:2px}
+.mpu-qtip-foot{margin-top:7px;font-size:11.5px;opacity:.85}
 </style>

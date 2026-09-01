@@ -567,4 +567,16 @@ onUnmounted(() => { if (livePoll) clearInterval(livePoll); if (trkMap) { trkMap.
 .trk-statusline{border-radius:16px}
 .trk-statusline.st-with_driver{background:linear-gradient(135deg,var(--accent-soft),var(--go-soft));border:1px solid var(--hairline-soft,rgba(20,24,31,.06))}
 .trk-codsummary{border-radius:16px}
+
+@media(max-width:560px){
+  .wrap{padding-left:14px;padding-right:14px}
+  .trk-hero-inner{padding:28px 16px 32px}
+  .trk-hero-h1{font-size:26px}
+  .cons-bd{padding:14px}
+  .trk-statusline{padding:13px;gap:11px}
+  .trk-statusline-h{font-size:17px}
+  .trk-codsummary{flex-direction:column;align-items:flex-start;gap:6px}
+  .trk-cod-hint{text-align:left;max-width:none}
+  .party{flex-wrap:wrap;gap:12px}
+}
 </style>

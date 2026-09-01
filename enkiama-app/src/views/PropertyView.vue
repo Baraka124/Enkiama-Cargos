@@ -238,4 +238,14 @@ export default { components: { PropertyForm } }
 .mine-withdraw{background:none;border:none;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink-faint);cursor:pointer;padding:4px 8px}
 .mine-withdraw:hover{color:var(--owed-ink)}
 .mine-note{font-size:12.5px;color:var(--ink-faint);margin-top:12px}
+
+@media(max-width:560px){
+  .prop-hero-inner{padding:24px 16px 28px}
+  .prop-hero h1{font-size:26px}
+  .prop-kinds{gap:7px}
+  .prop-kind{font-size:13px;padding:8px 13px}
+  .prop-viewtoggle{margin-left:0;width:100%;justify-content:center;margin-top:4px}
+  .prop-grid{grid-template-columns:1fr;gap:14px}
+  .prop-map{height:420px}
+}
 </style>

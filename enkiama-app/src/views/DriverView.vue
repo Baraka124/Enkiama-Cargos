@@ -450,3 +450,12 @@ async function logout(){ await signOut(); router.push('/login') }
   <!-- OCR WAYBILL SCANNER -->
   <CodeScanner v-if="scanOpen" @found="onCodeScanned" @close="scanOpen=false" />
 </template>
+
+<style scoped>
+@media(max-width:560px){
+  .dv-wrap,.wrap{padding-left:14px;padding-right:14px}
+  .dv-grid,.dv-stats{grid-template-columns:1fr}
+  .dv-actions{flex-direction:column}
+  .dv-actions > *{width:100%}
+}
+</style>
