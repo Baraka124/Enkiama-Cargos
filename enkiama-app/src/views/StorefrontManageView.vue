@@ -138,6 +138,40 @@ async function saveStock(p, track, qty) {
   } catch (e) { toast('Could not update', 'warn') }
 }
 
+// product editing
+const editProduct = ref(null)
+const editDraft = ref({})
+const editBusy = ref(false)
+function openEdit(p) {
+  editProduct.value = p
+  editDraft.value = {
+    name: p.name || '', price_tzs: p.price_tzs || '', compare_at_tzs: p.compare_at_tzs || '',
+    description: p.description || '', category: p.category || '',
+    images: Array.isArray(p.images) ? [...p.images] : (p.image_url ? [p.image_url] : []),
+  }
+}
+async function saveEdit() {
+  const d = editDraft.value
+  if (!d.name || !d.price_tzs) { toast('Name and price are required', 'warn'); return }
+  editBusy.value = true
+  try {
+    const { data } = await supabase.rpc('update_product', {
+      p_product_id: editProduct.value.id, p_name: d.name, p_price_tzs: Number(d.price_tzs),
+      p_description: d.description || null, p_category: d.category || null,
+      p_compare_at_tzs: d.compare_at_tzs ? Number(d.compare_at_tzs) : null,
+      p_images: d.images && d.images.length ? d.images : null })
+    if (data?.ok) {
+      // update the local product in place
+      Object.assign(editProduct.value, {
+        name: d.name, price_tzs: Number(d.price_tzs),
+        compare_at_tzs: (Number(d.compare_at_tzs) > Number(d.price_tzs)) ? Number(d.compare_at_tzs) : null,
+        description: d.description, category: d.category, images: d.images })
+      toast('Product updated', 'ok'); editProduct.value = null
+    } else toast(data?.error || 'Could not update', 'warn')
+  } catch (e) { toast('Could not update', 'warn') }
+  editBusy.value = false
+}
+
 // product variants / options
 const optProduct = ref(null)
 const optDraft = ref([])
@@ -354,6 +388,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
                 <div v-if="p.options && p.options.length" class="mgr-opts-line">{{ p.options.map(o => o.name + ' (' + o.choices.length + ')').join(' · ') }}</div>
               </div>
               <div class="mgr-prod-price">{{ p.price_tzs ? 'TZS '+p.price_tzs.toLocaleString() : '—' }}</div>
+              <button class="mgr-opt-btn" @click="openEdit(p)" title="Edit this product"><Icon name="edit" :size="13" /> Edit</button>
               <button class="mgr-opt-btn" @click="openOptions(p)" title="Sizes, colours, variants"><Icon name="swap" :size="13" /> Options</button>
               <div class="mgr-stockbox">
                 <template v-if="p.track_stock">
@@ -408,6 +443,35 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         </div>
       </template>
     </template>
+
+    <!-- product edit -->
+    <div v-if="editProduct" class="overlay" @click.self="editProduct=null">
+      <div class="modal" style="max-width:520px">
+        <h3>Edit product</h3>
+        <div class="row2">
+          <div class="fg"><label>Product name</label><input v-model="editDraft.name" placeholder="Kitenge — 6 yards" /></div>
+          <div class="fg"><label>Price (TZS)</label><input v-model="editDraft.price_tzs" type="number" inputmode="numeric" placeholder="45000" /></div>
+        </div>
+        <div class="fg"><label>Original price <span class="fld-opt">optional — shows a discount</span></label>
+          <input v-model="editDraft.compare_at_tzs" type="number" inputmode="numeric" placeholder="e.g. 60000" />
+          <div v-if="Number(editDraft.compare_at_tzs) > Number(editDraft.price_tzs) && editDraft.price_tzs" class="prod-save-hint">
+            Buyers save {{ tzs(Number(editDraft.compare_at_tzs) - Number(editDraft.price_tzs)) }} ({{ Math.round((1 - Number(editDraft.price_tzs)/Number(editDraft.compare_at_tzs))*100) }}% off)
+          </div>
+        </div>
+        <div class="fg"><label>Category</label>
+          <select v-model="editDraft.category">
+            <option value="">Choose a category…</option>
+            <option v-for="c in categories" :key="c.category" :value="c.category">{{ c.category }}</option>
+          </select>
+        </div>
+        <div class="fg"><label>Description</label><textarea v-model="editDraft.description" rows="2" placeholder="Anything a buyer should know"></textarea></div>
+        <div class="fg"><label>Photos</label><MultiPhotoUpload v-model="editDraft.images" :max="5" /></div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" @click="editProduct=null">Cancel</button>
+          <button class="btn btn-accent" :disabled="editBusy" @click="saveEdit"><Spinner v-if="editBusy" :size="15" /><span v-else>Save changes</span></button>
+        </div>
+      </div>
+    </div>
 
     <!-- product options editor -->
     <div v-if="optProduct" class="overlay" @click.self="optProduct=null">
