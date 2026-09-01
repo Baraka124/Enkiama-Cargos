@@ -456,4 +456,36 @@ onMounted(() => { load(); loadCategories() })
 .mk-userchip-name{font-size:13.5px;font-weight:650;color:#fff;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mk-userchip-role{font-size:10.5px;color:rgba(255,255,255,.6);font-weight:500}
 .mk-admin-tag{display:inline-flex;align-items:center;gap:3px;color:#E8C877;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+
+/* ─── mobile (Samsung A56 ≈ 390px and down) ─── */
+@media(max-width:560px){
+  .mk-controls{margin:-20px auto 20px;border-radius:16px}
+  .mk-controls-top{flex-direction:column;align-items:stretch;gap:10px;padding:12px}
+  .mk-viewtoggle{width:100%;justify-content:space-between}
+  .mk-vt{flex:1;justify-content:center;padding:9px 6px;font-size:12.5px;white-space:nowrap}
+  .mk-count{text-align:right;font-size:12px}
+  .mk-controls .mk-cats{padding:12px;gap:6px}
+  .mk-cat{font-size:12.5px;padding:7px 12px}
+  .mk-controls-bottom{flex-direction:column;align-items:stretch;gap:12px;padding:12px}
+  .mk-filters{justify-content:flex-start;flex-wrap:wrap}
+  .mk-fchip{font-size:12px;padding:7px 11px}
+  .mk-sort{width:100%;justify-content:space-between;background:none;padding:0}
+  .mk-sort select{flex:1;max-width:none}
+  /* products: 2-up on phones, tighter */
+  .mk-pgrid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .mk-pbody{padding:11px 12px 12px}
+  .mk-pprice{font-size:15px}
+  .mk-pname{font-size:12.5px;min-height:34px}
+  /* shops: single column */
+  .mk-grid{grid-template-columns:1fr;gap:14px}
+  /* hero search + nav */
+  .mk-nav{flex-wrap:wrap;gap:10px}
+  .mk-navsearch{order:3;width:100%}
+  .mk-hero h1,.mk-hero-h1{font-size:26px}
+  .mk-sections .mk-prow{grid-template-columns:repeat(2,1fr);gap:12px}
+}
+@media(max-width:380px){
+  .mk-pgrid,.mk-sections .mk-prow{gap:10px}
+  .mk-vt{padding:8px 4px;font-size:12px}
+}
 </style>

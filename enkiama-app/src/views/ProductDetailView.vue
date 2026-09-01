@@ -293,4 +293,15 @@ watch(() => route.params.id, (newId, oldId) => {
 .pd-main{position:relative;overflow:hidden}
 .pd-main::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 32%,rgba(255,255,255,.16),transparent 60%);pointer-events:none}
 .pd-ph-chip{position:relative;z-index:1;width:88px;height:88px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.28);box-shadow:0 6px 20px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.3)}
+
+@media(max-width:520px){
+  .pd-title{font-size:26px}
+  .pd-price{font-size:24px}
+  .pd-price-row{flex-wrap:wrap;gap:8px 10px;align-items:center}
+  .pd-save{order:3;flex-basis:100%}
+  .pd-conf-row{grid-template-columns:repeat(3,1fr);gap:8px}
+  .pd-conf-stat{flex-direction:column;align-items:flex-start;gap:6px;padding:11px 10px}
+  .pd-actions{flex-direction:column}
+  .pd-order,.pd-share{width:100%}
+}
 </style>

@@ -418,4 +418,22 @@ onMounted(load)
 .sf-prod-rating span{color:var(--ink-faint);font-weight:500}
 .sf-reviews-sub{font-size:13px;color:var(--ink-faint);margin:-4px 0 14px;line-height:1.5}
 .sf-avatar-c{box-shadow:0 4px 16px rgba(20,24,31,.16);flex-shrink:0}
+
+@media(max-width:560px){
+  .sf-hero-inner{padding:16px 16px 20px}
+  .sf-id{flex-direction:column;gap:14px;align-items:flex-start}
+  .sf-avatar-c{width:56px!important;height:56px!important;font-size:19px!important}
+  .sf-name{font-size:21px!important}
+  .sf-tag{font-size:13px}
+  .sf-meta{gap:8px 12px;margin-top:10px;font-size:12.5px}
+  .sf-meta > *{font-size:12.5px}
+  .sf-products{grid-template-columns:repeat(2,1fr);gap:12px}
+  .sf-prod-body{padding:11px 12px 12px}
+  .sf-prod-price{font-size:15px}
+  .sf-prod-name{font-size:12.5px;min-height:34px}
+  .sf-reviews-sub{font-size:12px}
+}
+@media(max-width:380px){
+  .sf-products{gap:10px}
+}
 </style>
