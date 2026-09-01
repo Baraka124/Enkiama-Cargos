@@ -1182,3 +1182,13 @@ function fmtWhen(ts) {
     </div>
   </div>
 </template>
+
+<style scoped>
+@media(max-width:640px){
+  .topbar{flex-wrap:wrap;gap:8px;padding:10px 12px}
+  .dispatch-grid,.disp-cols{grid-template-columns:1fr!important}
+  .disp-table,.cons-table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .disp-toolbar{flex-direction:column;align-items:stretch;gap:8px}
+  .disp-filters{flex-wrap:wrap}
+}
+</style>

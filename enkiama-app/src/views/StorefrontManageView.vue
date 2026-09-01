@@ -301,9 +301,9 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         <div class="sf-branding">
           <div class="sf-cover-upload" :style="form.cover_url ? {backgroundImage:`url(${form.cover_url})`} : {background:`linear-gradient(135deg, ${form.accent}, ${form.accent}99)`}">
             <div class="sf-logo-upload">
-              <PhotoUpload v-model="form.logo_url" />
+              <PhotoUpload v-model="form.logo_url" kind="logo" />
             </div>
-            <div class="sf-cover-btn"><PhotoUpload v-model="form.cover_url" /></div>
+            <div class="sf-cover-btn"><PhotoUpload v-model="form.cover_url" kind="cover" /></div>
           </div>
           <div class="sf-branding-hint">Add a cover photo and logo — this is how your shop appears on the marketplace.</div>
         </div>
@@ -471,4 +471,15 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
 .deliv-opt{flex:1;padding:11px;border:1px solid var(--hairline-2);background:var(--surface);border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:all .15s ease}
 .deliv-opt:hover{border-color:var(--ink-faint)}
 .deliv-opt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+
+@media(max-width:560px){
+  .mgr-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:4px}
+  .mgr-tabs::-webkit-scrollbar{display:none}
+  .mgr-tab{white-space:nowrap;flex-shrink:0}
+  .sf-cover-upload{height:120px}
+  .mgr-prod{flex-wrap:wrap;gap:8px}
+  .mgr-prod-price{margin-left:auto}
+  .mgr-opt-btn{font-size:11px;padding:5px 9px}
+  .setup-ring-wrap{flex-direction:column;text-align:center;gap:12px}
+}
 </style>
