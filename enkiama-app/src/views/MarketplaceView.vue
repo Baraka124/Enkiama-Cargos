@@ -1,23 +1,51 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useI18n } from '../composables/useI18n'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { usePublic } from '../composables/usePublic'
 import { useAuth } from '../composables/useAuth'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
+import { viewName, signalMotionReady } from '../lib/motion'
 
-const { t, setLang, isSwahili } = useI18n()
 const stores = ref([])
 const products = ref([])
 const categories = ref([])
-const view = ref('products')   // products | shops — products is the marketplace default
+const view = ref('products')
 const activeCategory = ref('')
 const sortBy = ref('relevant')
 const filterVerified = ref(false)
 const filterInStock = ref(false)
 const filterDeal = ref(false)
+const loading = ref(true)
+const pub = usePublic()
+const { session, profile, isPlatformAdmin } = useAuth()
+const corridor = ref('')
+const corridors = ['Dar es Salaam', 'Arusha', 'Mwanza', 'Dodoma', 'Mbeya', 'Tanga', 'Morogoro', 'Zanzibar Urban/West']
+const corridorNodes = [
+  { name:'Mwanza', x:18, y:20, code:'MWZ' },
+  { name:'Arusha', x:61, y:17, code:'ARK' },
+  { name:'Tanga', x:79, y:36, code:'TGT' },
+  { name:'Dodoma', x:48, y:46, code:'DOD' },
+  { name:'Morogoro', x:66, y:58, code:'MOR' },
+  { name:'Dar es Salaam', x:82, y:70, code:'DAR' },
+  { name:'Mbeya', x:29, y:73, code:'MBY' },
+  { name:'Zanzibar Urban/West', x:91, y:53, code:'ZNZ' },
+]
+const search = ref('')
+const sort = ref('recommended')
+let searchTimer = null
+
+const mkDisplayName = computed(() => profile?.value?.name || session?.value?.user?.email?.split('@')[0] || 'Account')
+const mkRoleLabel = computed(() => {
+  const r = profile?.value?.role
+  return ({ carrier_admin:'Carrier admin', dispatch:'Dispatch', driver:'Driver', sender:'Business', receiver:'Receiver' }[r]) || (r ? r.replace('_',' ') : '')
+})
+const homePath = computed(() => {
+  const r = profile?.value?.role
+  return r === 'driver' ? '/driver' : (r === 'dispatch' || r === 'carrier_admin') ? '/dispatch' : r === 'sender' ? '/send' : r === 'receiver' ? '/deliveries' : '/'
+})
+
 const displayProducts = computed(() => {
   let list = [...products.value]
   if (filterVerified.value) list = list.filter(p => p.verified_delivery || p.shop_verified)
@@ -28,27 +56,25 @@ const displayProducts = computed(() => {
   else if (sortBy.value === 'newest') list.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0))
   return list
 })
-const loading = ref(true)
-const pub = usePublic()
-const { session, profile, isPlatformAdmin } = useAuth()
-const mkDisplayName = computed(() => profile?.value?.name || session?.value?.user?.email?.split('@')[0] || 'Account')
-const mkRoleLabel = computed(() => {
-  const r = profile?.value?.role
-  return ({ carrier_admin:'Carrier admin', dispatch:'Dispatch', driver:'Driver', sender:'Business', receiver:'Receiver' }[r]) || (r ? r.replace('_',' ') : '')
-})
-const homePath = computed(() => {
-  const r = profile?.value?.role
-  return r === 'driver' ? '/driver' : (r === 'dispatch' || r === 'carrier_admin') ? '/dispatch' : r === 'sender' ? '/send' : r === 'receiver' ? '/deliveries' : '/'
-})
-const corridor = ref('')
-const corridors = ['Dar es Salaam', 'Arusha', 'Mwanza', 'Dodoma', 'Mbeya', 'Tanga', 'Morogoro', 'Zanzibar Urban/West']
-const search = ref('')
-const sort = ref('recommended')
-let searchTimer = null
 
-// group products by category → "same category" clusters, exposed all at once
+const groupedProducts = computed(() => {
+  if (activeCategory.value) return null
+  const groups = {}
+  for (const p of displayProducts.value) {
+    const cat = p.category || 'Other'
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(p)
+  }
+  return Object.entries(groups).map(([category, items]) => ({ category, items }))
+})
 
-// product image helpers — robust fallback to gradient+letter tile
+const heroProducts = computed(() => displayProducts.value.filter(p => pImg(p)).slice(0, 2))
+const featuredStore = computed(() => stores.value[0] || null)
+const otherStores = computed(() => stores.value.slice(1))
+const selectedCorridorLabel = computed(() => corridor.value ? corridor.value.replace(' Urban/West','') : 'All Tanzania')
+const activeFilterCount = computed(() => [filterVerified.value, filterInStock.value, filterDeal.value].filter(Boolean).length)
+
+const brokenImgs = ref(new Set())
 function pImg(p) {
   if (brokenImgs.value.has(p.id)) return ''
   const url = (Array.isArray(p.images) && p.images.length ? p.images[0] : p.image_url) || ''
@@ -59,19 +85,11 @@ function pctOff(p) {
   if (!p.compare_at_tzs || !p.price_tzs || p.compare_at_tzs <= p.price_tzs) return 0
   return Math.round((1 - p.price_tzs / p.compare_at_tzs) * 100)
 }
-const brokenImgs = ref(new Set())
-function brokenImg(e, p) { if (p?.id) { brokenImgs.value.add(p.id); brokenImgs.value = new Set(brokenImgs.value) } }
-
-const groupedProducts = computed(() => {
-  if (activeCategory.value) return null  // focused on one category → flat grid
-  const groups = {}
-  for (const p of displayProducts.value) {
-    const cat = p.category || 'Other'
-    if (!groups[cat]) groups[cat] = []
-    groups[cat].push(p)
-  }
-  return Object.entries(groups).map(([category, items]) => ({ category, items }))
-})
+function brokenImg(e, p) {
+  if (!p?.id) return
+  brokenImgs.value.add(p.id)
+  brokenImgs.value = new Set(brokenImgs.value)
+}
 
 async function load() {
   loading.value = true
@@ -83,13 +101,14 @@ async function load() {
     products.value = data || []
   }
   loading.value = false
+  await nextTick()
+  signalMotionReady()
 }
 async function loadCategories() {
   const { data } = await pub.productCategories()
   categories.value = data || []
 }
 
-// tier a shop from data already on the card — no extra query
 function shopTier(s) {
   const d = s.delivered_count || 0, r = s.avg_rating || 5
   if (d >= 50 && r >= 4.5) return 'trusted'
@@ -98,394 +117,521 @@ function shopTier(s) {
   return 'new'
 }
 
-function setView(v) { view.value = v; load() }
-function setCategory(c) { activeCategory.value = activeCategory.value === c ? '' : c; view.value = 'products'; load() }
-function filterCorridor(c) { corridor.value = corridor.value === c ? '' : c; load() }
-function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(load, 300) }
+function setView(v) {
+  view.value = v
+  activeCategory.value = ''
+  load()
+  requestAnimationFrame(() => document.querySelector('#market-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
+function setCategory(c) {
+  activeCategory.value = activeCategory.value === c ? '' : c
+  view.value = 'products'
+  load()
+}
+function filterCorridor(c) {
+  corridor.value = corridor.value === c ? '' : c
+  load()
+}
+function onSearch() {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(load, 280)
+}
+function submitSearch() {
+  clearTimeout(searchTimer)
+  load()
+  requestAnimationFrame(() => document.querySelector('#market-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
 function setSort(s) { sort.value = s; load() }
+function clearFilters() {
+  filterVerified.value = false
+  filterInStock.value = false
+  filterDeal.value = false
+}
+function onHeroPointer(e) {
+  const el = e.currentTarget
+  const r = el.getBoundingClientRect()
+  const x = ((e.clientX - r.left) / r.width - .5) * 2
+  const y = ((e.clientY - r.top) / r.height - .5) * 2
+  el.style.setProperty('--orbit-x', `${(x * 8).toFixed(2)}px`)
+  el.style.setProperty('--orbit-y', `${(y * 8).toFixed(2)}px`)
+  el.style.setProperty('--orbit2-x', `${(x * -12).toFixed(2)}px`)
+  el.style.setProperty('--orbit2-y', `${(y * -12).toFixed(2)}px`)
+  el.style.setProperty('--goods-x', `${(x * -7).toFixed(2)}px`)
+  el.style.setProperty('--goods-y', `${(y * -6).toFixed(2)}px`)
+  el.style.setProperty('--business-x', `${(x * 10).toFixed(2)}px`)
+  el.style.setProperty('--business-y', `${(y * 7).toFixed(2)}px`)
+  el.style.setProperty('--property-x', `${(x * -5).toFixed(2)}px`)
+  el.style.setProperty('--property-y', `${(y * 10).toFixed(2)}px`)
+  el.style.setProperty('--float-a-x', `${(x * 5).toFixed(2)}px`)
+  el.style.setProperty('--float-a-y', `${(y * 8).toFixed(2)}px`)
+  el.style.setProperty('--float-b-x', `${(x * -7).toFixed(2)}px`)
+  el.style.setProperty('--float-b-y', `${(y * -5).toFixed(2)}px`)
+}
+function resetHeroPointer(e) {
+  for (const name of ['--orbit-x','--orbit-y','--orbit2-x','--orbit2-y','--goods-x','--goods-y','--business-x','--business-y','--property-x','--property-y','--float-a-x','--float-a-y','--float-b-x','--float-b-y']) {
+    e.currentTarget.style.setProperty(name, '0px')
+  }
+}
+
 onMounted(() => { load(); loadCategories() })
 </script>
 
 <template>
   <div class="mk">
-    <div class="mk-dark">
-      <div class="mk-dark-inner">
-        <header class="mk-nav">
-          <RouterLink to="/" class="mk-logo"><BrandMark variant="full" :height="32" light /></RouterLink>
-          <div class="mk-navsearch">
-            <input v-model="search" @input="onSearch" placeholder="Search shops or products across Tanzania…" aria-label="Search" />
-            <button v-if="search" class="mk-navsearch-clear" @click="search=''; onSearch()" aria-label="Clear"><Icon name="plus" :size="16" style="transform:rotate(45deg)" /></button>
-            <button class="mk-navsearch-btn" @click="onSearch"><Icon name="search" :size="18" /></button>
-          </div>
-          <div class="mk-head-actions">
-            <template v-if="session">
-              <RouterLink :to="homePath" class="mk-userchip" :class="{'mk-userchip-admin': isPlatformAdmin}">
-                <Avatar :name="mkDisplayName" size="sm" />
-                <span class="mk-userchip-id">
-                  <span class="mk-userchip-name">{{ mkDisplayName }}</span>
-                  <span v-if="isPlatformAdmin" class="mk-userchip-role mk-admin-tag"><Icon name="shield" :size="9" /> Admin</span>
-                  <span v-else-if="mkRoleLabel" class="mk-userchip-role">{{ mkRoleLabel }}</span>
-                </span>
-              </RouterLink>
-            </template>
-            <template v-else>
-              <RouterLink to="/join/business" class="mk-navlink">Sell on Enkiama</RouterLink>
-              <RouterLink to="/login" class="btn btn-accent">Sign in</RouterLink>
-            </template>
-          </div>
-        </header>
+    <!-- EXPRESSIVE LAYER: the market as a place, not a dashboard -->
+    <section class="mk-stage" @pointermove="onHeroPointer" @pointerleave="resetHeroPointer">
+      <div class="mk-stage-grid" aria-hidden="true"></div>
+      <div class="mk-stage-orbit mk-stage-orbit-a" aria-hidden="true"></div>
+      <div class="mk-stage-orbit mk-stage-orbit-b" aria-hidden="true"></div>
 
-        <section class="mk-hero">
-          <h1 class="mk-h1">Everything you need, <span class="grad">delivered</span> &amp; tracked.</h1>
-          <p class="mk-sub">Discover businesses across Tanzania — every order shipped with end-to-end tracked delivery through Enkiama Cargos carriers.</p>
-
-          <div class="mk-corridors">
-            <span class="mk-corr-lab">Delivers to:</span>
-            <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c }}</button>
-          </div>
-        </section>
-      </div>
-    </div>
-
-    <div class="mk-body">
-    <div class="mk-controls">
-      <div class="mk-controls-top">
-        <div class="mk-viewtoggle">
-          <button class="mk-vt" :class="{on:view==='shops'}" @click="setView('shops')"><Icon name="building" :size="14" /> Shops</button>
-          <button class="mk-vt" :class="{on:view==='products'}" @click="setView('products')"><Icon name="package" :size="14" /> Products</button>
-          <RouterLink to="/property" class="mk-vt"><Icon name="pin" :size="14" /> Property &amp; Land</RouterLink>
+      <header class="mk-nav">
+        <RouterLink to="/" class="mk-logo" aria-label="Enkiama home"><BrandMark variant="full" :height="30" light /></RouterLink>
+        <nav class="mk-nav-mid" aria-label="Market sections">
+          <button :class="{on:view==='products'}" @click="setView('products')">Goods</button>
+          <button :class="{on:view==='shops'}" @click="setView('shops')">Businesses</button>
+          <RouterLink to="/property">Property</RouterLink>
+        </nav>
+        <div class="mk-head-actions">
+          <template v-if="session">
+            <RouterLink :to="homePath" class="mk-userchip" :class="{'mk-userchip-admin': isPlatformAdmin}">
+              <Avatar :name="mkDisplayName" size="sm" />
+              <span class="mk-userchip-id">
+                <span class="mk-userchip-name">{{ mkDisplayName }}</span>
+                <span v-if="isPlatformAdmin" class="mk-userchip-role mk-admin-tag"><Icon name="shield" :size="9" /> Admin</span>
+                <span v-else-if="mkRoleLabel" class="mk-userchip-role">{{ mkRoleLabel }}</span>
+              </span>
+            </RouterLink>
+          </template>
+          <template v-else>
+            <RouterLink to="/join/business" class="mk-navlink">Sell</RouterLink>
+            <RouterLink to="/login" class="mk-signin">Sign in</RouterLink>
+          </template>
         </div>
-        <div v-if="view==='shops'" class="mk-sort">
-          <button class="mk-sort-b" :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
-          <button class="mk-sort-b" :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
-          <button class="mk-sort-b" :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
+      </header>
+
+      <div class="mk-stage-inner">
+        <div class="mk-kicker"><span>01</span><span>Market / Tanzania</span></div>
+        <div class="mk-hero-copy">
+          <h1>Everything<br><em>moves.</em></h1>
+          <p>Goods, businesses and places — discovered locally and connected through Enkiama's tracked delivery network.</p>
         </div>
-        <span v-else class="mk-count">{{ products.length }} product{{ products.length===1?'':'s' }}</span>
-      </div>
 
-      <!-- PRODUCTS: categories + filters live INSIDE the same panel -->
-      <template v-if="view==='products'">
-        <div v-if="categories.length" class="mk-cats">
-          <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All products</button>
-          <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">
-            {{ c.category }} <span class="mk-cat-n">{{ c.count }}</span>
-          </button>
-        </div>
-        <div class="mk-controls-bottom">
-          <div class="mk-filters">
-            <button class="mk-fchip" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><Icon name="shield" :size="13" /> Verified shops</button>
-            <button class="mk-fchip" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><Icon name="check" :size="13" /> In stock</button>
-            <button class="mk-fchip" :class="{on:filterDeal}" @click="filterDeal=!filterDeal"><Icon name="star" :size="13" /> On offer</button>
-          </div>
-          <div class="mk-sort">
-            <label>Sort</label>
-            <select v-model="sortBy">
-              <option value="relevant">Most relevant</option>
-              <option value="price_low">Price: low to high</option>
-              <option value="price_high">Price: high to low</option>
-              <option value="newest">Newest</option>
-            </select>
-          </div>
-        </div>
-      </template>
-    </div>
-
-    <!-- PRODUCTS VIEW -->
-    <div v-if="view==='products'">
-      <div v-if="search" class="mk-searchinfo">
-        <span>{{ displayProducts.length }} result{{ displayProducts.length===1?'':'s' }} for "<b>{{ search }}</b>"</span>
-        <button class="mk-clearsearch" @click="search=''; onSearch()">Clear search</button>
-      </div>
-
-      <div v-if="loading" class="mk-pgrid">
-        <div v-for="i in 8" :key="i" class="mk-pcard sk"></div>
-      </div>
-      <EmptyState v-else-if="!displayProducts.length" icon="package" title="No products found" hint="Try a different search, category, or filter." />
-
-      <!-- FOCUSED: one category → flat grid -->
-      <div v-else-if="activeCategory" class="mk-pgrid">
-        <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
-          <div class="mk-pimg">
-            <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event, p)" />
-            <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(150deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')})`}"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
-            <span v-if="pctOff(p)" class="mk-poff">-{{ pctOff(p) }}%</span>
-            <span v-if="p.available === false" class="mk-psold">Sold out</span>
-          </div>
-          <div class="mk-pbody">
-            <div class="mk-pprice-row">
-              <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
-              <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
-            </div>
-            <div class="mk-pname">{{ p.name }}</div>
-            <div class="mk-pmeta">
-              <span v-if="p.delivered_count > 0" class="mk-psold-n">{{ p.delivered_count }}+ sold</span>
-              <span v-if="p.verified_delivery" class="mk-pverif"><Icon name="check" :size="10" /> Verified</span>
-            </div>
-            <div class="mk-pshop"><Avatar :name="p.shop_name" :accent="p.shop_accent" size="16" /> {{ p.shop_name }}</div>
-          </div>
+        <button class="mk-realm mk-realm-goods" :class="{active:view==='products'}" @click="setView('products')">
+          <span class="mk-realm-no">01</span>
+          <span class="mk-realm-name">Goods</span>
+          <span class="mk-realm-note">Objects for everyday life</span>
+          <span class="mk-realm-arrow">↗</span>
+        </button>
+        <button class="mk-realm mk-realm-business" :class="{active:view==='shops'}" @click="setView('shops')">
+          <span class="mk-realm-no">02</span>
+          <span class="mk-realm-name">Businesses</span>
+          <span class="mk-realm-note">People behind the market</span>
+          <span class="mk-realm-arrow">↗</span>
+        </button>
+        <RouterLink to="/property" class="mk-realm mk-realm-property">
+          <span class="mk-realm-no">03</span>
+          <span class="mk-realm-name">Property</span>
+          <span class="mk-realm-note">Land, homes &amp; places</span>
+          <span class="mk-realm-arrow">↗</span>
         </RouterLink>
-      </div>
 
-      <!-- BROWSE ALL: grouped into category sections (exposed to everything, organized) -->
-      <div v-else class="mk-sections">
-        <section v-for="g in groupedProducts" :key="g.category" class="mk-section">
-          <div class="mk-section-head">
-            <h2 class="mk-section-title">{{ g.category }}</h2>
-            <button class="mk-section-more" @click="setCategory(g.category)">See all {{ g.items.length }} <Icon name="arrowRight" :size="13" /></button>
+        <RouterLink v-if="heroProducts[0]" :to="`/shop/${heroProducts[0].shop_slug}/product/${heroProducts[0].id}`" class="mk-float-product mk-float-a" data-cursor="View" aria-label="Open featured product">
+          <img :src="pImg(heroProducts[0])" :alt="heroProducts[0].name" @error="brokenImg($event, heroProducts[0])" />
+          <span>{{ heroProducts[0].name }}</span>
+        </RouterLink>
+        <RouterLink v-if="heroProducts[1]" :to="`/shop/${heroProducts[1].shop_slug}/product/${heroProducts[1].id}`" class="mk-float-product mk-float-b" data-cursor="View" aria-label="Open featured product">
+          <img :src="pImg(heroProducts[1])" :alt="heroProducts[1].name" @error="brokenImg($event, heroProducts[1])" />
+          <span>{{ heroProducts[1].name }}</span>
+        </RouterLink>
+
+        <form class="mk-search" @submit.prevent="submitSearch">
+          <span class="mk-search-label">Find in Market</span>
+          <div class="mk-search-line">
+            <Icon name="search" :size="20" />
+            <input v-model="search" @input="onSearch" placeholder="Search products or businesses across Tanzania" aria-label="Search Enkiama Market" />
+            <button v-if="search" type="button" class="mk-search-clear" @click="search=''; submitSearch()" aria-label="Clear search">Clear</button>
+            <button type="submit" class="mk-search-go" aria-label="Search"><Icon name="arrow" :size="18" /></button>
           </div>
-          <div class="mk-prow">
-            <RouterLink v-for="p in g.items.slice(0,6)" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard">
-              <div class="mk-pimg">
-                <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" class="mk-pimg-el" loading="lazy" @error="brokenImg($event, p)" />
-                <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(150deg, ${p.shop_accent||'#0B6E5D'}, ${(p.shop_accent||'#075446')})`}"><span class="mk-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
-                <span v-if="pctOff(p)" class="mk-poff">-{{ pctOff(p) }}%</span>
+        </form>
+
+        <a href="#market-discovery" class="mk-scrollcue"><span>Scroll to explore</span><span>↓</span></a>
+      </div>
+    </section>
+
+    <!-- UTILITY LAYER: progressively quieter -->
+    <main id="market-discovery" class="mk-body">
+      <section class="mk-utility" aria-label="Market controls">
+        <div class="mk-modebar">
+          <div class="mk-modegroup">
+            <span class="mk-util-label">Explore</span>
+            <button class="mk-mode" :class="{on:view==='products'}" @click="setView('products')">Products</button>
+            <button class="mk-mode" :class="{on:view==='shops'}" @click="setView('shops')">Businesses</button>
+            <RouterLink to="/property" class="mk-mode">Property &amp; land</RouterLink>
+          </div>
+          <span v-if="view==='products'" class="mk-count">{{ displayProducts.length }} product{{ displayProducts.length===1?'':'s' }}</span>
+          <div v-else class="mk-shop-sort" aria-label="Sort shops">
+            <button :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
+            <button :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
+            <button :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
+          </div>
+        </div>
+
+        <div v-if="view==='shops' || search || activeCategory" class="mk-locationbar">
+          <span class="mk-util-label">Deliver to</span>
+          <div class="mk-corridors">
+            <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c.replace(' Urban/West','') }}</button>
+          </div>
+        </div>
+
+        <template v-if="view==='products'">
+          <div v-if="categories.length" class="mk-categorybar">
+            <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All</button>
+            <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">
+              {{ c.category }} <sup>{{ c.count }}</sup>
+            </button>
+          </div>
+          <div class="mk-filterbar">
+            <div class="mk-filters">
+              <button class="mk-filter" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><span class="mk-filter-dot"></span>Verified</button>
+              <button class="mk-filter" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><span class="mk-filter-dot"></span>Available</button>
+              <button class="mk-filter" :class="{on:filterDeal}" @click="filterDeal=!filterDeal"><span class="mk-filter-dot"></span>Offers</button>
+              <button v-if="activeFilterCount" class="mk-filter-clear" @click="clearFilters">Clear {{ activeFilterCount }}</button>
+            </div>
+            <label class="mk-sortselect">
+              <span>Sort</span>
+              <select v-model="sortBy">
+                <option value="relevant">Most relevant</option>
+                <option value="price_low">Price: low to high</option>
+                <option value="price_high">Price: high to low</option>
+                <option value="newest">Newest</option>
+              </select>
+            </label>
+          </div>
+        </template>
+      </section>
+
+      <section v-if="view==='products' && !search && !activeCategory" v-reveal class="mk-network" aria-label="Delivery network">
+        <div class="mk-network-copy">
+          <span class="mk-network-index">02 / Delivery network</span>
+          <h2>Shop by where
+            <em>it needs to go.</em>
+          </h2>
+          <p>Location is not an afterthought. Choose a corridor and the market reorganises around what can move there.</p>
+          <div class="mk-network-state">
+            <span>Current reach</span>
+            <strong>{{ selectedCorridorLabel }}</strong>
+            <button v-if="corridor" @click="filterCorridor(corridor)">Reset</button>
+          </div>
+        </div>
+
+        <div class="mk-network-map">
+          <svg class="mk-network-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M18 20 C33 23 43 32 48 46" />
+            <path d="M61 17 C58 28 54 37 48 46" />
+            <path d="M61 17 C71 22 76 29 79 36" />
+            <path d="M48 46 C57 48 62 53 66 58" />
+            <path d="M66 58 C73 61 78 66 82 70" />
+            <path d="M79 36 C84 42 88 47 91 53" />
+            <path d="M48 46 C40 56 34 65 29 73" />
+            <path d="M91 53 C89 60 86 65 82 70" />
+          </svg>
+          <button v-for="n in corridorNodes" :key="n.name" class="mk-network-node" :class="{on:corridor===n.name}" :style="{left:n.x+'%',top:n.y+'%'}" @click="filterCorridor(n.name)">
+            <span class="mk-node-dot"></span>
+            <span class="mk-node-label"><b>{{ n.name.replace(' Urban/West','') }}</b><small>{{ n.code }}</small></span>
+          </button>
+          <div class="mk-network-watermark">TZ</div>
+        </div>
+      </section>
+
+      <!-- PRODUCTS -->
+      <section v-if="view==='products'" class="mk-content">
+        <div v-if="search" class="mk-searchinfo">
+          <span>{{ displayProducts.length }} result{{ displayProducts.length===1?'':'s' }} for <strong>“{{ search }}”</strong></span>
+          <button @click="search=''; submitSearch()">Clear search</button>
+        </div>
+
+        <div v-if="loading" class="mk-pgrid">
+          <div v-for="i in 8" :key="i" class="mk-pcard mk-skeleton"></div>
+        </div>
+        <EmptyState v-else-if="!displayProducts.length" icon="package" title="No products found" hint="Try a different search, category, location, or filter." />
+
+        <div v-else-if="activeCategory" class="mk-focused">
+          <div class="mk-focused-head">
+            <div><span>Category</span><h2>{{ activeCategory }}</h2></div>
+            <button @click="setCategory(activeCategory)">View all market <span>↗</span></button>
+          </div>
+          <div class="mk-pgrid">
+            <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard" data-cursor="View">
+              <div class="mk-pimg" :style="{viewTransitionName:viewName('product', p.id)}">
+                <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" loading="lazy" @error="brokenImg($event, p)" />
+                <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(145deg, ${p.shop_accent||'#0B6E5D'}, #111915)`}"><span>{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
+                <span v-if="pctOff(p)" class="mk-poff">−{{ pctOff(p) }}%</span>
                 <span v-if="p.available === false" class="mk-psold">Sold out</span>
+                <span class="mk-open">↗</span>
               </div>
               <div class="mk-pbody">
-                <div class="mk-pprice-row">
-                  <span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span>
-                  <span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span>
-                </div>
                 <div class="mk-pname">{{ p.name }}</div>
-                <div class="mk-pmeta">
-                  <span v-if="p.delivered_count > 0" class="mk-psold-n">{{ p.delivered_count }}+ sold</span>
-                  <span v-if="p.verified_delivery" class="mk-pverif"><Icon name="check" :size="10" /> Verified</span>
-                </div>
-                <div class="mk-pshop"><Avatar :name="p.shop_name" :accent="p.shop_accent" size="16" /> {{ p.shop_name }}</div>
+                <div class="mk-pprice-row"><span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span><span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span></div>
+                <div class="mk-pfoot"><span>{{ p.shop_name }}</span><span v-if="p.verified_delivery" class="mk-pverif"><Icon name="check" :size="10" /> Verified</span></div>
               </div>
             </RouterLink>
           </div>
-        </section>
-      </div>
-    </div>
-
-    <div v-else-if="loading" class="mk-grid">
-      <div v-for="i in 3" :key="i" class="mk-card sk"></div>
-    </div>
-    <EmptyState v-else-if="!stores.length" icon="search" title="No shops here yet" :hint="corridor ? `No storefronts delivering to ${corridor} yet.` : 'Be the first business on the marketplace.'" />
-    <div v-else class="mk-grid">
-      <RouterLink v-for="s in stores" :key="s.id" :to="`/shop/${s.slug}`" class="mk-card" :style="{'--sf': s.accent || 'var(--accent)'}">
-        <div class="mk-cover" :style="s.cover_url ? {backgroundImage:`url(${s.cover_url})`} : {}">
-          <span v-if="shopTier(s) === 'trusted'" class="mk-badge trusted"><Icon name="shield" :size="10" /> Enkiama Trusted</span>
-          <span v-else-if="s.featured" class="mk-badge feat"><Icon name="star" :size="10" /> Featured</span>
-          <span v-if="s.verified_delivery" class="mk-badge verif"><Icon name="check" :size="11" /> Verified</span>
         </div>
-        <div class="mk-card-body">
-          <div class="mk-avatar-wrap">
-            <Avatar :name="s.name" :accent="s.accent" :logo="s.logo_url" :size="56" />
-          </div>
-          <div class="mk-name">{{ s.name }}</div>
-          <div class="mk-tag">{{ s.tagline }}</div>
-          <div class="mk-meta">
-            <span v-if="s.avg_rating" class="mk-rating"><Icon name="star" :size="13" /> {{ s.avg_rating }} <span class="mk-rc">({{ s.review_count }})</span></span>
-            <span v-if="s.delivered_count > 0" class="mk-delivered"><Icon name="truck" :size="12" /> {{ s.delivered_count }} delivered</span>
-          </div>
-          <div class="mk-foot">
-            <span class="mk-prods">{{ s.product_count }} product{{ s.product_count===1?'':'s' }}</span>
-            <span v-if="s.delivers_to" class="mk-delivers"><Icon name="pin" :size="12" /> {{ s.delivers_to }}</span>
+
+        <div v-else class="mk-sections">
+          <section v-for="(g,index) in groupedProducts" :key="g.category" class="mk-section" v-reveal="{delay:Math.min(index*45,180)}">
+            <div class="mk-section-head">
+              <div class="mk-section-index">{{ String(index + 2).padStart(2,'0') }}</div>
+              <div class="mk-section-copy"><span>Collection</span><h2>{{ g.category }}</h2></div>
+              <button class="mk-section-more" @click="setCategory(g.category)">Explore {{ g.items.length }} <span>↗</span></button>
+            </div>
+            <div class="mk-editorial" :class="{'mk-editorial--flip': index % 2 === 1}">
+              <RouterLink v-if="g.items[0]" :to="`/shop/${g.items[0].shop_slug}/product/${g.items[0].id}`" class="mk-feature-object" data-cursor="View">
+                <div class="mk-feature-media" :style="{viewTransitionName:viewName('product', g.items[0].id)}">
+                  <img v-if="pImg(g.items[0])" :src="pImg(g.items[0])" :alt="g.items[0].name" loading="lazy" @error="brokenImg($event, g.items[0])" />
+                  <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(145deg, ${g.items[0].shop_accent||'#0B6E5D'}, #111915)`}"><span>{{ (g.items[0].name||'?').slice(0,1).toUpperCase() }}</span></div>
+                  <span v-if="pctOff(g.items[0])" class="mk-poff">−{{ pctOff(g.items[0]) }}%</span>
+                  <span v-if="g.items[0].available === false" class="mk-psold">Sold out</span>
+                  <span class="mk-feature-open">Explore ↗</span>
+                </div>
+                <div class="mk-feature-copy">
+                  <span class="mk-feature-shop">{{ g.items[0].shop_name }}</span>
+                  <h3>{{ g.items[0].name }}</h3>
+                  <div class="mk-feature-price"><strong>TZS {{ Number(g.items[0].price_tzs).toLocaleString() }}</strong><span v-if="g.items[0].compare_at_tzs && g.items[0].compare_at_tzs > g.items[0].price_tzs">{{ Number(g.items[0].compare_at_tzs).toLocaleString() }}</span></div>
+                </div>
+              </RouterLink>
+
+              <div class="mk-object-index">
+                <RouterLink v-for="(p,pIndex) in g.items.slice(1,5)" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-object-row" data-cursor="View">
+                  <span class="mk-object-no">{{ String(pIndex + 2).padStart(2,'0') }}</span>
+                  <div class="mk-object-thumb" :style="{viewTransitionName:viewName('product', p.id)}">
+                    <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" loading="lazy" @error="brokenImg($event, p)" />
+                    <div v-else class="mk-object-thumb-ph" :style="{background:p.shop_accent||'#0B6E5D'}"></div>
+                  </div>
+                  <div class="mk-object-copy">
+                    <b>{{ p.name }}</b>
+                    <span>{{ p.shop_name }}</span>
+                  </div>
+                  <div class="mk-object-price">TZS {{ Number(p.price_tzs).toLocaleString() }}</div>
+                  <span class="mk-object-arrow">↗</span>
+                </RouterLink>
+                <button v-if="g.items.length > 5" class="mk-object-all" @click="setCategory(g.category)">See all {{ g.items.length }} in {{ g.category }} <span>↗</span></button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- BUSINESSES -->
+      <section v-else class="mk-content mk-businesses">
+        <div class="mk-business-intro">
+          <span>02 / Businesses</span>
+          <h2>Meet the people<br>behind the market.</h2>
+          <p>Independent businesses connected to delivery, verification and a visible fulfilment history.</p>
+        </div>
+
+        <div v-if="loading" class="mk-shopgrid">
+          <div v-for="i in 3" :key="i" class="mk-shopcard mk-skeleton"></div>
+        </div>
+        <EmptyState v-else-if="!stores.length" icon="search" title="No businesses here yet" :hint="corridor ? `No storefronts delivering to ${corridor} yet.` : 'Be the first business on the marketplace.'" />
+        <div v-else class="mk-business-ledger">
+          <RouterLink v-if="featuredStore" :to="`/shop/${featuredStore.slug}`" class="mk-shop-feature" data-cursor="Enter" :style="{'--sf': featuredStore.accent || 'var(--accent)'}">
+            <div class="mk-shop-feature-visual" :style="featuredStore.cover_url ? {backgroundImage:`url(${featuredStore.cover_url})`} : {}">
+              <div class="mk-shopvisual-wash"></div>
+              <div class="mk-shop-feature-mark" :style="{viewTransitionName:viewName('shop', featuredStore.slug || featuredStore.id)}"><Avatar :name="featuredStore.name" :accent="featuredStore.accent" :logo="featuredStore.logo_url" :size="88" /></div>
+              <span class="mk-shop-feature-open">Visit storefront ↗</span>
+            </div>
+            <div class="mk-shop-feature-copy">
+              <span class="mk-shop-feature-kicker">Featured independent business</span>
+              <h3>{{ featuredStore.name }}</h3>
+              <p>{{ featuredStore.tagline || 'Independent business on Enkiama Market.' }}</p>
+              <div class="mk-shop-feature-facts">
+                <span><b>{{ featuredStore.product_count || 0 }}</b> products</span>
+                <span v-if="featuredStore.delivered_count > 0"><b>{{ featuredStore.delivered_count }}</b> delivered</span>
+                <span v-if="featuredStore.avg_rating"><b>{{ featuredStore.avg_rating }}</b> rating</span>
+              </div>
+              <div class="mk-shop-feature-trust">
+                <span v-if="shopTier(featuredStore)==='trusted'"><Icon name="shield" :size="12" /> Enkiama trusted</span>
+                <span v-else-if="featuredStore.verified_delivery"><Icon name="check" :size="12" /> Verified delivery</span>
+                <span v-if="featuredStore.delivers_to">Moves to {{ featuredStore.delivers_to }}</span>
+              </div>
+            </div>
+          </RouterLink>
+
+          <div v-if="otherStores.length" class="mk-shopgrid">
+            <RouterLink v-for="s in otherStores" :key="s.id" :to="`/shop/${s.slug}`" class="mk-shopcard" data-cursor="Enter" :style="{'--sf': s.accent || 'var(--accent)'}">
+              <div class="mk-shopvisual" :style="s.cover_url ? {backgroundImage:`url(${s.cover_url})`} : {}">
+                <div class="mk-shopvisual-wash"></div>
+                <div class="mk-shopmark" :style="{viewTransitionName:viewName('shop', s.slug || s.id)}"><Avatar :name="s.name" :accent="s.accent" :logo="s.logo_url" :size="66" /></div>
+                <span class="mk-shop-open">↗</span>
+              </div>
+              <div class="mk-shopbody">
+                <div class="mk-shop-eyebrow">
+                  <span v-if="shopTier(s)==='trusted'">Enkiama trusted</span>
+                  <span v-else-if="s.verified_delivery">Verified delivery</span>
+                  <span v-else>Storefront</span>
+                  <span v-if="s.avg_rating">★ {{ s.avg_rating }}</span>
+                </div>
+                <h3>{{ s.name }}</h3>
+                <p>{{ s.tagline || 'Independent business on Enkiama Market.' }}</p>
+                <div class="mk-shopfacts">
+                  <span>{{ s.product_count }} product{{ s.product_count===1?'':'s' }}</span>
+                  <span v-if="s.delivered_count > 0">{{ s.delivered_count }} delivered</span>
+                  <span v-if="s.delivers_to">{{ s.delivers_to }}</span>
+                </div>
+              </div>
+            </RouterLink>
           </div>
         </div>
-      </RouterLink>
-    </div>
+      </section>
 
-    <footer class="mk-cta">
-      <h3>Run a business? Sell with delivery built in.</h3>
-      <p>Open a storefront, list your products, and every order ships tracked through the platform.</p>
-      <RouterLink to="/join/business" class="btn btn-accent btn-lg">Open a storefront</RouterLink>
-    </footer>
-    </div>
+      <footer class="mk-cta">
+        <span>For businesses</span>
+        <h2>Your storefront.<br>Delivery already built in.</h2>
+        <p>List products, reach new customers and move every order through Enkiama's tracked delivery network.</p>
+        <RouterLink to="/join/business" class="mk-cta-link">Open a storefront <span>↗</span></RouterLink>
+      </footer>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.mk{min-height:100vh;background:var(--paper);padding-bottom:60px}
-.mk-dark{position:relative;background:var(--nav);overflow:hidden}
-.mk-dark::before{content:'';position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(800px 500px at 75% -20%, rgba(11,110,93,.35), transparent 60%),
-  radial-gradient(600px 400px at 15% 120%, rgba(15,157,88,.12), transparent 55%)}
-.mk-dark::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.35;
-  background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
-  background-size:44px 44px;mask-image:radial-gradient(circle at 50% 30%,black,transparent 75%)}
-.mk-dark-inner{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 20px 44px}
-.mk-body{max-width:1240px;margin:0 auto;padding:0 20px}
-.mk-controls{max-width:1000px;margin:-32px auto 24px;background:var(--surface);border:1px solid var(--hairline);border-radius:18px;box-shadow:0 8px 28px rgba(20,24,31,.10),0 2px 6px rgba(20,24,31,.05);position:relative;z-index:5;overflow:hidden}
-.mk-controls-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
-.mk-controls .mk-cats{margin:0;padding:14px 18px;border-top:1px solid var(--hairline);justify-content:flex-start;gap:8px}
-.mk-controls-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-top:1px solid var(--hairline);background:var(--surface-2)}
-.mk-head{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
-.mk-logo{display:flex;align-items:center;flex-shrink:0}
-.mk-hero{text-align:center;padding:36px 0 30px}
-.mk-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,6vw,46px);font-weight:700;letter-spacing:-.03em;margin-bottom:14px;color:#fff}
-/* grad */
-.mk-h1 .grad{background:linear-gradient(100deg,#818CF8,#34D399) !important;-webkit-background-clip:text !important;background-clip:text !important;-webkit-text-fill-color:transparent !important;color:transparent !important}
-.unused-grad{background:linear-gradient(120deg,var(--accent-ink),var(--go-ink));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.mk-sub{font-size:15px;color:rgba(255,255,255,.62);max-width:560px;margin:0 auto 24px;line-height:1.6}
-.mk-corridors{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
-.mk-corr-lab{font-size:13px;color:rgba(255,255,255,.5);font-weight:500}
-.mk-corr{padding:7px 14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);border-radius:18px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85);cursor:pointer;transition:.15s;font-family:inherit}
-.mk-corr:hover{border-color:var(--accent)}
-.mk-corr.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.mk-grid{align-items:stretch;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px;margin-top:14px}
-.mk-card{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline-soft,rgba(20,24,31,.05));border-radius:20px;overflow:hidden;text-decoration:none;transition:box-shadow .25s ease,transform .2s ease;box-shadow:0 1px 3px rgba(20,24,31,.04)}
-.mk-card:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
-.mk-cover{position:relative;height:110px;background:linear-gradient(135deg, var(--sf,var(--accent)), color-mix(in srgb, var(--sf,var(--accent)) 50%, #000));background-size:cover;background-position:center;overflow:hidden}
-.mk-cover::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 78% 15%, rgba(255,255,255,.18), transparent 55%);pointer-events:none}
-.mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.08),transparent 40%,rgba(0,0,0,.12))}
-.mk-cover::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.12))}
-.mk-card-body{padding:0 18px 18px;position:relative;display:flex;flex-direction:column;flex:1}
-.mk-avatar-wrap{margin-top:-28px;position:relative;z-index:2;width:max-content;border-radius:16px;border:3px solid var(--surface);box-shadow:0 4px 14px rgba(20,24,31,.16)}
-.mk-avatar-wrap :deep(.avatar){border-radius:13px}
-.mk-avatar img{width:100%;height:100%;object-fit:cover}
-.mk-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px)}
-.mk-card.sk{height:180px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--hairline) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:mksh 1.4s infinite}
-@keyframes mksh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+/* ═══════════════════════════════════════════════════════════════
+   ENKIAMA MARKET V2.2 — Spatial Commerce / Discovery
+   Expressive entrance → quiet discovery → invisible transaction.
+   No commerce/data contracts are changed here; this is UI only.
+   ═══════════════════════════════════════════════════════════════ */
+.mk{--market-paper:#f4f2ec;--market-ink:#121713;--market-muted:#687069;--market-line:rgba(18,23,19,.14);--market-green:#0b6e5d;min-height:100vh;background:var(--market-paper);color:var(--market-ink);overflow-x:hidden}
 
+/* ── 01 / IMMERSIVE ENTRANCE ───────────────────────────────── */
+.mk-stage{--orbit-x:0px;--orbit-y:0px;--orbit2-x:0px;--orbit2-y:0px;--goods-x:0px;--goods-y:0px;--business-x:0px;--business-y:0px;--property-x:0px;--property-y:0px;--float-a-x:0px;--float-a-y:0px;--float-b-x:0px;--float-b-y:0px;position:relative;min-height:min(860px,100svh);overflow:hidden;background:#101712;color:#f6f3ea;isolation:isolate}
+.mk-stage::before{content:"";position:absolute;inset:-10%;z-index:-3;background:radial-gradient(70% 65% at 50% 47%,rgba(20,115,94,.22),transparent 70%),radial-gradient(38% 42% at 82% 15%,rgba(226,204,154,.08),transparent 70%)}
+.mk-stage-grid{position:absolute;inset:0;z-index:-2;opacity:.22;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:clamp(70px,8vw,124px) clamp(70px,8vw,124px);mask-image:linear-gradient(to bottom,black,transparent 86%)}
+.mk-stage-orbit{position:absolute;border:1px solid rgba(246,243,234,.13);border-radius:50%;pointer-events:none;z-index:-1;transition:transform 1.2s cubic-bezier(.16,1,.3,1)}
+.mk-stage-orbit::after{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#d9be7a;box-shadow:0 0 22px rgba(217,190,122,.55)}
+.mk-stage-orbit-a{width:52vw;height:52vw;min-width:620px;min-height:620px;left:50%;top:49%;transform:translate(calc(-50% + var(--orbit-x)),calc(-50% + var(--orbit-y))) rotate(-12deg)}
+.mk-stage-orbit-a::after{right:15%;top:14%}
+.mk-stage-orbit-b{width:29vw;height:29vw;min-width:360px;min-height:360px;left:50%;top:52%;transform:translate(calc(-50% + var(--orbit2-x)),calc(-50% + var(--orbit2-y)))}
+.mk-stage-orbit-b::after{left:7%;bottom:23%;width:5px;height:5px;background:#85b7a9}
+.mk-nav{position:relative;z-index:20;width:min(1460px,calc(100% - 64px));height:76px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-bottom:1px solid rgba(255,255,255,.12)}
+.mk-logo{justify-self:start;display:flex;align-items:center}
+.mk-nav-mid{display:flex;align-items:center;gap:30px}
+.mk-nav-mid button,.mk-nav-mid a,.mk-navlink{position:relative;border:0;background:none;color:rgba(246,243,234,.62);font:500 12px/1.2 'Inter',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;text-decoration:none;padding:8px 0}
+.mk-nav-mid button::after,.mk-nav-mid a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:#f6f3ea;transition:right .35s var(--ease)}
+.mk-nav-mid button:hover,.mk-nav-mid button.on,.mk-nav-mid a:hover{color:#fff}
+.mk-nav-mid button:hover::after,.mk-nav-mid button.on::after,.mk-nav-mid a:hover::after{right:0}
+.mk-head-actions{justify-self:end;display:flex;align-items:center;gap:14px}
+.mk-signin{color:#101712;background:#f6f3ea;border-radius:999px;padding:9px 15px;font-size:12px;font-weight:650;text-decoration:none}
+.mk-userchip{display:inline-flex;align-items:center;gap:9px;padding:5px 11px 5px 5px;border:1px solid rgba(255,255,255,.16);border-radius:999px;text-decoration:none;background:rgba(255,255,255,.045);backdrop-filter:blur(14px)}
+.mk-userchip-admin{border-color:rgba(217,190,122,.45)}
+.mk-userchip-id{display:flex;flex-direction:column;line-height:1.08}.mk-userchip-name{max-width:140px;color:#fff;font-size:12px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mk-userchip-role{color:rgba(255,255,255,.52);font-size:9.5px}.mk-admin-tag{color:#d9be7a;display:inline-flex;align-items:center;gap:3px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.mk-stage-inner{position:relative;width:min(1460px,calc(100% - 64px));min-height:calc(min(860px,100svh) - 76px);margin:0 auto;padding:66px 0 44px}
+.mk-kicker{display:flex;gap:20px;align-items:center;color:rgba(246,243,234,.48);font-size:10px;text-transform:uppercase;letter-spacing:.18em}.mk-kicker span:first-child{color:#d9be7a}
+.mk-hero-copy{position:absolute;left:50%;top:45%;width:min(780px,70vw);transform:translate(-50%,-50%);text-align:center;z-index:4}
+.mk-hero-copy h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(72px,10.5vw,158px);line-height:.76;letter-spacing:-.075em;font-weight:500;color:#f6f3ea;text-wrap:balance}.mk-hero-copy h1 em{font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:-.07em;color:#d9be7a}
+.mk-hero-copy p{width:min(500px,80%);margin:34px auto 0;color:rgba(246,243,234,.62);font-size:14px;line-height:1.75}
+.mk-realm{position:absolute;z-index:7;display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto auto;gap:0 10px;text-align:left;color:#f6f3ea;border:0;background:none;text-decoration:none;cursor:pointer;padding:10px;transition:transform .55s var(--ease),opacity .3s ease}.mk-realm:hover,.mk-realm.active{transform:translateY(-5px)}
+.mk-realm-no{grid-row:1/4;font:500 9px/1.2 'Spline Sans Mono',monospace;color:#d9be7a;margin-top:7px}.mk-realm-name{font:500 clamp(21px,2vw,32px)/1 'Space Grotesk',sans-serif;letter-spacing:-.04em}.mk-realm-note{font-size:10px;line-height:1.4;color:rgba(246,243,234,.44);margin-top:6px}.mk-realm-arrow{position:absolute;right:-18px;top:7px;font-size:13px;opacity:0;transform:translate(-4px,4px);transition:.3s var(--ease)}.mk-realm:hover .mk-realm-arrow{opacity:1;transform:none}
+.mk-realm-goods{left:7%;top:35%;transform:translate(var(--goods-x),var(--goods-y))}.mk-realm-goods:hover,.mk-realm-goods.active{transform:translate(var(--goods-x),calc(var(--goods-y) - 5px))}
+.mk-realm-business{right:5%;top:31%;transform:translate(var(--business-x),var(--business-y))}.mk-realm-business:hover,.mk-realm-business.active{transform:translate(var(--business-x),calc(var(--business-y) - 5px))}
+.mk-realm-property{right:13%;bottom:23%;transform:translate(var(--property-x),var(--property-y))}.mk-realm-property:hover{transform:translate(var(--property-x),calc(var(--property-y) - 5px))}
+.mk-float-product{position:absolute;z-index:3;width:clamp(80px,8vw,126px);aspect-ratio:4/5;overflow:hidden;text-decoration:none;box-shadow:0 28px 70px rgba(0,0,0,.28);transition:transform .8s var(--ease),opacity .4s ease;opacity:.75}.mk-float-product img{width:100%;height:100%;object-fit:cover;filter:saturate(.8) contrast(.95);transition:transform .8s var(--ease)}.mk-float-product span{position:absolute;inset:auto 7px 7px;color:white;font-size:8px;line-height:1.2;text-shadow:0 1px 4px #000;opacity:0;transition:.25s}.mk-float-product:hover{opacity:1}.mk-float-product:hover img{transform:scale(1.045)}.mk-float-product:hover span{opacity:.85}
+.mk-float-a{left:20%;bottom:18%;transform:rotate(-6deg) translate(var(--float-a-x),var(--float-a-y))}.mk-float-b{right:23%;top:20%;width:clamp(72px,7vw,108px);transform:rotate(5deg) translate(var(--float-b-x),var(--float-b-y))}
+.mk-search{position:absolute;left:50%;bottom:54px;z-index:10;width:min(680px,64vw);transform:translateX(-50%)}
+.mk-search-label{display:block;margin-bottom:8px;color:rgba(246,243,234,.42);font-size:9px;text-transform:uppercase;letter-spacing:.16em}
+.mk-search-line{display:flex;align-items:center;gap:13px;border-bottom:1px solid rgba(246,243,234,.38);padding:0 0 11px;color:rgba(246,243,234,.48);transition:border-color .25s}.mk-search:focus-within .mk-search-line{border-color:#f6f3ea}.mk-search-line input{min-width:0;flex:1;border:0;background:none;box-shadow:none!important;color:#fff;font:400 15px/1.4 'Inter',sans-serif;padding:3px 0}.mk-search-line input:focus{outline:0}.mk-search-line input::placeholder{color:rgba(246,243,234,.42)}.mk-search-clear{border:0;background:none;color:rgba(246,243,234,.48);font-size:11px;cursor:pointer}.mk-search-go{width:34px;height:34px;border:1px solid rgba(246,243,234,.22);border-radius:50%;background:rgba(255,255,255,.04);color:#fff;display:grid;place-items:center;cursor:pointer}.mk-search-go:hover{background:#f6f3ea;color:#101712}
+.mk-scrollcue{position:absolute;left:0;bottom:35px;display:flex;gap:12px;align-items:center;color:rgba(246,243,234,.4);font-size:9px;text-transform:uppercase;letter-spacing:.14em;text-decoration:none}
 
-.mk-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--ink);margin-top:10px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mk-badge.feat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;gap:3px}
-.mk-tag{font-size:13px;color:var(--ink-faint);margin-top:2px}
-.mk-meta{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;min-height:20px}
-.mk-verified{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:650;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:18px}
-.mk-rating{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:#B5791E}
-.mk-rc{color:var(--ink-faint);font-weight:400}
-.mk-foot{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid var(--hairline);font-size:12.5px}
-.mk-prods{font-weight:600;color:var(--ink-soft)}
-.mk-delivers{display:inline-flex;align-items:center;gap:4px;color:var(--ink-faint)}
-.mk-cta{text-align:center;margin-top:50px;padding:40px 24px;background:var(--surface);border:1px solid var(--hairline);border-radius:22px}
-.mk-cta h3{font-size:20px;font-weight:700;margin-bottom:8px}
-.mk-cta p{font-size:14px;color:var(--ink-soft);margin-bottom:22px}
+/* ── DISCOVERY / UTILITY ───────────────────────────────────── */
+.mk-body{width:min(1460px,calc(100% - 64px));margin:0 auto;padding:0 0 110px}
+.mk-utility{scroll-margin-top:0;padding:34px 0 30px;border-bottom:1px solid var(--market-line)}
+.mk-modebar,.mk-locationbar,.mk-filterbar{display:flex;align-items:center;justify-content:space-between;gap:30px}.mk-modebar{min-height:45px}.mk-locationbar{padding:18px 0;border-top:1px solid var(--market-line);border-bottom:1px solid var(--market-line)}
+.mk-modegroup{display:flex;align-items:center;gap:23px}.mk-util-label{font:500 9px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:#919791;min-width:55px}.mk-mode{position:relative;border:0;background:none;padding:6px 0;color:#7a827b;text-decoration:none;font:500 14px/1.2 'Inter',sans-serif;cursor:pointer}.mk-mode::after{content:"";position:absolute;left:0;right:100%;bottom:-3px;height:1px;background:var(--market-ink);transition:right .3s var(--ease)}.mk-mode.on,.mk-mode:hover{color:var(--market-ink)}.mk-mode.on::after,.mk-mode:hover::after{right:0}.mk-count{font:500 10px/1 'Spline Sans Mono',monospace;color:#8a918b;text-transform:uppercase;letter-spacing:.07em}
+.mk-corridors{display:flex;align-items:center;gap:22px;overflow-x:auto;scrollbar-width:none}.mk-corridors::-webkit-scrollbar{display:none}.mk-corr{flex:0 0 auto;border:0;background:none;color:#7c837d;font:500 12px/1.2 'Inter',sans-serif;cursor:pointer;padding:7px 0;position:relative}.mk-corr::before{content:"";position:absolute;width:4px;height:4px;left:-10px;top:50%;border-radius:50%;background:transparent;transform:translateY(-50%)}.mk-corr:hover,.mk-corr.on{color:var(--market-ink)}.mk-corr.on::before{background:var(--market-green)}
+.mk-categorybar{display:flex;gap:26px;overflow:auto;padding:24px 0 20px;scrollbar-width:none}.mk-categorybar::-webkit-scrollbar{display:none}.mk-cat{flex:0 0 auto;border:0;background:none;color:#858b85;font:500 clamp(15px,1.5vw,20px)/1.15 'Space Grotesk',sans-serif;letter-spacing:-.025em;cursor:pointer;padding:0}.mk-cat sup{font:500 8px/1 'Spline Sans Mono',monospace;color:#a1a6a1;margin-left:3px;vertical-align:super}.mk-cat:hover,.mk-cat.on{color:var(--market-ink)}
+.mk-filterbar{padding-top:15px}.mk-filters{display:flex;align-items:center;gap:18px}.mk-filter{display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:#727a73;font-size:11px;font-family:inherit;cursor:pointer}.mk-filter-dot{width:9px;height:9px;border:1px solid #9da39e;border-radius:50%;transition:.2s}.mk-filter.on{color:var(--market-ink)}.mk-filter.on .mk-filter-dot{border-color:var(--market-green);background:var(--market-green);box-shadow:inset 0 0 0 2px var(--market-paper)}.mk-filter-clear{border:0;background:none;color:var(--market-green);font-size:10px;cursor:pointer}.mk-sortselect{display:flex;align-items:center;gap:8px;color:#858b85;font-size:10px}.mk-sortselect select{width:auto;border:0;border-bottom:1px solid var(--market-line);border-radius:0;background:transparent;box-shadow:none;padding:6px 24px 6px 2px;font-size:11px;color:var(--market-ink)}
+.mk-shop-sort{display:flex;gap:20px}.mk-shop-sort button{border:0;background:none;color:#858b85;font-size:11px;cursor:pointer}.mk-shop-sort button.on,.mk-shop-sort button:hover{color:var(--market-ink)}
 
-.mk-badge.feat{position:absolute;top:14px;right:14px;display:inline-flex;align-items:center;gap:4px;background:var(--warn-soft);color:var(--warn-ink);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:var(--r-full)}
+/* ── PRODUCT DISCOVERY: objects, not cards ─────────────────── */
+.mk-content{padding-top:54px}.mk-searchinfo{display:flex;justify-content:space-between;align-items:center;padding-bottom:28px;color:#747b75;font-size:12px}.mk-searchinfo strong{color:var(--market-ink);font-weight:600}.mk-searchinfo button{border:0;background:none;color:var(--market-green);font-size:11px;cursor:pointer}
+.mk-sections{display:flex;flex-direction:column;gap:90px}.mk-section{position:relative}.mk-section-head{display:grid;grid-template-columns:80px 1fr auto;align-items:end;gap:18px;margin-bottom:26px;padding-bottom:17px;border-bottom:1px solid var(--market-line)}.mk-section-index{font:500 10px/1 'Spline Sans Mono',monospace;color:#9aa09a}.mk-section-copy span,.mk-focused-head>div>span{display:block;color:#929892;font-size:9px;text-transform:uppercase;letter-spacing:.13em;margin-bottom:7px}.mk-section-copy h2,.mk-focused-head h2{font:500 clamp(32px,4vw,58px)/.95 'Space Grotesk',sans-serif;letter-spacing:-.055em;color:var(--market-ink)}.mk-section-more,.mk-focused-head button{border:0;background:none;color:var(--market-ink);font-size:11px;cursor:pointer;padding:7px 0}.mk-section-more span,.mk-focused-head button span{display:inline-block;margin-left:7px;transition:transform .3s var(--ease)}.mk-section-more:hover span,.mk-focused-head button:hover span{transform:translate(3px,-3px)}
+.mk-prow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:26px 16px}.mk-pgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:46px 18px}.mk-focused-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--market-line)}
+.mk-pcard{min-width:0;display:flex;flex-direction:column;color:var(--market-ink);text-decoration:none;background:transparent;border:0;border-radius:0;overflow:visible}.mk-pimg{position:relative;aspect-ratio:1/1.08;overflow:hidden;background:#e9e7e0}.mk-pimg img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .8s var(--ease),filter .4s ease}.mk-pcard:hover .mk-pimg img{transform:scale(1.035)}.mk-pimg-ph{position:absolute;inset:0;display:grid;place-items:center}.mk-pimg-ph::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.22),transparent 58%)}.mk-pimg-ph span{position:relative;z-index:1;color:rgba(255,255,255,.88);font:500 34px/1 'Space Grotesk',sans-serif}.mk-open{position:absolute;right:10px;bottom:10px;z-index:2;width:34px;height:34px;border-radius:50%;background:rgba(244,242,236,.92);color:#121713;display:grid;place-items:center;font-size:13px;opacity:0;transform:translate(-5px,5px);transition:.35s var(--ease)}.mk-pcard:hover .mk-open{opacity:1;transform:none}.mk-poff,.mk-psold{position:absolute;top:10px;z-index:2;padding:5px 8px;background:rgba(16,23,18,.78);backdrop-filter:blur(8px);color:#fff;font:600 9px/1 'Spline Sans Mono',monospace;letter-spacing:.03em}.mk-poff{left:10px}.mk-psold{right:10px;text-transform:uppercase}
+.mk-pbody{padding:12px 0 0;display:flex;flex-direction:column;gap:7px}.mk-pname{font-size:12.5px;font-weight:500;line-height:1.4;color:var(--market-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk-pprice-row{display:flex;align-items:baseline;gap:7px}.mk-pprice{font:550 13px/1.2 'Space Grotesk',sans-serif;letter-spacing:-.015em}.mk-pwas{font-size:10px;color:#9aa09a;text-decoration:line-through}.mk-pfoot{display:flex;align-items:center;justify-content:space-between;gap:7px;color:#8d938e;font-size:9.5px;padding-top:2px}.mk-pfoot>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk-pverif{display:inline-flex;align-items:center;gap:2px;color:var(--market-green);font-size:8.5px;font-weight:650;flex-shrink:0}
+.mk-skeleton{min-height:290px;background:linear-gradient(100deg,#eae7df 30%,#f5f3ed 45%,#eae7df 60%);background-size:300% 100%;animation:mkShimmer 1.5s linear infinite}@keyframes mkShimmer{to{background-position:-150% 0}}
 
-.mk-tag{font-size:var(--t-sm);color:var(--ink-faint);margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-.mk-meta{margin:14px 0}
-.mk-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;gap:10px}
-.mk-delivers{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
-.mk-prods{font-size:var(--t-sm);color:var(--ink-soft);font-weight:550;white-space:nowrap}
+/* ── 02 / GEOGRAPHIC DISCOVERY ─────────────────────────────── */
+.mk-network{display:grid;grid-template-columns:minmax(260px,.72fr) minmax(520px,1.45fr);gap:clamp(48px,8vw,130px);align-items:center;padding:88px 0 110px;border-bottom:1px solid var(--market-line)}
+.mk-network-copy{align-self:center}.mk-network-index{display:block;font:500 9px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:#929892;margin-bottom:28px}.mk-network-copy h2{font:500 clamp(46px,6vw,84px)/.9 'Space Grotesk',sans-serif;letter-spacing:-.065em;max-width:640px}.mk-network-copy h2 em{font-family:Georgia,serif;font-weight:400;color:var(--market-green)}.mk-network-copy>p{max-width:390px;margin-top:24px;color:#737a74;font-size:12px;line-height:1.75}.mk-network-state{display:grid;grid-template-columns:1fr auto;align-items:end;gap:5px 18px;margin-top:44px;padding-top:15px;border-top:1px solid var(--market-line);max-width:390px}.mk-network-state span{font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:#969c96}.mk-network-state strong{grid-column:1;font:550 15px/1.2 'Space Grotesk',sans-serif}.mk-network-state button{grid-column:2;grid-row:1/3;align-self:center;border:0;background:none;color:var(--market-green);font-size:10px;cursor:pointer}
+.mk-network-map{position:relative;aspect-ratio:1.48/1;min-height:500px;background:radial-gradient(circle at 54% 48%,rgba(11,110,93,.08),transparent 42%),linear-gradient(135deg,rgba(18,23,19,.025),rgba(18,23,19,0));border-left:1px solid var(--market-line);overflow:hidden}.mk-network-map::before{content:"";position:absolute;inset:8% 5%;border:1px solid rgba(18,23,19,.06);border-radius:48% 52% 43% 57%/45% 49% 51% 55%;transform:rotate(-8deg)}.mk-network-lines{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.mk-network-lines path{fill:none;stroke:rgba(18,23,19,.17);stroke-width:.19;stroke-dasharray:1.2 1.35;vector-effect:non-scaling-stroke}.mk-network-node{position:absolute;z-index:3;transform:translate(-50%,-50%);border:0;background:transparent;color:var(--market-ink);cursor:pointer;padding:12px;display:flex;align-items:center;gap:9px;text-align:left}.mk-node-dot{position:relative;width:8px;height:8px;border-radius:50%;background:var(--market-paper);border:1px solid rgba(18,23,19,.55);box-shadow:0 0 0 0 rgba(11,110,93,.15);transition:.35s var(--ease)}.mk-node-dot::after{content:"";position:absolute;inset:2px;border-radius:50%;background:transparent;transition:.35s var(--ease)}.mk-node-label{display:flex;flex-direction:column;gap:2px;white-space:nowrap;transition:transform .35s var(--ease)}.mk-node-label b{font:550 11px/1.2 'Space Grotesk',sans-serif}.mk-node-label small{font:500 7px/1 'Spline Sans Mono',monospace;color:#9a9f9a;letter-spacing:.12em}.mk-network-node:hover .mk-node-label,.mk-network-node.on .mk-node-label{transform:translateX(3px)}.mk-network-node:hover .mk-node-dot,.mk-network-node.on .mk-node-dot{border-color:var(--market-green);box-shadow:0 0 0 7px rgba(11,110,93,.09)}.mk-network-node.on .mk-node-dot::after{background:var(--market-green)}.mk-network-watermark{position:absolute;right:1%;bottom:-8%;font:500 clamp(150px,22vw,330px)/1 'Space Grotesk',sans-serif;letter-spacing:-.08em;color:rgba(18,23,19,.028);pointer-events:none}
 
-.mk-searchbar{position:relative;max-width:520px;margin:22px auto 0}
-.mk-search-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--ink-faint);pointer-events:none}
-.mk-searchbar input{width:100%;padding:14px 16px 14px 46px;border:1px solid var(--hairline-2);border-radius:var(--r-full);font-size:var(--t-base);background:var(--surface);box-shadow:var(--shadow-sm)}
-.mk-searchbar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-.mk-count{font-size:var(--t-sm);color:var(--ink-faint);font-weight:550}
-.mk-sort{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
-.mk-sort-b{padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:550;transition:all var(--dur-fast) var(--ease)}
-.mk-sort-b.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
-.mk-delivered{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-xs);color:var(--go-ink);font-weight:600;background:var(--go-soft);padding:3px 8px;border-radius:var(--r-full)}
+/* ── EDITORIAL COLLECTIONS ─────────────────────────────────── */
+.mk-editorial{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,.78fr);gap:clamp(28px,4vw,64px);align-items:stretch}.mk-editorial--flip{grid-template-columns:minmax(310px,.78fr) minmax(0,1.65fr)}.mk-editorial--flip .mk-feature-object{grid-column:2;grid-row:1}.mk-editorial--flip .mk-object-index{grid-column:1;grid-row:1}.mk-feature-object{display:grid;grid-template-rows:minmax(0,1fr) auto;min-width:0;color:var(--market-ink);text-decoration:none}.mk-feature-media{position:relative;min-height:520px;overflow:hidden;background:#e9e7e0}.mk-feature-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1s var(--ease)}.mk-feature-object:hover .mk-feature-media img{transform:scale(1.025)}.mk-feature-open{position:absolute;left:18px;bottom:18px;padding:9px 12px;background:rgba(244,242,236,.9);backdrop-filter:blur(10px);font:600 9px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.08em;transition:transform .35s var(--ease)}.mk-feature-object:hover .mk-feature-open{transform:translate(3px,-3px)}.mk-feature-copy{display:grid;grid-template-columns:1fr auto;gap:7px 18px;padding-top:16px}.mk-feature-shop{grid-column:1/-1;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#929892}.mk-feature-copy h3{font:550 clamp(25px,3vw,40px)/1.05 'Space Grotesk',sans-serif;letter-spacing:-.045em;max-width:680px}.mk-feature-price{display:flex;flex-direction:column;align-items:flex-end;gap:4px;white-space:nowrap}.mk-feature-price strong{font:550 15px/1.2 'Space Grotesk',sans-serif}.mk-feature-price span{font-size:9px;color:#9aa09a;text-decoration:line-through}
+.mk-object-index{display:flex;flex-direction:column;border-top:1px solid var(--market-line)}.mk-object-row{display:grid;grid-template-columns:28px 72px minmax(0,1fr) auto 18px;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--market-line);color:var(--market-ink);text-decoration:none;min-width:0;transition:padding .35s var(--ease)}.mk-object-row:hover{padding-left:6px}.mk-object-no{font:500 8px/1 'Spline Sans Mono',monospace;color:#a2a7a2}.mk-object-thumb{position:relative;width:72px;aspect-ratio:1/1;overflow:hidden;background:#e9e7e0}.mk-object-thumb img,.mk-object-thumb-ph{width:100%;height:100%;object-fit:cover;display:block}.mk-object-copy{min-width:0}.mk-object-copy b{display:block;font:550 12px/1.35 'Space Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk-object-copy span{display:block;margin-top:4px;color:#8c928c;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk-object-price{font:550 10px/1.2 'Space Grotesk',sans-serif;white-space:nowrap}.mk-object-arrow{font-size:12px;transition:transform .3s var(--ease)}.mk-object-row:hover .mk-object-arrow{transform:translate(3px,-3px)}.mk-object-all{margin-top:auto;padding:18px 0 0;border:0;background:none;text-align:left;color:var(--market-ink);font-size:10px;font-weight:600;cursor:pointer}.mk-object-all span{display:inline-block;margin-left:7px;transition:transform .3s var(--ease)}.mk-object-all:hover span{transform:translate(3px,-3px)}
 
-.mk-cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
-.mk-cat{padding:7px 14px;border:1px solid rgba(255,255,255,.14);border-radius:var(--r-full);background:rgba(255,255,255,.06);font-size:var(--t-sm);font-family:inherit;cursor:pointer;color:rgba(255,255,255,.85);font-weight:600;transition:all var(--dur-fast) var(--ease)}
-.mk-cat.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.mk-cat-n{opacity:.6;font-size:var(--t-xs)}
-.mk-viewtoggle{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:var(--r-full)}
-.mk-vt{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:none;background:none;border-radius:var(--r-full);font-size:var(--t-sm);font-family:inherit;color:var(--ink-soft);cursor:pointer;font-weight:600;transition:all var(--dur-fast) var(--ease)}
-.mk-vt.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-xs)}
-.mk-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:20px}
-.mk-pcard{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline-soft,rgba(20,24,31,.05));border-radius:20px;overflow:hidden;text-decoration:none;transition:box-shadow .25s ease,transform .2s ease}
-.mk-pcard:hover{box-shadow:0 14px 40px rgba(20,24,31,.12);transform:translateY(-4px)}
-.mk-pcard.sk{height:280px;background:var(--surface-2);animation:pulse 1.5s ease-in-out infinite}
-.mk-pimg{position:relative;aspect-ratio:1/1;background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.mk-pimg-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
-.mk-pimg-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.mk-pimg-ph::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.2),transparent 60%)}
-.mk-pimg-ph::after{content:"";position:absolute;inset:0;opacity:.4;background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1px);background-size:13px 13px}
-.mk-ph-chip{position:relative;z-index:1;width:52px;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#fff;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.15),inset 0 1px 0 rgba(255,255,255,.3)}
+/* ── BUSINESS DISCOVERY ────────────────────────────────────── */
+.mk-business-intro{display:grid;grid-template-columns:1fr 2fr 1fr;gap:24px;align-items:end;margin:8px 0 58px}.mk-business-intro>span{align-self:start;font:500 9px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:#939993}.mk-business-intro h2{font:500 clamp(43px,6vw,84px)/.9 'Space Grotesk',sans-serif;letter-spacing:-.065em;color:var(--market-ink)}.mk-business-intro p{color:#737a74;font-size:12px;line-height:1.7;max-width:290px}
+.mk-business-ledger{display:flex;flex-direction:column;gap:72px}.mk-shop-feature{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,.72fr);min-height:560px;color:var(--market-ink);text-decoration:none;border-top:1px solid var(--market-line);border-bottom:1px solid var(--market-line)}.mk-shop-feature-visual{position:relative;min-height:560px;background:linear-gradient(145deg,var(--sf),#15241e);background-size:cover;background-position:center;overflow:hidden}.mk-shop-feature-visual::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 50%,rgba(10,18,14,.22))}.mk-shop-feature-mark{position:absolute;left:24px;bottom:24px;z-index:2;padding:5px;background:var(--market-paper)}.mk-shop-feature-open{position:absolute;right:22px;top:22px;z-index:3;padding:9px 12px;border:1px solid rgba(255,255,255,.48);background:rgba(10,18,14,.12);backdrop-filter:blur(8px);color:#fff;font:600 8px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.08em;transition:.35s var(--ease)}.mk-shop-feature:hover .mk-shop-feature-open{transform:translate(3px,-3px);background:rgba(10,18,14,.28)}.mk-shop-feature-copy{padding:44px 0 44px clamp(28px,4vw,58px);display:flex;flex-direction:column;justify-content:center}.mk-shop-feature-kicker{font:500 8px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.13em;color:#969c96}.mk-shop-feature-copy h3{font:550 clamp(40px,5vw,72px)/.92 'Space Grotesk',sans-serif;letter-spacing:-.06em;margin-top:18px}.mk-shop-feature-copy>p{font-size:12px;line-height:1.7;color:#737a74;margin-top:20px;max-width:360px}.mk-shop-feature-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:42px;padding-top:18px;border-top:1px solid var(--market-line)}.mk-shop-feature-facts span{display:flex;flex-direction:column;gap:3px;color:#929892;font-size:8px;text-transform:uppercase;letter-spacing:.08em}.mk-shop-feature-facts b{font:550 18px/1 'Space Grotesk',sans-serif;color:var(--market-ink);letter-spacing:-.03em}.mk-shop-feature-trust{display:flex;gap:16px;flex-wrap:wrap;margin-top:28px;color:#737a74;font-size:9.5px}.mk-shop-feature-trust span{display:inline-flex;align-items:center;gap:5px}
+.mk-shopgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:42px 18px}.mk-shopcard{min-width:0;color:var(--market-ink);text-decoration:none}.mk-shopvisual{position:relative;aspect-ratio:4/3;background:linear-gradient(145deg,var(--sf),#15241e);background-size:cover;background-position:center;overflow:hidden}.mk-shopvisual-wash{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,18,14,.38),transparent 65%)}.mk-shopmark{position:absolute;left:18px;bottom:18px;padding:4px;background:#f4f2ec}.mk-shopmark :deep(.avatar){border-radius:0!important}.mk-shop-open{position:absolute;right:14px;top:14px;width:37px;height:37px;border:1px solid rgba(255,255,255,.45);border-radius:50%;display:grid;place-items:center;color:#fff;opacity:.65;transition:.35s var(--ease)}.mk-shopcard:hover .mk-shop-open{opacity:1;transform:translate(3px,-3px)}.mk-shopbody{padding-top:15px}.mk-shop-eyebrow{display:flex;justify-content:space-between;color:#899089;font-size:8.5px;text-transform:uppercase;letter-spacing:.08em}.mk-shopbody h3{font:550 24px/1.15 'Space Grotesk',sans-serif;letter-spacing:-.035em;margin-top:9px}.mk-shopbody p{font-size:11px;line-height:1.55;color:#787f79;margin-top:6px;min-height:34px}.mk-shopfacts{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--market-line);font-size:9.5px;color:#8a918b}
 
-.mk-pbody{padding:15px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.mk-pprice-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
-.mk-pprice{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
-.mk-pwas{font-size:12.5px;color:var(--ink-ghost);text-decoration:line-through;font-weight:400}
-.mk-pname{font-size:13.5px;font-weight:500;color:var(--ink);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:38px}
-.mk-pmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:16px}
-.mk-psold-n{font-size:11px;color:var(--ink-faint);font-weight:600}
-.mk-pverif{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:700;color:var(--go-ink);background:var(--go-soft);padding:1px 6px;border-radius:5px}
-.mk-pshop{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-faint);margin-top:auto;padding-top:7px;border-top:1px solid var(--hairline)}
-.mk-poff{position:absolute;top:10px;left:10px;z-index:2;background:rgba(20,24,31,.7);backdrop-filter:blur(8px);color:#fff;font-size:11px;font-weight:600;padding:4px 9px;border-radius:8px;letter-spacing:.01em}
-.mk-psold{position:absolute;top:10px;right:10px;z-index:2;background:rgba(20,24,31,.7);backdrop-filter:blur(8px);color:#fff;font-size:10px;font-weight:600;padding:4px 9px;border-radius:8px;text-transform:uppercase;letter-spacing:.03em}
-.mk-head-actions{display:flex;align-items:center;gap:10px}
+/* ── QUIET CONVERSION ──────────────────────────────────────── */
+.mk-cta{margin-top:130px;padding:70px 0 16px;border-top:1px solid var(--market-line);display:grid;grid-template-columns:1fr 2fr 1.15fr;gap:30px;align-items:start}.mk-cta>span{font:500 9px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:#939993}.mk-cta h2{font:500 clamp(38px,5vw,68px)/.94 'Space Grotesk',sans-serif;letter-spacing:-.055em;color:var(--market-ink)}.mk-cta p{color:#737a74;font-size:12px;line-height:1.7}.mk-cta-link{display:inline-flex;align-items:center;gap:9px;margin-top:20px;padding-bottom:6px;border-bottom:1px solid currentColor;color:var(--market-ink);font-size:11px;font-weight:600;text-decoration:none}.mk-cta-link span{transition:transform .3s var(--ease)}.mk-cta-link:hover span{transform:translate(3px,-3px)}
 
-.mk-head-actions .btn-ghost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
-.mk-head-actions .btn-ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25)}
-
-/* ── Amazon-style command nav ── */
-.mk-nav{display:flex;align-items:center;gap:20px;padding:14px 0}
-.mk-navsearch{flex:1;display:flex;max-width:640px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.mk-navsearch input{flex:1;border:none;padding:12px 16px;font-size:14px;outline:none;background:#fff;color:var(--ink)}
-.mk-navsearch input::placeholder{color:var(--ink-faint)}
-.mk-navsearch-btn{border:none;background:var(--accent);color:#fff;padding:0 18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
-.mk-navsearch-btn:hover{background:var(--accent-ink)}
-.mk-navlink{color:var(--nav-ink);text-decoration:none;font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;white-space:nowrap;transition:background .15s ease}
-.mk-navlink:hover{background:rgba(255,255,255,.08)}
-.mk-utilbar{display:flex;align-items:center;gap:4px;padding:0 0 8px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
-.mk-utilcat{background:none;border:none;color:rgba(255,255,255,.75);font-family:inherit;font-size:13px;font-weight:600;padding:8px 12px;border-radius:8px;cursor:pointer;transition:all .15s ease}
-.mk-utilcat:hover{background:rgba(255,255,255,.08);color:#fff}
-.mk-utilcat.on{background:rgba(255,255,255,.12);color:#fff}
-
-.mk-badge{position:absolute;top:10px;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:5px 9px;border-radius:999px;z-index:2}
-.mk-badge.feat{left:10px;background:rgba(255,255,255,.92);color:var(--warn-ink)}
-.mk-badge.verif{right:10px;background:rgba(255,255,255,.92);color:var(--go-ink)}
-
-/* ═══ CATEGORY-GROUPED PRODUCT MARKETPLACE ═══ */
-.mk-cats{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin:0;padding:14px 18px;border-top:1px solid var(--hairline)}
-.mk-cat{padding:8px 16px;border-radius:999px;border:1px solid var(--hairline-2);background:var(--surface);font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
-.mk-cat:hover{border-color:var(--accent);color:var(--accent-ink)}
-.mk-cat.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.mk-cat-n{font-size:11px;opacity:.6;font-variant-numeric:tabular-nums}
-.mk-cat.on .mk-cat-n{opacity:.8}
-.mk-sections{display:flex;flex-direction:column;gap:36px}
-.mk-section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--hairline)}
-.mk-section-title{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--ink);display:flex;align-items:center;gap:10px}
-.mk-section-title::before{content:"";width:4px;height:20px;background:linear-gradient(180deg,var(--accent),var(--go));border-radius:3px}
-.mk-section-more{background:none;border:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.mk-section-more:hover{gap:7px}
-.mk-prow{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
-.mk-pprice-wrap{display:flex;align-items:baseline;gap:7px}
-
-.mk-badge.trusted{left:10px;background:rgba(255,255,255,.92);color:var(--go-ink);box-shadow:0 1px 4px rgba(20,24,31,.12)}
-
-.mk-navsearch-clear{border:none;background:#fff;color:var(--ink-faint);padding:0 8px;cursor:pointer;display:flex;align-items:center}
-.mk-navsearch-clear:hover{color:var(--ink)}
-.mk-searchinfo{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;font-size:14px;color:var(--ink-soft)}
-.mk-searchinfo b{color:var(--ink)}
-.mk-clearsearch{font-size:13px;font-weight:600;color:var(--accent-ink);background:none;border:none;cursor:pointer}
-
-.mk-userchip{display:inline-flex;align-items:center;gap:9px;padding:5px 12px 5px 6px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);text-decoration:none;transition:background .15s}
-.mk-userchip:hover{background:rgba(255,255,255,.14)}
-.mk-userchip-admin{border-color:rgba(199,154,62,.55)}
-.mk-userchip-id{display:flex;flex-direction:column;line-height:1.1}
-.mk-userchip-name{font-size:13.5px;font-weight:650;color:#fff;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mk-userchip-role{font-size:10.5px;color:rgba(255,255,255,.6);font-weight:500}
-.mk-admin-tag{display:inline-flex;align-items:center;gap:3px;color:#E8C877;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
-
-/* ─── mobile (Samsung A56 ≈ 390px and down) ─── */
-@media(max-width:560px){
-  .mk-controls{margin:-20px auto 20px;border-radius:16px}
-  .mk-controls-top{flex-direction:column;align-items:stretch;gap:10px;padding:12px}
-  .mk-viewtoggle{width:100%;justify-content:space-between}
-  .mk-vt{flex:1;justify-content:center;padding:9px 6px;font-size:12.5px;white-space:nowrap}
-  .mk-count{text-align:right;font-size:12px}
-  .mk-controls .mk-cats{padding:12px;gap:6px}
-  .mk-cat{font-size:12.5px;padding:7px 12px}
-  .mk-controls-bottom{flex-direction:column;align-items:stretch;gap:12px;padding:12px}
-  .mk-filters{justify-content:flex-start;flex-wrap:wrap}
-  .mk-fchip{font-size:12px;padding:7px 11px}
-  .mk-sort{width:100%;justify-content:space-between;background:none;padding:0}
-  .mk-sort select{flex:1;max-width:none}
-  /* products: 2-up on phones, tighter */
-  .mk-pgrid{grid-template-columns:repeat(2,1fr);gap:12px}
-  .mk-pbody{padding:11px 12px 12px}
-  .mk-pprice{font-size:15px}
-  .mk-pname{font-size:12.5px;min-height:34px}
-  /* shops: single column */
-  .mk-grid{grid-template-columns:1fr;gap:14px}
-  /* hero search + nav */
-  .mk-nav{flex-wrap:wrap;gap:10px}
-  .mk-navsearch{order:3;width:100%}
-  .mk-hero h1,.mk-hero-h1{font-size:26px}
-  .mk-sections .mk-prow{grid-template-columns:repeat(2,1fr);gap:12px}
+/* ── RESPONSIVE / MOTION SAFETY ────────────────────────────── */
+@media(max-width:1050px){
+  .mk-stage{min-height:760px}.mk-stage-inner{min-height:684px}.mk-realm-goods{left:2%}.mk-realm-business{right:1%}.mk-realm-property{right:5%}.mk-float-a{left:16%}.mk-float-b{right:17%}
+  .mk-prow{grid-template-columns:repeat(3,1fr)}.mk-pgrid{grid-template-columns:repeat(3,1fr)}.mk-shopgrid{grid-template-columns:repeat(2,1fr)}.mk-network{grid-template-columns:.8fr 1.2fr;gap:48px}.mk-network-map{min-height:450px}.mk-feature-media{min-height:450px}.mk-shop-feature{grid-template-columns:1.2fr .8fr}
 }
-@media(max-width:380px){
-  .mk-pgrid,.mk-sections .mk-prow{gap:10px}
-  .mk-vt{padding:8px 4px;font-size:12px}
+@media(max-width:760px){
+  .mk-nav,.mk-stage-inner,.mk-body{width:min(100% - 32px,1460px)}.mk-nav{grid-template-columns:1fr auto;height:66px}.mk-nav-mid{display:none}.mk-navlink{display:none}.mk-stage{min-height:790px}.mk-stage-inner{min-height:724px;padding-top:34px}.mk-hero-copy{top:30%;width:100%}.mk-hero-copy h1{font-size:clamp(66px,20vw,110px)}.mk-hero-copy p{width:min(440px,92%);margin-top:24px}.mk-stage-orbit-a{min-width:540px;min-height:540px;top:38%}.mk-stage-orbit-b{min-width:330px;min-height:330px;top:40%}
+  .mk-realm{top:auto!important;bottom:205px!important}.mk-realm-goods{left:0}.mk-realm-business{left:34%;right:auto}.mk-realm-property{right:0}.mk-realm-note{display:none}.mk-realm-name{font-size:18px}.mk-realm-no{font-size:7px}.mk-realm-arrow{display:none}.mk-float-product{display:none}.mk-search{width:100%;bottom:88px}.mk-scrollcue{bottom:31px}
+  .mk-modebar{align-items:flex-start}.mk-modegroup{gap:15px;flex-wrap:wrap}.mk-modegroup .mk-util-label{width:100%}.mk-count{padding-top:6px}.mk-locationbar{align-items:flex-start;gap:12px}.mk-locationbar .mk-util-label{padding-top:8px}.mk-categorybar{gap:20px}.mk-filterbar{align-items:flex-start}.mk-filters{gap:12px;flex-wrap:wrap}.mk-sortselect{flex-shrink:0}
+  .mk-network{grid-template-columns:1fr;padding:68px 0 82px;gap:36px}.mk-network-copy>p,.mk-network-state{max-width:520px}.mk-network-map{border-left:0;border-top:1px solid var(--market-line);min-height:430px}.mk-section-head{grid-template-columns:42px 1fr auto}.mk-prow,.mk-pgrid{grid-template-columns:repeat(2,1fr);gap:34px 12px}.mk-sections{gap:74px}.mk-editorial,.mk-editorial--flip{grid-template-columns:1fr}.mk-editorial--flip .mk-feature-object,.mk-editorial--flip .mk-object-index{grid-column:auto;grid-row:auto}.mk-feature-media{min-height:460px}.mk-business-intro{grid-template-columns:1fr;gap:14px}.mk-business-intro p{max-width:460px}.mk-shop-feature{grid-template-columns:1fr}.mk-shop-feature-visual{min-height:430px}.mk-shop-feature-copy{padding:34px 0}.mk-shopgrid{grid-template-columns:1fr}.mk-cta{grid-template-columns:1fr;gap:18px;margin-top:90px}
+}
+@media(max-width:480px){
+  .mk-stage{min-height:760px}.mk-stage-inner{min-height:694px}.mk-head-actions .mk-userchip-id{display:none}.mk-signin{padding:8px 12px}.mk-hero-copy{top:28%}.mk-hero-copy h1{font-size:clamp(62px,22vw,96px)}.mk-hero-copy p{font-size:12.5px}.mk-realm{bottom:208px!important;padding:6px}.mk-realm-business{left:33%}.mk-realm-name{font-size:16px}.mk-search-line input{font-size:13px}.mk-scrollcue{font-size:8px}.mk-body{width:calc(100% - 24px)}.mk-utility{padding-top:28px}.mk-modebar{gap:8px}.mk-modegroup{gap:13px}.mk-mode{font-size:12px}.mk-count{font-size:8px}.mk-corridors{gap:18px}.mk-corr{font-size:11px}.mk-categorybar{padding-top:20px}.mk-cat{font-size:15px}.mk-filterbar{gap:10px}.mk-filters{gap:10px}.mk-filter{font-size:10px}.mk-sortselect>span{display:none}.mk-sortselect select{max-width:110px;font-size:10px}.mk-content{padding-top:40px}.mk-section-head{grid-template-columns:28px 1fr auto;gap:8px}.mk-section-copy h2,.mk-focused-head h2{font-size:30px}.mk-section-more{font-size:9px}.mk-network{padding:54px 0 68px}.mk-network-copy h2{font-size:46px}.mk-network-map{min-height:355px;margin-left:-4px;margin-right:-4px}.mk-node-label b{font-size:9px}.mk-node-label small{font-size:6px}.mk-network-node{padding:8px;gap:6px}.mk-feature-media{min-height:360px}.mk-feature-copy{grid-template-columns:1fr}.mk-feature-price{align-items:flex-start}.mk-object-row{grid-template-columns:22px 58px minmax(0,1fr) 15px;gap:8px}.mk-object-thumb{width:58px}.mk-object-price{display:none}.mk-shop-feature-visual{min-height:340px}.mk-shop-feature-copy h3{font-size:40px}.mk-shop-feature-facts{grid-template-columns:repeat(3,1fr)}.mk-pbody{padding-top:9px}.mk-pname{font-size:11.5px}.mk-pprice{font-size:11.5px}.mk-pfoot{font-size:8.5px}.mk-business-intro h2{font-size:45px}.mk-shopbody h3{font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){.mk-stage-orbit,.mk-realm,.mk-float-product,.mk-pimg img,.mk-open,.mk-feature-media img,.mk-feature-open,.mk-object-row,.mk-object-arrow,.mk-network-node,.mk-node-dot,.mk-node-label,.mk-shop-feature-open{transform:none!important;transition:none!important}.mk-scrollcue{scroll-behavior:auto}}
+
+/* PHASE 9 — MARKET / mobile is an intentional discovery canvas */
+@media(max-width:760px){
+  .mk-stage{min-height:max(700px,100svh)}
+  .mk-stage-inner{min-height:calc(max(700px,100svh) - 66px);padding-bottom:env(safe-area-inset-bottom)}
+  .mk-search-go{width:44px;height:44px;flex:0 0 44px}
+  .mk-mode,.mk-corr,.mk-filter{min-height:44px;display:inline-flex;align-items:center}
+  .mk-categorybar{overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:3px}
+  .mk-categorybar::-webkit-scrollbar{display:none}
+  .mk-cat{flex:0 0 auto;min-height:46px;display:inline-flex;align-items:center;scroll-snap-align:start}
+  .mk-corridors{scroll-snap-type:x proximity;overscroll-behavior-inline:contain}
+  .mk-corr{scroll-snap-align:start}
+  .mk-prow,.mk-pgrid{scroll-margin-top:76px}
+  .mk-pcard,.mk-object-row,.mk-shopcard{-webkit-tap-highlight-color:transparent}
+  .mk-open,.mk-shop-open{opacity:1;transform:none}
+  .mk-feature-open,.mk-shop-feature-open{transform:none}
+  .mk-network-map{min-height:min(66svh,560px)}
+  .mk-feature-media{min-height:min(72svh,520px)}
+  .mk-shop-feature-visual{min-height:min(66svh,480px)}
+}
+@media(max-width:480px){
+  .mk-nav,.mk-stage-inner{width:calc(100% - 24px)}
+  .mk-hero-copy h1{font-size:clamp(58px,21vw,86px);line-height:.79}
+  .mk-hero-copy p{max-width:32ch;line-height:1.6}
+  .mk-realm{bottom:212px!important;max-width:31%}
+  .mk-realm-name{font-size:15px;overflow-wrap:anywhere}
+  .mk-search{bottom:82px}
+  .mk-scrollcue{bottom:24px}
+  .mk-section-head{grid-template-columns:30px minmax(0,1fr);gap:10px}
+  .mk-section-more{grid-column:2;justify-self:start}
+  .mk-section-copy h2,.mk-focused-head h2{font-size:34px}
+  .mk-prow,.mk-pgrid{gap:28px 9px}
+  .mk-pbody{padding-top:9px}.mk-pname{font-size:11.5px}.mk-pprice{font-size:12px}
+  .mk-object-row{grid-template-columns:22px 54px minmax(0,1fr) 16px;grid-template-rows:auto auto;gap:7px 9px;padding:11px 0}
+  .mk-object-no{grid-row:1/3}.mk-object-thumb{width:54px;grid-row:1/3}.mk-object-copy{grid-column:3;grid-row:1}.mk-object-price{grid-column:3;grid-row:2;color:#727a73}.mk-object-arrow{grid-column:4;grid-row:1/3;align-self:center}
+  .mk-business-intro h2{font-size:42px}
+  .mk-shop-feature-copy h3{font-size:40px}
+  .mk-shop-feature-facts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.mk-shop-feature-facts b{font-size:16px}
+}
+@media(pointer:coarse){
+  .mk-pcard:hover .mk-pimg img,.mk-shopcard:hover .mk-shop-open,.mk-object-row:hover,.mk-shop-feature:hover .mk-shop-feature-open{transform:none}
 }
 </style>

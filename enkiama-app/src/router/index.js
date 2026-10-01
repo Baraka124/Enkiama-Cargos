@@ -25,7 +25,23 @@ const routes = [
   { path: '/account', name: 'account', component: () => import('../views/AccountView.vue') },
 ]
 
-const router = createRouter({ history: createWebHashHistory(), routes })
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) return { el: to.hash, top: 12, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }
+    return { top: 0, left: 0 }
+  },
+})
+
+const EXPERIENCE_WORLD = {
+  market:'market', product:'object', property:'place', 'property-detail':'place',
+  shop:'business', track:'movement', deliveries:'movement',
+}
+router.afterEach((to) => {
+  if (typeof document !== 'undefined') document.documentElement.dataset.enWorld = EXPERIENCE_WORLD[to.name] || 'core'
+})
 
 router.beforeEach(async (to) => {
   try {

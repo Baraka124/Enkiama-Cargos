@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import './style.css'
+import { installRevealDirective, installRouterViewTransitions } from './lib/motion'
 
 // Supabase sometimes redirects back with an error hash, e.g.
 //   #/error=access_denied&error_code=otp_expired&error_description=...
@@ -24,6 +25,11 @@ import './style.css'
 })()
 
 const app = createApp(App)
+
+// V7 — one motion grammar across Market, Product, Property, Business and Movement.
+// Native view transitions are progressive enhancement; all routes retain a CSS fallback.
+installRouterViewTransitions(router)
+installRevealDirective(app)
 
 // v-escape: call the bound handler when Escape is pressed while the element
 // is in the DOM. Lets any modal close on Esc (accessibility + expected feel)

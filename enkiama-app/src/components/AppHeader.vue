@@ -165,4 +165,23 @@ function isCurrent(path) { return router.currentRoute.value.path === path }
 .ah-admin-tag{display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#C79A3E,#946B25);color:#fff;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px}
 .ah-chip-admin{box-shadow:inset 0 0 0 1.5px rgba(199,154,62,.5)}
 .ah-admin-tag-menu{margin-left:8px;vertical-align:middle}
+
+/* PHASE 9 — mobile shell: compact header + reachable account sheet */
+@media(max-width:640px){
+  .ah{padding-top:env(safe-area-inset-top)}
+  .ah-inner{min-height:58px;padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));gap:9px}
+  .ah-brand{gap:8px;min-width:0;flex:1}
+  .ah-id{min-width:0;max-width:46vw}
+  .ah-title{font-size:15px;max-width:100%}
+  .ah-live{margin-left:2px;padding:4px 7px;font-size:9px}
+  .ah-actions{gap:6px}
+  .ah-navlink{width:42px;height:42px;padding:0;justify-content:center;border-radius:50%}
+  .ah-signin{min-height:42px;padding:0 14px}
+  .ah-chip{width:42px;height:42px;padding:4px;justify-content:center;border-radius:50%}
+  .ah-chip-caret{display:none}
+  .ah-menu{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));width:auto;max-height:min(72dvh,580px);overflow:auto;border-radius:20px;padding:14px 10px 10px;box-shadow:0 28px 90px rgba(0,0,0,.28);overscroll-behavior:contain}
+  .ah-menu::before{content:"";display:block;width:38px;height:4px;border-radius:999px;background:var(--hairline-2);margin:0 auto 8px}
+  .ah-menu-head{padding:10px 12px 14px}
+  .ah-menu-item{min-height:46px;padding:11px 12px;border-radius:12px}
+}
 </style>

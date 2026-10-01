@@ -2,15 +2,38 @@
 import { watchEffect, provide, ref, onMounted, onUnmounted } from 'vue'
 import { useAuth } from './composables/useAuth'
 import Icon from './components/Icon.vue'
+import MotionCursor from './components/MotionCursor.vue'
+import { useRouter } from 'vue-router'
+import { supportsViewTransitions } from './lib/motion'
 
 const { carrier } = useAuth()
+const router = useRouter()
+const routeBusy = ref(false)
+const nativeViewTransitions = supportsViewTransitions()
+let removeMotionBefore = null
+let removeMotionAfter = null
 
 // #20 — network status: crucial on spotty Tanzanian mobile data
 const online = ref(navigator.onLine)
 function goOnline() { online.value = true }
 function goOffline() { online.value = false }
-onMounted(() => { window.addEventListener('online', goOnline); window.addEventListener('offline', goOffline) })
-onUnmounted(() => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline) })
+onMounted(() => {
+  window.addEventListener('online', goOnline)
+  window.addEventListener('offline', goOffline)
+  removeMotionBefore = router.beforeEach((to, from) => {
+    if (to.fullPath !== from.fullPath) routeBusy.value = true
+    return true
+  })
+  removeMotionAfter = router.afterEach(() => {
+    requestAnimationFrame(() => { routeBusy.value = false })
+  })
+})
+onUnmounted(() => {
+  window.removeEventListener('online', goOnline)
+  window.removeEventListener('offline', goOffline)
+  removeMotionBefore?.()
+  removeMotionAfter?.()
+})
 
 // apply the signed-in carrier's accent to the whole app (white-label)
 watchEffect(() => {
@@ -49,9 +72,19 @@ provide('toggleTheme', toggleTheme)
 </script>
 
 <template>
-  <router-view v-slot="{ Component }">
-    <component :is="Component" />
+  <transition name="en-route-signal">
+    <div v-if="routeBusy" class="en-route-signal" aria-hidden="true"><i></i></div>
+  </transition>
+
+  <router-view v-slot="{ Component, route }">
+    <component v-if="nativeViewTransitions" :is="Component" :key="route.fullPath" />
+    <transition v-else name="en-page" mode="out-in">
+      <component :is="Component" :key="route.fullPath" />
+    </transition>
   </router-view>
+
+  <MotionCursor />
+
   <transition name="offline-slide">
     <div v-if="!online" class="offline-banner">
       <Icon name="alert" :size="15" /> You're offline — changes will sync when you reconnect
