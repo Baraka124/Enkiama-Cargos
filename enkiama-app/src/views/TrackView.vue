@@ -12,6 +12,7 @@ import AppHeader from '../components/AppHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
+import ExperienceState from '../components/ExperienceState.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 
 const { t } = useI18n()
@@ -24,6 +25,7 @@ const parcel = ref(null)
 const carrierRep = ref(null)
 const events = ref([])
 const notFound = ref(false)
+const trackError = ref('')
 const busy = ref(false)
 const searched = ref(false)
 
@@ -157,11 +159,19 @@ async function track() {
   code.value = clean
   busy.value = true
   notFound.value = false
+  trackError.value = ''
   resetTrackingVisuals()
   const { data, error } = await pub.track(clean)
   busy.value = false
   searched.value = true
-  if (error || !data || !data.length) {
+  if (error) {
+    trackError.value = 'We could not verify that code right now. No tracking record has been changed.'
+    parcel.value = null
+    await nextTick()
+    signalMotionReady()
+    return
+  }
+  if (!data || !data.length) {
     notFound.value = true
     parcel.value = null
     await nextTick()
@@ -301,25 +311,40 @@ onUnmounted(() => { resetTrackingVisuals() })
     <!-- SEARCH / ARRIVAL -->
     <section class="movement-entry" :class="{ compact: parcel }">
       <div class="movement-entry-grid"></div>
-      <div class="movement-entry-inner">
-        <div class="movement-kicker"><span class="movement-live-dot"></span> Movement / Tanzania</div>
-        <h1 v-if="!parcel">Where is<br><em>your parcel?</em></h1>
-        <h1 v-else class="result-entry-title">Follow the movement.</h1>
-        <p class="movement-entry-copy">One code opens the current position, custody history and delivery proof. No account required.</p>
-        <div class="movement-search">
-          <span class="movement-search-index">01</span>
-          <input v-model="code" class="mono" placeholder="ENK-XXXX" aria-label="Tracking code" @keyup.enter="track" />
-          <button class="movement-search-btn" :disabled="busy" @click="track">
-            <Spinner v-if="busy" :size="16" />
-            <template v-else>Track <Icon name="arrow" :size="15" /></template>
-          </button>
+      <div class="movement-entry-inner movement-entry-layout">
+        <div class="movement-entry-copycol" v-reveal="{variant:'copy'}">
+          <div class="movement-kicker"><span class="movement-live-dot"></span> Movement / Tanzania</div>
+          <h1 v-if="!parcel">Follow what<br><em>moves.</em></h1>
+          <h1 v-else class="result-entry-title">Movement<br><em>record.</em></h1>
+          <p class="movement-entry-copy">One code opens the parcel journey: where it is now, who has held it and how it arrived.</p>
+          <div class="movement-search-label">Tracking code</div>
+          <div class="movement-search">
+            <span class="movement-search-index">ENK</span>
+            <input v-model="code" class="mono" placeholder="XXXX" aria-label="Tracking code" @keyup.enter="track" />
+            <button class="movement-search-btn" :disabled="busy" @click="track">
+              <Spinner v-if="busy" :size="16" />
+              <template v-else>Open journey <Icon name="arrow" :size="15" /></template>
+            </button>
+          </div>
+          <div class="movement-entry-note"><Icon name="shield" :size="13" /> No account required to verify a tracking code.</div>
+        </div>
+
+        <div class="movement-entry-visual" v-depth="{pointer:2.6,scroll:5,rotate:.14,scale:1.002}" aria-hidden="true">
+          <div class="entry-network-head"><span>Tanzania network</span><small>Custody becomes visible as movement is recorded</small></div>
+          <svg class="entry-route-svg" viewBox="0 0 560 360" preserveAspectRatio="none">
+            <path class="entry-route-base" d="M35 292 C132 286 132 92 254 108 C365 122 373 260 525 70" />
+            <path class="entry-route-glow" d="M35 292 C132 286 132 92 254 108 C365 122 373 260 525 70" />
+          </svg>
+          <div class="entry-route-stop entry-route-start"><i></i><span>Sender</span><small>Handoff</small></div>
+          <div class="entry-route-stop entry-route-mid"><i></i><span>Carrier</span><small>Movement</small></div>
+          <div class="entry-route-stop entry-route-end"><i></i><span>You</span><small>Arrival</small></div>
+          <div class="entry-route-signal"><span class="entry-route-pulse"></span><strong>Live when available</strong><small>Driver position appears only from an active delivery record.</small></div>
         </div>
       </div>
     </section>
 
-    <section v-if="notFound" class="movement-state wrap-narrow">
-      <EmptyState icon="search" title="No parcel with that code" hint="Check the code your sender shared with you." />
-    </section>
+    <section v-if="trackError" class="movement-state wrap-narrow"><ExperienceState kind="error" world="movement" eyebrow="Tracking connection" title="We could not verify the journey." :body="trackError"><button type="button" @click="track">Try again</button></ExperienceState></section>
+    <section v-else-if="notFound" class="movement-state wrap-narrow"><ExperienceState kind="empty" world="movement" eyebrow="Tracking code" title="No journey matches that code." body="Check the code exactly as your sender shared it. Enkiama codes are case-insensitive."><button type="button" @click="code='';notFound=false">Enter another code</button></ExperienceState></section>
 
     <!-- RESULT -->
     <template v-if="parcel">
@@ -337,12 +362,16 @@ onUnmounted(() => { resetTrackingVisuals() })
                 <TrustBadge v-if="carrierRep && carrierRep.tier !== 'new'" :rep="carrierRep" compact class="now-trust" />
               </div>
 
-              <div class="now-object" :class="'stage-'+parcel.stage">
-                <div class="now-object-orbit"></div>
-                <div class="now-object-core">
-                  <Icon :name="parcel.stage==='with_driver' ? 'route' : parcel.stage==='failed' ? 'alert' : ['delivered','confirmed'].includes(parcel.stage) ? 'check' : 'package'" :size="34" />
+              <div class="now-signal" :class="'stage-'+parcel.stage">
+                <div class="now-signal-head"><span>Current stage</span><strong>{{ STAGE_CAP[parcel.stage] }}</strong></div>
+                <div class="now-signal-route">
+                  <div class="now-signal-track"><i :style="{ width: progressPct + '%' }"></i></div>
+                  <span class="now-signal-node start"><b></b><small>Sender</small></span>
+                  <span class="now-signal-node carrier"><b></b><small>Carrier</small></span>
+                  <span class="now-signal-node end"><b></b><small>You</small></span>
+                  <div class="now-signal-marker" :style="{ left: progressPct + '%' }"><span><Icon :name="parcel.stage==='failed' ? 'alert' : ['delivered','confirmed'].includes(parcel.stage) ? 'check' : 'package'" :size="18" /></span></div>
                 </div>
-                <div class="now-object-label">{{ STAGE_CAP[parcel.stage] }}</div>
+                <div class="now-signal-foot"><span>{{ Math.round(progressPct) }}% of the journey recorded</span><small>{{ parcel.driver ? 'Active handler · ' + parcel.driver : 'Custody updates appear as they are recorded' }}</small></div>
               </div>
             </div>
 
@@ -360,7 +389,7 @@ onUnmounted(() => { resetTrackingVisuals() })
         </section>
 
         <!-- CHAPTER 02 / ROUTE -->
-        <section v-reveal class="movement-route-section">
+        <section v-reveal="{variant:'section'}" class="movement-route-section">
           <div class="movement-wrap">
             <div class="chapter-line"><span>02</span><span>Movement</span><span>{{ Math.round(progressPct) }}% recorded</span></div>
             <div class="route-heading">
@@ -381,7 +410,7 @@ onUnmounted(() => { resetTrackingVisuals() })
         </section>
 
         <!-- LIVE MAP -->
-        <section v-if="livePos" v-reveal class="movement-live-map">
+        <section v-if="livePos" v-reveal="{variant:'media'}" class="movement-live-map">
           <div class="movement-live-overlay">
             <div class="live-eyebrow"><span></span> Live position · updated {{ liveAgo }}</div>
             <h2>{{ parcel.driver || 'Your driver' }} is moving toward you.</h2>
@@ -391,7 +420,7 @@ onUnmounted(() => { resetTrackingVisuals() })
         </section>
 
         <!-- CHAPTER 03 / LEDGER -->
-        <section v-reveal class="movement-ledger-section">
+        <section v-reveal="{variant:'section'}" class="movement-ledger-section">
           <div class="movement-wrap ledger-wrap">
             <div class="chapter-line"><span>03</span><span>Custody</span><span>Verifiable history</span></div>
             <div class="ledger-heading">
@@ -645,4 +674,81 @@ onUnmounted(() => { resetTrackingVisuals() })
   .arrival-action{padding-bottom:calc(32px + env(safe-area-inset-bottom))}
   .movement-footer{padding-bottom:env(safe-area-inset-bottom);height:calc(90px + env(safe-area-inset-bottom))}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 16 — MOVEMENT / LOGISTICS WORLD
+   Route geometry, live location and custody are the visual material.
+   Dark is atmosphere, not empty content.
+   ═══════════════════════════════════════════════════════════════ */
+.movement-entry{min-height:620px;background:
+  radial-gradient(58% 72% at 78% 18%,rgba(121,199,181,.15),transparent 68%),
+  radial-gradient(32% 45% at 17% 83%,rgba(211,176,106,.075),transparent 72%),
+  linear-gradient(138deg,#09130f 0%,#0d1a16 48%,#10241d 100%)}
+.movement-entry.compact{min-height:470px}
+.movement-entry::before{display:none}
+.movement-entry::after{width:42vw;height:42vw;max-width:620px;max-height:620px;left:auto;right:-16%;bottom:-54%;background:radial-gradient(circle,rgba(121,199,181,.13),rgba(121,199,181,.025) 46%,transparent 72%)}
+.movement-entry-grid{opacity:.08;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:92px 92px;mask-image:linear-gradient(90deg,rgba(0,0,0,.7),rgba(0,0,0,.18) 62%,transparent)}
+.movement-entry-layout{display:grid;grid-template-columns:minmax(0,.88fr) minmax(420px,1.12fr);gap:70px;align-items:center;padding:76px 0}
+.movement-entry-copycol{min-width:0}
+.movement-entry h1{font-size:clamp(52px,6vw,82px);line-height:.9;letter-spacing:-.06em;max-width:650px}
+.movement-entry h1 em{font-family:var(--font-editorial,'Cormorant Garamond',serif);font-weight:500;color:#8fd3bd;letter-spacing:-.035em}
+.movement-entry h1.result-entry-title{font-size:clamp(48px,5.4vw,72px)}
+.movement-entry-copy{font-size:14px;max-width:48ch;margin:26px 0 32px;color:rgba(242,246,242,.61)}
+.movement-search-label{font-size:9px;text-transform:uppercase;letter-spacing:.18em;color:rgba(241,238,230,.39);margin-bottom:8px}
+.movement-search{width:min(610px,100%);height:64px;grid-template-columns:52px 1fr auto;border-color:rgba(241,238,230,.24)}
+.movement-search-index{font-family:var(--font-mono);font-size:10px;color:#8fd3bd;letter-spacing:.12em}
+.movement-search input{font-size:18px;color:#fff}
+.movement-search-btn{padding-left:22px;font-size:11px;white-space:nowrap}
+.movement-entry-note{display:flex;align-items:center;gap:7px;margin-top:15px;font-size:10px;color:rgba(241,238,230,.38)}
+.movement-entry-visual{position:relative;min-height:430px;border-left:1px solid rgba(255,255,255,.11);border-bottom:1px solid rgba(255,255,255,.09);background:linear-gradient(135deg,rgba(255,255,255,.015),rgba(121,199,181,.035));overflow:hidden}
+.movement-entry-visual::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(to bottom,#000,transparent 94%)}
+.entry-network-head{position:absolute;z-index:3;left:24px;right:24px;top:22px;display:flex;justify-content:space-between;gap:24px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.11)}
+.entry-network-head span{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#dce9e2}.entry-network-head small{font-size:10px;color:rgba(255,255,255,.34);text-align:right}
+.entry-route-svg{position:absolute;left:4%;right:4%;top:66px;width:92%;height:310px;overflow:visible}
+.entry-route-base{fill:none;stroke:rgba(255,255,255,.14);stroke-width:1.25;vector-effect:non-scaling-stroke}
+.entry-route-glow{fill:none;stroke:url(#none);stroke:#79c7b5;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:8 12;opacity:.72;vector-effect:non-scaling-stroke}
+.entry-route-stop{position:absolute;z-index:4;display:flex;flex-direction:column;gap:4px;color:#eef4ef}.entry-route-stop i{width:10px;height:10px;border-radius:50%;background:#0d1814;border:2px solid #9dd6c3;box-shadow:0 0 0 7px rgba(121,199,181,.08)}.entry-route-stop span{font-size:10px;font-weight:650;text-transform:uppercase;letter-spacing:.11em}.entry-route-stop small{font-size:9px;color:rgba(255,255,255,.36)}
+.entry-route-start{left:6%;bottom:52px}.entry-route-mid{left:43%;top:99px}.entry-route-end{right:4%;top:58px;align-items:flex-end;text-align:right}
+.entry-route-signal{position:absolute;z-index:5;right:26px;bottom:27px;width:205px;padding:16px 0 0 22px;border-top:1px solid rgba(255,255,255,.12)}.entry-route-signal>span{position:absolute;left:0;top:19px;width:7px;height:7px;border-radius:50%;background:#8fd3bd;box-shadow:0 0 0 7px rgba(143,211,189,.08)}.entry-route-signal strong{display:block;font-size:11px;color:#e7eee9}.entry-route-signal small{display:block;font-size:9.5px;line-height:1.5;color:rgba(255,255,255,.34);margin-top:5px}
+
+.now-grid{grid-template-columns:minmax(0,1fr) minmax(350px,.7fr);gap:90px}
+.now-signal{min-height:310px;display:flex;flex-direction:column;justify-content:space-between;padding:28px 0 8px;border-top:1px solid #c8cec9;border-bottom:1px solid #c8cec9}
+.now-signal-head{display:flex;justify-content:space-between;gap:24px;align-items:baseline}.now-signal-head span{font-size:9px;text-transform:uppercase;letter-spacing:.15em;color:#7c847d}.now-signal-head strong{font-size:13px;font-weight:650}
+.now-signal-route{position:relative;height:128px;margin:28px 10px 14px}.now-signal-track{position:absolute;left:0;right:0;top:48px;height:1px;background:#cbd1cc}.now-signal-track i{display:block;height:2px;background:linear-gradient(90deg,#4d755f,var(--carrier-accent));transition:width .7s var(--en-motion-ease)}
+.now-signal-node{position:absolute;top:38px;display:flex;flex-direction:column;align-items:center;gap:11px;transform:translateX(-50%)}.now-signal-node.start{left:0;transform:none;align-items:flex-start}.now-signal-node.carrier{left:50%}.now-signal-node.end{right:0;left:auto;transform:none;align-items:flex-end}.now-signal-node b{width:20px;height:20px;border-radius:50%;background:#f4f1eb;border:1px solid #9ba79f;box-shadow:0 0 0 5px #f4f1eb}.now-signal-node small{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:#777f78}
+.now-signal-marker{position:absolute;top:28px;transform:translateX(-50%);transition:left .7s var(--en-motion-ease);z-index:4}.now-signal-marker>span{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#17231d;color:#fff;box-shadow:0 10px 28px rgba(22,35,29,.18),0 0 0 6px #f4f1eb}.now-signal.stage-confirmed .now-signal-marker>span,.now-signal.stage-delivered .now-signal-marker>span{background:#2f704f}.now-signal.stage-failed .now-signal-marker>span{background:#8b4037}
+.now-signal-foot{display:flex;justify-content:space-between;gap:28px;padding-top:14px;border-top:1px solid #d6dbd7}.now-signal-foot span{font-size:10px;font-weight:650}.now-signal-foot small{font-size:9.5px;color:#7c847d;text-align:right;max-width:190px}
+
+.movement-route-section{position:relative;background:
+  radial-gradient(44% 66% at 84% 22%,rgba(121,199,181,.12),transparent 68%),
+  linear-gradient(142deg,#0b1713 0%,#10241c 58%,#0c1c17 100%);overflow:hidden}
+.movement-route-section::after{content:"";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:88px 88px;mask-image:linear-gradient(90deg,transparent,rgba(0,0,0,.68) 35%,rgba(0,0,0,.68) 78%,transparent)}
+.movement-route-section .movement-wrap{position:relative;z-index:1}
+.route-fill{background:linear-gradient(90deg,#8fcfb9,#d3b06a,var(--carrier-accent));box-shadow:0 0 18px rgba(121,199,181,.18)}
+.route-stop.current .route-stop-node{box-shadow:0 0 0 8px rgba(143,211,189,.08),0 0 28px rgba(143,211,189,.12)}
+
+.movement-live-map{border-top:1px solid #d2d9d4;border-bottom:1px solid #d2d9d4;background:#dfe5e0}
+.trk-map{filter:saturate(.38) contrast(.94) sepia(.04)}
+.movement-live-overlay{background:rgba(10,24,18,.9);border:1px solid rgba(255,255,255,.08);box-shadow:0 30px 90px rgba(10,20,16,.22)}
+
+.movement-ledger-section{background:
+  radial-gradient(32% 50% at 90% 0%,rgba(56,83,66,.08),transparent 70%),
+  #e8ece7;color:#17231d}
+.movement-ledger-section .chapter-line{border-color:rgba(23,35,29,.15);color:#6d786f}
+.ledger-heading h2{color:#17231d}.ledger-principle{color:#315e49}.ledger-principle p{color:#657168}
+.ledger-list{border-color:#c8d0ca}.ledger-row{border-color:#c8d0ca}.ledger-row.current{background:linear-gradient(90deg,rgba(47,112,79,.07),transparent)}
+.ledger-index{color:#8a948d}.ledger-mark{border-color:#b8c4bc;color:#3c7658;background:#f0f3ef}.ledger-title strong{color:#17231d}.ledger-title span{color:#2f704f;border-color:rgba(47,112,79,.25)}.ledger-time{color:#7d8780}.ledger-actor{color:#356c50}.ledger-main blockquote{font-family:var(--font-editorial,'Cormorant Garamond',serif);color:#67736b}.ledger-empty{border-color:#c8d0ca;color:#78837b}
+
+.movement-proof-section{background:#f3f0e8}
+.movement-primer{background:linear-gradient(145deg,#dde6df,#edf0eb);color:#17231d}
+.movement-primer .chapter-line{border-color:rgba(23,35,29,.15)!important;color:#6d786f!important}.primer-intro h2{color:#17231d}.primer-intro p{color:#657168}.primer-steps{border-color:#c6d0c9}.primer-steps>div{border-color:#c6d0c9}.primer-steps span{color:#8a948d}.primer-steps strong{color:#17231d}.primer-steps p{color:#6b766e}.primer-market{border-color:#c6d0c9;color:#6d786f}.primer-market a{color:#2f704f}
+
+@media(max-width:900px){
+  .movement-entry-layout{grid-template-columns:1fr;gap:48px;padding:64px 0}.movement-entry-visual{min-height:330px}.entry-route-svg{height:238px;top:58px}.entry-route-mid{top:86px}.entry-route-end{top:50px}.now-grid{grid-template-columns:1fr;gap:42px}.now-signal{min-height:260px}
+}
+@media(max-width:520px){
+  .movement-entry{min-height:auto}.movement-entry.compact{min-height:auto}.movement-entry-layout{padding:52px 0 44px;gap:36px}.movement-entry h1{font-size:48px}.movement-entry h1.result-entry-title{font-size:44px}.movement-search{grid-template-columns:42px minmax(0,1fr) auto}.movement-search-btn{font-size:0;padding-left:10px}.movement-search-btn svg{display:block}.movement-entry-visual{min-height:260px;margin-left:-2px}.entry-network-head{left:14px;right:14px;top:14px}.entry-network-head small{display:none}.entry-route-svg{top:48px;height:185px}.entry-route-start{left:4%;bottom:30px}.entry-route-mid{left:42%;top:73px}.entry-route-end{right:3%;top:40px}.entry-route-signal{display:none}.entry-route-stop small{display:none}.now-signal{min-height:235px}.now-signal-foot{flex-direction:column;gap:6px}.now-signal-foot small{text-align:left;max-width:none}.movement-ledger-section{padding-top:70px;padding-bottom:78px}
+}
+@media(prefers-reduced-motion:reduce){.entry-route-glow{stroke-dasharray:none}.now-signal-track i,.now-signal-marker{transition:none}}
 </style>

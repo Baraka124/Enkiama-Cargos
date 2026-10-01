@@ -1,6 +1,6 @@
-# Enkiama Cargos — Phase 12 Market Art Direction
+# Enkiama Cargos — Phase 18 Governed Media System
 
-This cumulative project includes all work through Phase 12. The Market arrival has been recomposed around real product/storefront media, restrained typography, warm material surfaces, and a clearer Goods / Businesses / Property hierarchy. See `PHASE_12_MARKET_ART_DIRECTION.md`.
+This cumulative project includes all experience work through Phase 18. Market, Object, Business and Property now share one governed media renderer and purpose-aware upload guidance. See `PHASE_18_MEDIA_SYSTEM.md`.
 
 # Enkiama Cargos
 
@@ -16,9 +16,9 @@ Functions) - Leaflet. Deploys as a static site.
 
 ## Current experience build
 
-**V11 — Brand + Global Shell**
+**V18 — Governed Media System**
 
-The cumulative UI build includes the V10B material foundation plus the V11 route-aware Enkiama header/navigation/footer system across desktop, laptop and mobile. See `PHASE_10_VISUAL_FOUNDATION.md` and `PHASE_11_GLOBAL_SHELL.md`.
+The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement and governed media across desktop, laptop, tablet and mobile. See the phase notes through `PHASE_18_MEDIA_SYSTEM.md`.
 
 ---
 
@@ -139,5 +139,34 @@ After running it:
 - **dispatch** — runs the board for one carrier
 - **driver** — their own run only
 - senders/receivers — account-less, phone + code
-> **Current visual baseline:** V10B — Material & Movement foundation enforcement. Market, Place and Business no longer default to flat dark surfaces; Movement alone retains a nocturnal atmosphere.
+> **Current visual baseline:** V15 — Market, Object, Business and Property now have dedicated art direction built on the V10 material system. Property is landscape/geography-led; Movement alone retains a nocturnal atmosphere.
 
+## Phase 13 — Object / Product Art Direction
+
+Product Detail is now image-led and materially aligned with the Object world: porcelain staging, restrained typography, quieter commerce controls, a compact object ledger, richer media treatment, and asymmetric related-object discovery. Commerce/Supabase contracts remain unchanged.
+
+
+## Phase 14 — Business / Human World
+
+Public storefronts are now warm, media-led business environments rather than generic seller profiles. Real business cover media, logo, region, story, products, delivery reach and marketplace reputation drive the composition. When no cover exists, a real product becomes the visual anchor instead of a dark fallback hero. No storefront, ordering, auth, reputation or Supabase contracts changed.
+
+
+## Phase 15 — Property / Geographic World
+
+Property is now a light earth-toned geographic environment: landscape-led arrival, integrated mapping, composed empty states, place/context hierarchy, light verification, and calmer terms. Real listing data and the existing property RPC/deal contracts are unchanged.
+
+
+## Phase 17 — Utility + Conversion Surfaces
+Task-oriented controls now use a quiet common system across search/filtering, access, account, checkout and protected purchase flows. Backend contracts remain unchanged.
+
+
+## Phase 18 — Governed Media System
+
+The flagship public experience now shares one media renderer for stable loading, crop/fit, fallbacks, transition continuity and reduced-motion-safe skeletons. Product, business and property uploads also receive purpose-aware quality guidance. See `PHASE_18_MEDIA_SYSTEM.md`.
+
+## Phase 19 — Spatial Depth + Motion
+
+The public experience now uses one restrained spatial grammar: shared media depth, reveal variants, object/place continuity and state-driven logistics motion. Fine-pointer depth is disabled on touch devices and for reduced-motion users. Utility and transactional surfaces remain intentionally still. See `PHASE_19_SPATIAL_DEPTH_MOTION.md`.
+
+## Phase 20 — Resilient states
+Loading, zero-result, sold/unavailable, missing-record, connectivity and offline states now use one world-aware recovery language instead of generic spinners, broken empty pages or conflating network failure with "not found".

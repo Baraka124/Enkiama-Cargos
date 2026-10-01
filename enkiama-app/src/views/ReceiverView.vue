@@ -6,6 +6,7 @@ import { useAuth } from '../composables/useAuth'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
+import ExperienceState from '../components/ExperienceState.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 import Skeleton from '../components/Skeleton.vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -19,6 +20,7 @@ const claimedPhone = ref('')
 const phoneInput = ref('')
 const deliveries = ref([])
 const loading = ref(true)
+const loadError = ref('')
 const claiming = ref(false)
 
 const STAGE_LABELS = {
@@ -41,10 +43,12 @@ const attentionCount = computed(() => deliveries.value.filter(d => isAttention(d
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   claimedPhone.value = profile.value?.claimed_phone || ''
   if (claimedPhone.value) {
-    const { data } = await pub.myDeliveries()
-    deliveries.value = data || []
+    const { data, error } = await pub.myDeliveries()
+    if (error) loadError.value = 'Your delivery list could not be refreshed.'
+    deliveries.value = error ? [] : (data || [])
   }
   loading.value = false
   await nextTick()
@@ -70,16 +74,28 @@ onMounted(load)
 
   <main class="receiver-page">
     <section v-if="!claimedPhone" class="receiver-claim">
-      <div class="receiver-claim-inner">
-        <div class="claim-kicker">Receiver identity</div>
-        <h1>Bring every<br><em>incoming journey</em><br>into one place.</h1>
-        <p>Link the phone number your senders use. Parcels addressed to that number appear here across participating carriers.</p>
-        <div class="claim-field">
-          <span>+255</span>
-          <input v-model="phoneInput" type="tel" inputmode="tel" placeholder="Your phone number" @keyup.enter="claimPhone" />
-          <button :disabled="claiming" @click="claimPhone"><Spinner v-if="claiming" :size="15" /><template v-else>Link number <Icon name="arrow" :size="14" /></template></button>
+      <div class="receiver-claim-inner receiver-claim-layout">
+        <div class="receiver-claim-copy">
+          <div class="claim-kicker">Receiver identity</div>
+          <h1>See what is<br><em>coming to you.</em></h1>
+          <p>Link the phone number your senders use. Incoming parcels addressed to that number become one visible movement record.</p>
+          <div class="claim-field">
+            <span>+255</span>
+            <input v-model="phoneInput" type="tel" inputmode="tel" placeholder="Your phone number" @keyup.enter="claimPhone" />
+            <button :disabled="claiming" @click="claimPhone"><Spinner v-if="claiming" :size="15" /><template v-else>Link number <Icon name="arrow" :size="14" /></template></button>
+          </div>
+          <div class="claim-note"><Icon name="shield" :size="14" /> Delivery visibility stays attached to your signed-in receiver account.</div>
         </div>
-        <div class="claim-note"><Icon name="shield" :size="14" /> This links delivery visibility to your signed-in receiver account.</div>
+        <div class="receiver-claim-route" aria-hidden="true">
+          <div class="claim-route-head"><span>One receiver view</span><small>Across participating carriers</small></div>
+          <div class="claim-route-canvas">
+            <svg viewBox="0 0 520 300" preserveAspectRatio="none"><path d="M24 246 C126 238 120 72 244 84 C356 96 358 224 496 48" /></svg>
+            <span class="claim-route-node one"><i></i><b>Sender</b></span>
+            <span class="claim-route-node two"><i></i><b>Carrier</b></span>
+            <span class="claim-route-node three"><i></i><b>You</b></span>
+          </div>
+          <div class="claim-route-ledger"><span>Movement</span><span>Custody</span><span>Arrival</span></div>
+        </div>
       </div>
     </section>
 
@@ -88,11 +104,14 @@ onMounted(load)
         <div class="receiver-wrap">
           <div class="receiver-kicker">Movement / Receiver</div>
           <div class="receiver-hero-grid">
-            <div><h1>Your parcels,<br><em>in motion.</em></h1><p>One place for everything addressed to {{ claimedPhone }}.</p></div>
-            <div class="receiver-metrics">
-              <div><strong>{{ activeDeliveries.length }}</strong><span>Active</span></div>
-              <div><strong>{{ pastDeliveries.length }}</strong><span>Arrived</span></div>
-              <div v-if="attentionCount"><strong>{{ attentionCount }}</strong><span>Attention</span></div>
+            <div class="receiver-hero-copy"><h1>Your movement,<br><em>at a glance.</em></h1><p>Everything addressed to {{ claimedPhone }}, separated into what is still moving and what has arrived.</p></div>
+            <div class="receiver-network-card">
+              <div class="receiver-network-line"><i></i><b></b><b></b><b></b></div>
+              <div class="receiver-metrics">
+                <div><strong>{{ activeDeliveries.length }}</strong><span>Active</span></div>
+                <div><strong>{{ pastDeliveries.length }}</strong><span>Arrived</span></div>
+                <div v-if="attentionCount"><strong>{{ attentionCount }}</strong><span>Attention</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -101,10 +120,11 @@ onMounted(load)
       <section class="receiver-content">
         <div class="receiver-wrap">
           <Skeleton v-if="loading" variant="card" :count="2" />
-          <EmptyState v-else-if="!deliveries.length" icon="inbox" title="Nothing incoming yet" hint="When a sender ships to your number, it appears here automatically." />
+          <ExperienceState v-else-if="loadError" kind="error" world="movement" eyebrow="Receiver movement" title="Your deliveries did not refresh." :body="loadError"><button type="button" @click="load">Try again</button></ExperienceState>
+          <ExperienceState v-else-if="!deliveries.length" kind="empty" world="movement" eyebrow="Receiver movement" title="Nothing is moving toward you yet." body="When a sender ships to your linked number, the journey will appear here automatically." />
 
           <template v-else>
-            <section v-reveal class="movement-group">
+            <section v-reveal="{variant:'section'}" class="movement-group">
               <div class="group-head"><span>01</span><h2>In movement</h2><small>{{ activeDeliveries.length }} current</small></div>
               <div v-if="activeDeliveries.length" class="delivery-list">
                 <router-link v-for="d in activeDeliveries" :key="d.id || d.code" :to="`/track/${d.code}`" class="delivery-row" :class="{ attention:isAttention(d.stage) }" data-cursor="Track">
@@ -121,7 +141,7 @@ onMounted(load)
               <div v-else class="group-empty">No parcels are currently moving toward you.</div>
             </section>
 
-            <section v-reveal class="movement-group past-group">
+            <section v-reveal="{variant:'section'}" class="movement-group past-group">
               <div class="group-head"><span>02</span><h2>Arrived</h2><small>{{ pastDeliveries.length }} recorded</small></div>
               <div v-if="pastDeliveries.length" class="delivery-list past-list">
                 <router-link v-for="d in pastDeliveries" :key="d.id || d.code" :to="`/track/${d.code}`" class="delivery-row past" data-cursor="Track">
@@ -172,4 +192,41 @@ onMounted(load)
   .receiver-metrics>div{padding:14px 11px}.receiver-metrics strong{font-size:24px}
   .group-head h2{font-size:26px}.delivery-row{padding:19px 0}
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 16 — RECEIVER MOVEMENT WORLD
+   Identity and parcel overview use route/custody composition rather than
+   billboard typography or decorative circles.
+   ═══════════════════════════════════════════════════════════════ */
+.receiver-page{background:#edf0eb}
+.receiver-claim{min-height:calc(100svh - 70px);background:
+  radial-gradient(56% 78% at 82% 15%,rgba(121,199,181,.14),transparent 68%),
+  radial-gradient(34% 46% at 13% 88%,rgba(211,176,106,.06),transparent 72%),
+  linear-gradient(138deg,#09130f,#0d1a16 52%,#10241d);color:#fff}
+.receiver-claim::before{display:none}
+.receiver-claim::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:88px 88px;opacity:.55;mask-image:linear-gradient(90deg,#000,rgba(0,0,0,.45) 58%,transparent)}
+.receiver-claim-inner{width:min(1180px,calc(100% - 64px));padding:70px 0;position:relative;z-index:1}
+.receiver-claim-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(420px,1.1fr);gap:80px;align-items:center}
+.receiver-claim-copy h1{font-size:clamp(50px,6vw,78px);line-height:.91;letter-spacing:-.058em;max-width:650px}.receiver-claim-copy h1 em{font-family:var(--font-editorial,'Cormorant Garamond',serif);color:#8fd3bd;letter-spacing:-.03em}
+.receiver-claim> .receiver-claim-inner> .receiver-claim-copy>p{max-width:500px;font-size:14px;line-height:1.72;color:rgba(255,255,255,.57);margin:26px 0 30px}
+.claim-kicker{color:rgba(255,255,255,.42);margin-bottom:25px}
+.claim-field{height:64px;max-width:610px;grid-template-columns:58px 1fr auto;border-color:rgba(255,255,255,.24)}.claim-field>span{color:#8fd3bd}.claim-field input{font-size:16px;color:#fff}.claim-field button{font-size:11px}.claim-note{color:rgba(255,255,255,.38)}
+.receiver-claim-route{min-height:390px;position:relative;border-left:1px solid rgba(255,255,255,.11);border-bottom:1px solid rgba(255,255,255,.09);background:linear-gradient(135deg,rgba(255,255,255,.014),rgba(121,199,181,.035));overflow:hidden}
+.receiver-claim-route::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:70px 70px}
+.claim-route-head{position:absolute;z-index:2;top:20px;left:22px;right:22px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.11);display:flex;justify-content:space-between;gap:20px}.claim-route-head span{font-size:10px;text-transform:uppercase;letter-spacing:.16em}.claim-route-head small{font-size:9px;color:rgba(255,255,255,.34)}
+.claim-route-canvas{position:absolute;inset:62px 18px 52px}.claim-route-canvas svg{position:absolute;inset:0;width:100%;height:100%}.claim-route-canvas path{fill:none;stroke:#79c7b5;stroke-width:2;stroke-dasharray:8 12;opacity:.72;vector-effect:non-scaling-stroke}
+.claim-route-node{position:absolute;display:flex;align-items:center;gap:7px;font-size:9px;text-transform:uppercase;letter-spacing:.11em}.claim-route-node i{width:10px;height:10px;border-radius:50%;border:2px solid #9dd6c3;background:#0d1814;box-shadow:0 0 0 7px rgba(121,199,181,.08)}.claim-route-node.one{left:2%;bottom:4%}.claim-route-node.two{left:44%;top:10%}.claim-route-node.three{right:0;top:-1%}
+.claim-route-ledger{position:absolute;left:22px;right:22px;bottom:18px;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(255,255,255,.1);padding-top:12px}.claim-route-ledger span{font-size:8px;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.34)}.claim-route-ledger span:nth-child(2){text-align:center}.claim-route-ledger span:last-child{text-align:right}
+
+.receiver-hero{background:
+  radial-gradient(38% 70% at 88% 14%,rgba(121,199,181,.12),transparent 72%),
+  linear-gradient(140deg,#0b1713,#10231c);padding:66px 0 58px;border-bottom:1px solid rgba(255,255,255,.08)}
+.receiver-kicker{color:rgba(255,255,255,.42);margin-bottom:22px}.receiver-hero-grid{grid-template-columns:minmax(0,1fr) minmax(330px,.7fr);gap:70px;align-items:center}.receiver-hero h1{font-size:clamp(48px,5.8vw,74px);line-height:.91;letter-spacing:-.058em}.receiver-hero h1 em{font-family:var(--font-editorial,'Cormorant Garamond',serif);color:#8fd3bd}.receiver-hero-copy p{font-size:13px;color:rgba(255,255,255,.48);line-height:1.65;margin:22px 0 0;max-width:48ch}
+.receiver-network-card{border-top:1px solid rgba(255,255,255,.15);border-bottom:1px solid rgba(255,255,255,.15);padding:22px 0}.receiver-network-line{height:46px;position:relative;margin:0 8px 8px}.receiver-network-line::before{content:"";position:absolute;left:0;right:0;top:20px;height:1px;background:rgba(255,255,255,.18)}.receiver-network-line i{position:absolute;left:0;top:20px;width:64%;height:2px;background:linear-gradient(90deg,#79c7b5,#d3b06a)}.receiver-network-line b{position:absolute;top:13px;width:16px;height:16px;border-radius:50%;background:#0f1e18;border:1px solid #8fcfb9;box-shadow:0 0 0 5px #10231c}.receiver-network-line b:nth-of-type(1){left:0}.receiver-network-line b:nth-of-type(2){left:50%;transform:translateX(-50%)}.receiver-network-line b:nth-of-type(3){right:0}
+.receiver-metrics{border:0}.receiver-metrics>div{padding:14px 18px 4px;border-right:1px solid rgba(255,255,255,.1)}.receiver-metrics>div:first-child{padding-left:0}.receiver-metrics strong{font-size:28px}.receiver-metrics span{color:rgba(255,255,255,.36)}
+.receiver-content{background:#edf0eb}.delivery-list{border-color:#c7d0c9}.delivery-row{border-color:#c7d0c9}.delivery-row:hover{background:rgba(255,255,255,.35)}.delivery-progress{background:#cbd4cd}.delivery-progress i{background:linear-gradient(90deg,#48715d,#79a88f)}.group-head{border-color:#b9c4bc}.group-empty{border-color:#c7d0c9}
+
+@media(max-width:900px){.receiver-claim-layout{grid-template-columns:1fr;gap:42px}.receiver-claim-route{min-height:300px}.receiver-hero-grid{grid-template-columns:1fr;gap:34px}.receiver-network-card{max-width:620px}}
+@media(max-width:620px){.receiver-claim-inner{width:calc(100% - 28px);padding:48px 0 42px}.receiver-claim-copy h1{font-size:48px}.receiver-claim-route{min-height:250px}.claim-route-head{left:14px;right:14px;top:14px}.claim-route-head small{display:none}.claim-route-canvas{inset:48px 12px 43px}.claim-route-node b{display:none}.claim-route-ledger{left:14px;right:14px;bottom:12px}.receiver-hero{padding:52px 0 46px}.receiver-hero h1{font-size:46px}.receiver-metrics{width:100%;overflow:visible}.receiver-metrics>div{min-width:0}.receiver-content{padding-top:58px}}
 </style>

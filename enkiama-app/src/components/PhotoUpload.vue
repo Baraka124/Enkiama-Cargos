@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import Icon from './Icon.vue'
 import Spinner from './Spinner.vue'
+import MediaFrame from './MediaFrame.vue'
 import { analyzeImage } from '../lib/imageQuality'
 
 const props = defineProps({
@@ -49,12 +50,12 @@ async function onFile(e) {
 function contextTips(q) {
   const out = []
   if (props.kind === 'logo') {
-    if (q.width < 200 || q.height < 200) out.push({ level: 'warn', msg: `Logo is small (${q.width}×${q.height}px). 400×400 stays crisp.` })
+    if (q.width < 400 || q.height < 400) out.push({ level: 'warn', msg: `Logo is small (${q.width}×${q.height}px). 512×512 or larger stays crisp across the shell.` })
     if (q.aspect > 1.4 || q.aspect < 0.7) out.push({ level: 'warn', msg: 'Logos look best square — this one may get cropped.' })
     if (q.sharpness < 60) out.push({ level: 'warn', msg: 'A bit soft — a crisp logo builds trust.' })
   } else if (props.kind === 'cover') {
-    if (q.width < 900) out.push({ level: 'warn', msg: `Cover is a bit narrow (${q.width}px wide). 1200px+ looks sharp across the banner.` })
-    if (q.aspect < 1.6) out.push({ level: 'warn', msg: 'Covers are wide banners — a landscape photo fills it better than a square one.' })
+    if (q.width < 1200) out.push({ level: 'warn', msg: `Cover is a bit narrow (${q.width}px wide). 1600px+ gives the storefront room to crop across desktop and mobile.` })
+    if (q.aspect < 1.7) out.push({ level: 'warn', msg: 'Store covers are wide editorial images. Aim for roughly 16:9 or 3:2 and keep the important subject away from the extreme edges.' })
     if (q.brightness < 0.22) out.push({ level: 'warn', msg: 'Quite dark — a brighter cover is more inviting.' })
   } else {
     // reuse the product-photo grading already in q.issues
@@ -70,7 +71,8 @@ function clear() { emit('update:modelValue', ''); if (fileInput.value) fileInput
 <template>
   <div class="pu">
     <input ref="fileInput" type="file" accept="image/jpeg,image/png,image/webp" style="display:none" @change="onFile" />
-    <div v-if="modelValue" class="pu-preview" :style="{backgroundImage:`url(${modelValue})`}">
+    <div v-if="modelValue" class="pu-preview">
+      <MediaFrame class="pu-preview-media" :src="modelValue" :alt="kind==='logo' ? 'Business logo' : kind==='cover' ? 'Business cover' : 'Uploaded image'" :tone="kind==='cover' ? 'business' : 'neutral'" :fit="kind==='logo' ? 'contain' : 'cover'" fallback-title="Image unavailable" />
       <button class="pu-remove" @click="clear" type="button"><Icon name="plus" :size="14" style="transform:rotate(45deg)" /></button>
     </div>
     <button v-else class="pu-drop" :disabled="uploading" @click="pick" type="button">
@@ -89,7 +91,7 @@ function clear() { emit('update:modelValue', ''); if (fileInput.value) fileInput
 .pu{display:inline-block}
 .pu-drop{width:88px;height:88px;border:2px dashed var(--hairline-2);border-radius:var(--r);background:var(--surface-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;color:var(--ink-faint);font-size:var(--t-xs);font-family:inherit;transition:border-color var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .pu-drop:hover{border-color:var(--accent);color:var(--accent-ink)}
-.pu-preview{width:88px;height:88px;border-radius:var(--r);background-size:cover;background-position:center;position:relative;border:1px solid var(--hairline)}
+.pu-preview{width:88px;height:88px;border-radius:var(--r);position:relative;border:1px solid var(--hairline);overflow:visible}.pu-preview-media{border-radius:var(--r);overflow:hidden}
 .pu-remove{position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;border:2px solid var(--paper);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .pu-err{font-size:var(--t-xs);color:var(--owed-ink);margin-top:6px}
 

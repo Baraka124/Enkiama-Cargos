@@ -149,8 +149,8 @@ async function submit() {
 
       <div class="fg"><label>Description</label><textarea v-model="f.description" rows="2" placeholder="Anything a buyer should know."></textarea></div>
 
-      <div class="pf-section">Photos <span class="pf-hint">1–5 required</span></div>
-      <MultiPhotoUpload v-model="f.images" :max="5" bucket="properties" />
+      <div class="pf-section">Photos <span class="pf-hint">1–5 required · lead with a clear landscape view</span></div>
+      <MultiPhotoUpload v-model="f.images" :max="5" purpose="property" />
 
       <template v-if="isLand()">
         <div class="pf-section">Land information</div>

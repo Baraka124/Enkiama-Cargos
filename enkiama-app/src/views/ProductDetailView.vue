@@ -1,5 +1,5 @@
 <script setup>
-// ENKIAMA MARKET V8 — product experience + quiet stepped checkout.
+// ENKIAMA MARKET V13 — Object / Product art direction + quiet stepped checkout.
 // Commerce contracts remain unchanged: get_product, delivery_confidence, product_reviews, place_order_v2.
 import { ref, computed, onMounted, inject, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
@@ -12,7 +12,10 @@ import Spinner from '../components/Spinner.vue'
 import Avatar from '../components/Avatar.vue'
 import TrustBadge from '../components/TrustBadge.vue'
 import EmptyState from '../components/EmptyState.vue'
+import ExperienceState from '../components/ExperienceState.vue'
+import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
+import { mediaList } from '../lib/media'
 
 const route = useRoute()
 const toast = inject('toast')
@@ -21,6 +24,7 @@ const pub = usePublic()
 const data = ref(null)
 const loading = ref(true)
 const notFound = ref(false)
+const loadError = ref('')
 const activeImg = ref(0)
 const galleryOpen = ref(false)
 const confidence = ref(null)
@@ -30,15 +34,7 @@ const p = computed(() => data.value?.product || {})
 const shop = computed(() => data.value?.shop || {})
 const shopRep = computed(() => data.value?.shop_rep || null)
 
-const images = computed(() => {
-  const valid = (u) => {
-    const s = String(u || '').trim()
-    return s && s !== 'null' && s.startsWith('http')
-  }
-  const arr = (Array.isArray(p.value.images) ? p.value.images : []).filter(valid)
-  if (valid(p.value.image_url) && !arr.includes(p.value.image_url)) arr.unshift(p.value.image_url)
-  return arr
-})
+const images = computed(() => mediaList(p.value))
 
 const discount = computed(() => p.value.compare_at_tzs > p.value.price_tzs
   ? Math.round((1 - p.value.price_tzs / p.value.compare_at_tzs) * 100) : 0)
@@ -77,6 +73,7 @@ async function loadReviews() {
 async function load() {
   loading.value = true
   notFound.value = false
+  loadError.value = ''
   data.value = null
   activeImg.value = 0
   galleryOpen.value = false
@@ -100,7 +97,7 @@ async function load() {
       notFound.value = true
     }
   } catch (e) {
-    notFound.value = true
+    loadError.value = 'We could not open this object right now. Your order data has not been changed.'
   }
   loading.value = false
   await nextTick()
@@ -252,15 +249,21 @@ watch(() => route.params.id, (newId, oldId) => {
   <AppHeader title="Market" subtitle="Object" />
 
   <main class="pd-page">
-    <div v-if="loading" class="pd-load"><Spinner :size="26" /></div>
+    <ExperienceState v-if="loading" kind="loading" :world="'object'" eyebrow="Object" title="Bringing the object into view…" body="Media, seller context and delivery confidence will appear together." />
 
+    <div v-else-if="loadError" class="pd-state">
+      <ExperienceState kind="error" world="object" eyebrow="Object connection" title="This object could not be opened." :body="loadError">
+        <button type="button" @click="load">Try again</button><RouterLink to="/market">Return to Market</RouterLink>
+      </ExperienceState>
+    </div>
     <div v-else-if="notFound" class="pd-state">
-      <EmptyState icon="package" title="Product not found" hint="It may have been removed or sold." />
-      <RouterLink to="/market" class="pd-state-link"><Icon name="arrow" :size="15" style="transform:rotate(180deg)" /> Return to Market</RouterLink>
+      <ExperienceState kind="empty" world="object" eyebrow="Object unavailable" title="This object is no longer here." body="It may have been removed, unpublished, or replaced by the business.">
+        <RouterLink to="/market">Explore the Market</RouterLink>
+      </ExperienceState>
     </div>
 
     <template v-else>
-      <!-- 01 / OBJECT — expressive, quiet, product-first -->
+      <!-- 01 / OBJECT — porcelain stage, image-led, commerce kept quiet -->
       <section class="pd-object">
         <div class="pd-object-top">
           <RouterLink :to="`/shop/${shop.slug}`" class="pd-back">
@@ -271,52 +274,63 @@ watch(() => route.params.id, (newId, oldId) => {
         </div>
 
         <div class="pd-object-grid">
-          <div class="pd-gallery-col">
-            <div class="pd-gallery-frame" :class="{soldout: soldOut}" :style="{viewTransitionName:activeImg===0 ? viewName('product', p.id) : 'none'}">
-              <button
-                v-if="images.length"
-                class="pd-main"
-                data-cursor="Open"
-                :style="{backgroundImage:`url(${images[activeImg]})`}"
-                type="button"
-                aria-label="Open product image"
-                @click="galleryOpen=true"
-              >
-                <span class="pd-image-index">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(images.length).padStart(2,'0') }}</span>
-                <span class="pd-image-open">View image ↗</span>
-              </button>
-              <div
-                v-else
-                class="pd-main pd-main-placeholder"
-                :style="{background:`linear-gradient(145deg, ${shop.accent||'#0B6E5D'}, ${shop.accent||'#075446'}cc)`}"
-              >
-                <span class="pd-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
-              </div>
+          <div class="pd-gallery-col" v-reveal="{variant:'media'}">
+            <div class="pd-object-plinth" v-depth="{pointer:3.4,scroll:7,rotate:.2,scale:1.004}">
+              <div class="pd-gallery-frame" :class="{soldout: soldOut}" :style="{viewTransitionName:activeImg===0 ? viewName('product', p.id) : 'none'}">
+                <button
+                  v-if="images.length"
+                  class="pd-main"
+                  data-cursor="Open"
+                  type="button"
+                  aria-label="Open product image"
+                  @click="galleryOpen=true"
+                >
+                  <MediaFrame class="pd-main-media" :src="images[activeImg]" :alt="p.name" tone="object" fit="contain" :eager="activeImg===0" fallback-title="Object image unavailable">
+                    <span class="pd-image-index">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(images.length).padStart(2,'0') }}</span>
+                    <span class="pd-image-open">View full image ↗</span>
+                  </MediaFrame>
+                </button>
+                <div
+                  v-else
+                  class="pd-main pd-main-placeholder"
+                  :style="{background:`linear-gradient(145deg, ${shop.accent||'#0B6E5D'}, ${shop.accent||'#075446'}cc)`}"
+                >
+                  <span class="pd-ph-chip">{{ (p.name||'?').slice(0,1).toUpperCase() }}</span>
+                </div>
 
-              <span v-if="soldOut" class="pd-status sold">Sold out</span>
-              <span v-else-if="lowStock" class="pd-status low">{{ p.stock_qty }} remaining</span>
-              <span v-else-if="discount" class="pd-status offer">−{{ discount }}%</span>
+                <span v-if="soldOut" class="pd-status sold">Sold out</span>
+                <span v-else-if="lowStock" class="pd-status low">{{ p.stock_qty }} remaining</span>
+                <span v-else-if="discount" class="pd-status offer">−{{ discount }}%</span>
+              </div>
             </div>
 
-            <div v-if="images.length > 1" class="pd-thumbs" aria-label="Product gallery">
+            <div v-if="images.length > 1" class="pd-thumbs" v-reveal="{variant:'section',delay:120}" aria-label="Product gallery">
               <button
                 v-for="(img,i) in images"
                 :key="i"
                 class="pd-thumb"
                 :class="{on:i===activeImg}"
-                :style="{backgroundImage:`url(${img})`}"
                 type="button"
                 :aria-label="`View image ${i+1}`"
                 @click="activeImg=i"
-              ><span>{{ String(i + 1).padStart(2,'0') }}</span></button>
+              >
+                <MediaFrame class="pd-thumb-media" :src="img" :alt="`${p.name} — image ${i+1}`" tone="object" />
+                <span>{{ String(i + 1).padStart(2,'0') }}</span>
+              </button>
             </div>
           </div>
 
-          <aside class="pd-info">
+          <aside class="pd-info" v-reveal="{variant:'copy',delay:90}">
             <div class="pd-eyebrow">
               <span>{{ p.category || 'Market object' }}</span>
               <span>{{ shopPlace }}</span>
             </div>
+
+            <RouterLink :to="`/shop/${shop.slug}`" class="pd-maker-inline">
+              <Avatar :name="shop.name" :accent="shop.accent" :logo="shop.logo_url" :size="34" />
+              <span>By <strong>{{ shop.name }}</strong><Icon v-if="shop.verified" name="check" :size="11" /></span>
+              <em>↗</em>
+            </RouterLink>
 
             <h1 class="pd-name">{{ p.name }}</h1>
 
@@ -325,7 +339,7 @@ watch(() => route.params.id, (newId, oldId) => {
                 <span class="pd-price">{{ tzs(p.price_tzs) }}</span>
                 <span v-if="discount" class="pd-was">{{ tzs(p.compare_at_tzs) }}</span>
               </div>
-              <div v-if="discount" class="pd-saving">You save {{ tzs(p.compare_at_tzs - p.price_tzs) }}</div>
+              <div v-if="discount" class="pd-saving">{{ discount }}% below the previous price · save {{ tzs(p.compare_at_tzs - p.price_tzs) }}</div>
             </div>
 
             <p v-if="p.description" class="pd-desc">{{ p.description }}</p>
@@ -334,7 +348,7 @@ watch(() => route.params.id, (newId, oldId) => {
               <div v-for="(opt,oi) in productOptions" :key="oi" class="pd-option-group">
                 <div class="pd-option-head">
                   <span>{{ opt.name }}</span>
-                  <span>{{ selectedOpts[opt.name] || 'Select' }}</span>
+                  <span>{{ selectedOpts[opt.name] || 'Choose' }}</span>
                 </div>
                 <div class="pd-option-list">
                   <button
@@ -349,40 +363,45 @@ watch(() => route.params.id, (newId, oldId) => {
               </div>
             </div>
 
-            <div v-if="lowStock && !soldOut" class="pd-availability"><span></span> Only {{ p.stock_qty }} left in stock</div>
-            <div v-else-if="!soldOut" class="pd-availability"><span></span> Available to order</div>
-
-            <div class="pd-actions">
-              <button v-if="!soldOut" class="pd-buy" type="button" @click="openOrder">
-                <span>Order now</span>
-                <span>{{ tzs(p.price_tzs) }} ↗</span>
-              </button>
-              <button v-else class="pd-buy pd-buy-disabled" type="button" disabled><span>Sold out</span><span>Unavailable</span></button>
-              <button class="pd-share" type="button" @click="shareProduct"><Icon name="send" :size="15" /> Share</button>
+            <div class="pd-availability-row">
+              <div v-if="lowStock && !soldOut" class="pd-availability"><span></span> Only {{ p.stock_qty }} left</div>
+              <div v-else-if="!soldOut" class="pd-availability"><span></span> Available to order</div>
+              <div class="pd-payment-note">Pay on delivery</div>
             </div>
 
-            <div class="pd-protection">
-              <div class="pd-protection-mark"><Icon name="shield" :size="17" /></div>
-              <div>
-                <b>Protected by Enkiama</b>
-                <p>Tracked delivery and cash on delivery. Follow the parcel from handoff to arrival.</p>
+            <div class="pd-commit">
+              <div class="pd-actions">
+                <button v-if="!soldOut" class="pd-buy" type="button" @click="openOrder">
+                  <span>Order this object</span>
+                  <span>{{ tzs(p.price_tzs) }} ↗</span>
+                </button>
+                <button v-else class="pd-buy pd-buy-disabled" type="button" disabled><span>Sold out</span><span>Unavailable</span></button>
+                <button class="pd-share" type="button" aria-label="Share product" @click="shareProduct"><Icon name="send" :size="15" /></button>
+              </div>
+
+              <ExperienceState v-if="soldOut" compact kind="unavailable" world="object" eyebrow="Availability" title="This object has left the shelf." body="The page remains visible for context, but ordering is closed."><RouterLink to="/market">Explore similar objects</RouterLink></ExperienceState>
+
+              <div class="pd-protection">
+                <div class="pd-protection-mark"><Icon name="shield" :size="15" /></div>
+                <div>
+                  <b>Tracked by Enkiama</b>
+                  <p>Seller handoff, movement and arrival remain visible through one tracking journey.</p>
+                </div>
               </div>
             </div>
-
-            <RouterLink :to="`/shop/${shop.slug}`" class="pd-maker-mini">
-              <Avatar :name="shop.name" :accent="shop.accent" :logo="shop.logo_url" :size="38" />
-              <div class="pd-maker-mini-copy">
-                <span>Sold by</span>
-                <strong>{{ shop.name }} <Icon v-if="shop.verified" name="check" :size="12" /></strong>
-              </div>
-              <span class="pd-maker-mini-arrow">↗</span>
-            </RouterLink>
           </aside>
+        </div>
+
+        <div class="pd-object-ledger" aria-label="Object details">
+          <div><span>Seller</span><strong>{{ shop.name }}</strong></div>
+          <div><span>Category</span><strong>{{ p.category || 'Market object' }}</strong></div>
+          <div><span>Place</span><strong>{{ shopPlace }}</strong></div>
+          <div><span>Fulfilment</span><strong>Tracked delivery</strong></div>
         </div>
       </section>
 
       <!-- 02 / MOVEMENT — delivery is part of the product experience -->
-      <section v-reveal class="pd-movement">
+      <section v-reveal="{variant:'section'}" class="pd-movement">
         <div class="pd-movement-inner">
           <div class="pd-section-index"><span>02</span><span>Movement</span></div>
           <div class="pd-movement-head">
@@ -431,7 +450,7 @@ watch(() => route.params.id, (newId, oldId) => {
       </section>
 
       <!-- 03 / PROVENANCE — business identity instead of badge clutter -->
-      <section v-reveal class="pd-provenance">
+      <section v-reveal="{variant:'section'}" class="pd-provenance">
         <div class="pd-section-index"><span>03</span><span>Provenance</span></div>
         <div class="pd-provenance-grid">
           <div class="pd-maker-lockup">
@@ -461,7 +480,7 @@ watch(() => route.params.id, (newId, oldId) => {
       </section>
 
       <!-- 04 / EXPERIENCE — reviews if the product has them -->
-      <section v-if="reviews.count" v-reveal class="pd-reviews-section">
+      <section v-if="reviews.count" v-reveal="{variant:'section'}" class="pd-reviews-section">
         <div class="pd-section-index"><span>04</span><span>Experience</span></div>
         <div class="pd-reviews-grid">
           <div class="pd-review-score">
@@ -482,7 +501,7 @@ watch(() => route.params.id, (newId, oldId) => {
       </section>
 
       <!-- final collection — return to discovery -->
-      <section v-if="data.more?.length" v-reveal class="pd-more">
+      <section v-if="data.more?.length" v-reveal="{variant:'section'}" class="pd-more">
         <div class="pd-more-head">
           <div class="pd-section-index"><span>{{ reviews.count ? '05' : '04' }}</span><span>Continue</span></div>
           <div>
@@ -493,11 +512,10 @@ watch(() => route.params.id, (newId, oldId) => {
 
         <div class="pd-more-grid">
           <RouterLink v-for="(m,mi) in data.more" :key="m.id" :to="`/shop/${shop.slug}/product/${m.id}`" class="pd-more-card" data-cursor="View">
-            <div class="pd-more-img" :style="Object.assign({}, (m.image_url || (m.images&&m.images[0])) ? {backgroundImage:`url(${m.image_url || m.images[0]})`} : {background:`linear-gradient(145deg, ${shop.accent||'#0B6E5D'}, ${shop.accent||'#075446'}cc)`}, {viewTransitionName:m.id===p.id ? 'none' : viewName('product',m.id)})">
+            <MediaFrame class="pd-more-img" v-depth="{pointer:1.8,scroll:4,rotate:.1,scale:1.003}" :src="m.image_url || (m.images&&m.images[0]) || ''" :alt="m.name" tone="object" :transition-name="m.id===p.id ? '' : viewName('product',m.id)" fallback-title="Object image not supplied">
               <span class="pd-more-index">{{ String(mi + 1).padStart(2,'0') }}</span>
-              <span v-if="!(m.image_url || (m.images&&m.images[0]))" class="pd-more-ph">{{ (m.name||'?').slice(0,1) }}</span>
               <span class="pd-more-open">↗</span>
-            </div>
+            </MediaFrame>
             <div class="pd-more-copy"><span>{{ m.name }}</span><strong>{{ tzs(m.price_tzs) }}</strong></div>
           </RouterLink>
         </div>
@@ -510,7 +528,7 @@ watch(() => route.params.id, (newId, oldId) => {
   <div v-if="galleryOpen && images.length" class="pd-lightbox" @click.self="galleryOpen=false">
     <button class="pd-lightbox-close" type="button" aria-label="Close image" @click="galleryOpen=false"><Icon name="plus" :size="20" style="transform:rotate(45deg)" /></button>
     <button v-if="images.length > 1" class="pd-lightbox-nav prev" type="button" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
-    <img :src="images[activeImg]" :alt="p.name" />
+    <MediaFrame class="pd-lightbox-media" :src="images[activeImg]" :alt="p.name" tone="night" fit="contain" :eager="true" />
     <button v-if="images.length > 1" class="pd-lightbox-nav next" type="button" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
     <span class="pd-lightbox-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(images.length).padStart(2,'0') }}</span>
   </div>
@@ -524,7 +542,7 @@ watch(() => route.params.id, (newId, oldId) => {
 
       <template v-if="!orderCode">
         <aside class="pd-order-summary">
-          <div class="pd-order-image" :style="images.length ? {backgroundImage:`url(${images[0]})`} : {background:`linear-gradient(145deg, ${shop.accent||'#0B6E5D'}, ${shop.accent||'#075446'}cc)`}"></div>
+          <MediaFrame class="pd-order-image" :src="images[0] || ''" :alt="p.name" tone="night" fit="cover" fallback-title="Object image not supplied" />
           <div class="pd-order-summary-copy">
             <span>Order / {{ shop.name }}</span>
             <h3>{{ p.name }}</h3>
@@ -842,4 +860,179 @@ watch(() => route.params.id, (newId, oldId) => {
   .pd-stepper{overflow-x:auto;scrollbar-width:none}.pd-stepper::-webkit-scrollbar{display:none}.pd-stepper button{min-width:72px;flex:1 0 72px}
   .pd-checkout-actions{gap:10px}.pd-checkout-next,.pd-place-order{min-width:0;flex:1}
 }
+
+
+/* ────────────────────────────────────────────────────────────────
+   PHASE 13 — OBJECT / PRODUCT ART DIRECTION
+   Product photography carries the composition. Porcelain, shadow and
+   material separation replace the old large-image + commerce-sidebar look.
+   ──────────────────────────────────────────────────────────────── */
+.pd-page{background:var(--world-canvas);color:var(--world-ink)}
+.pd-object{max-width:1460px;padding:38px clamp(24px,4vw,58px) 88px}
+.pd-object-top{margin-bottom:28px;padding-bottom:15px;border-bottom:1px solid var(--world-line)}
+.pd-back{color:var(--world-ink-soft)}
+.pd-index,.pd-section-index{color:var(--world-ink-faint)}
+.pd-index span:first-child,.pd-section-index span:first-child{color:var(--world-ink)}
+.pd-object-grid{grid-template-columns:minmax(0,1.38fr) minmax(340px,.62fr);gap:clamp(40px,5vw,76px);align-items:start}
+
+.pd-object-plinth{position:relative;padding:clamp(12px,1.45vw,22px);background:var(--world-surface);border:1px solid var(--world-line);box-shadow:0 24px 68px rgba(30,31,27,.095)}
+.pd-object-plinth::before{content:"";position:absolute;inset:7% -2% -4% 9%;z-index:-1;background:color-mix(in srgb,var(--world-surface-3) 62%,transparent);filter:blur(28px);opacity:.62}
+.pd-gallery-frame{background:var(--world-media);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.pd-main{aspect-ratio:1.04/1;background:none;overflow:hidden;transform:none!important}
+.pd-main img{width:100%;height:100%;display:block;object-fit:cover;object-position:center;transition:transform .7s var(--ease),filter .4s ease;filter:saturate(.92) contrast(.985)}
+.pd-main:hover img{transform:scale(1.018);filter:saturate(.98) contrast(1)}
+.pd-main::after{background:linear-gradient(180deg,rgba(10,12,11,.025) 45%,rgba(10,12,11,.22) 100%)}
+.pd-main-placeholder{aspect-ratio:1.04/1}
+.pd-ph-chip{width:102px;height:102px;font-size:40px;border-color:rgba(255,255,255,.46);background:rgba(255,255,255,.10)}
+.pd-image-index,.pd-image-open{bottom:17px;font-size:9px;letter-spacing:.11em}
+.pd-image-index{left:18px}.pd-image-open{right:18px}
+.pd-status{top:17px;left:17px;padding:7px 11px;background:color-mix(in srgb,var(--world-surface) 90%,transparent);color:var(--world-ink);box-shadow:0 6px 22px rgba(20,24,20,.07)}
+.pd-status.offer{background:var(--world-ink);color:var(--world-surface)}
+
+.pd-thumbs{display:flex;gap:10px;overflow-x:auto;margin-top:13px;padding:0 1px 4px;scrollbar-width:none;scroll-snap-type:x proximity}
+.pd-thumbs::-webkit-scrollbar{display:none}
+.pd-thumb{flex:0 0 clamp(92px,12vw,150px);aspect-ratio:1.18/1;opacity:.46;background:var(--world-surface-2);overflow:hidden;scroll-snap-align:start;border:1px solid transparent}
+.pd-thumb img{width:100%;height:100%;display:block;object-fit:cover;filter:saturate(.86);transition:filter .25s ease,transform .35s var(--ease)}
+.pd-thumb:hover,.pd-thumb.on{opacity:1}
+.pd-thumb:hover img,.pd-thumb.on img{filter:saturate(.98);transform:scale(1.015)}
+.pd-thumb.on{border-color:var(--world-line-strong)}
+.pd-thumb.on::after{display:none}
+.pd-thumb span{bottom:6px;left:7px;font-size:8px}
+
+.pd-info{top:92px;padding-top:2px}
+.pd-eyebrow{padding:0 0 13px;border-color:var(--world-line);color:var(--world-ink-faint);font-size:9px;letter-spacing:.11em}
+.pd-maker-inline{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;color:var(--world-ink);text-decoration:none;padding:18px 0 3px}
+.pd-maker-inline>span{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--world-ink-soft)}
+.pd-maker-inline strong{font-weight:650;color:var(--world-ink)}
+.pd-maker-inline em{font-style:normal;color:var(--world-ink-faint);transition:transform .25s var(--ease)}
+.pd-maker-inline:hover em{transform:translate(3px,-3px)}
+.pd-name{font-size:clamp(38px,3.75vw,58px);line-height:.98;letter-spacing:-.052em;font-weight:520;margin:22px 0 26px;max-width:12ch;text-wrap:balance}
+.pd-price-block{padding:0 0 20px;border-color:var(--world-line)}
+.pd-price{font-size:20px;font-weight:550;letter-spacing:-.018em}
+.pd-was{color:var(--world-ink-faint)}
+.pd-saving{color:var(--world-accent-ink);font-size:10px;letter-spacing:.01em;margin-top:7px}
+.pd-desc{font-family:var(--font-editorial);font-size:clamp(17px,1.45vw,21px);line-height:1.55;color:var(--world-ink-soft);max-width:36ch;padding:23px 0 5px}
+.pd-options{margin-top:18px;border-color:var(--world-line)}
+.pd-option-group{padding:15px 0;border-color:var(--world-line)}
+.pd-option-head{font-size:9.5px;letter-spacing:.09em;font-weight:650}
+.pd-option-head span:last-child{color:var(--world-ink-faint)}
+.pd-option-list{gap:6px}
+.pd-option{background:var(--world-surface);border-color:var(--world-line-strong);color:var(--world-ink-soft);padding:9px 12px;font-size:11px;transition:background .2s ease,border-color .2s ease,color .2s ease}
+.pd-option:hover{border-color:var(--world-ink);color:var(--world-ink)}
+.pd-option.on{background:var(--world-ink);border-color:var(--world-ink);color:var(--world-surface)}
+.pd-availability-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0 14px;padding-bottom:14px;border-bottom:1px solid var(--world-line)}
+.pd-availability{margin:0;color:var(--world-ink-soft);font-size:10.5px}
+.pd-availability span{background:var(--world-accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--world-accent) 10%,transparent)}
+.pd-payment-note{font:500 9px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--world-ink-faint)}
+
+.pd-commit{background:color-mix(in srgb,var(--world-surface) 74%,transparent);border:1px solid var(--world-line);padding:9px 9px 0;margin-top:6px;box-shadow:0 14px 40px rgba(25,28,24,.05)}
+.pd-actions{gap:7px}
+.pd-buy{background:var(--world-ink);color:var(--world-surface);min-height:56px;padding:0 16px;font-size:12px}
+.pd-buy:hover{background:color-mix(in srgb,var(--world-ink) 90%,var(--world-accent))}
+.pd-buy span:last-child{color:color-mix(in srgb,var(--world-surface) 76%,transparent)}
+.pd-share{width:56px;min-height:56px;border-color:var(--world-line-strong);background:var(--world-surface);color:var(--world-ink)}
+.pd-share:hover{background:var(--world-surface-2)}
+.pd-protection{grid-template-columns:30px 1fr;gap:9px;padding:15px 4px 14px;border:0}
+.pd-protection-mark{width:27px;height:27px;border-color:var(--world-line-strong);color:var(--world-accent-ink)}
+.pd-protection b{font-size:10.5px}.pd-protection p{font-size:10.5px;line-height:1.45;color:var(--world-ink-faint);max-width:34ch}
+
+.pd-object-ledger{display:grid;grid-template-columns:repeat(4,1fr);margin-top:44px;border-block:1px solid var(--world-line)}
+.pd-object-ledger>div{display:flex;flex-direction:column;gap:6px;padding:17px 18px 17px 0;min-width:0}
+.pd-object-ledger>div+div{border-left:1px solid var(--world-line);padding-left:18px}
+.pd-object-ledger span{font:500 8.5px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--world-ink-faint)}
+.pd-object-ledger strong{font-size:11px;font-weight:620;color:var(--world-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Product journey remains a contrast chapter, but not a flat black poster. */
+.pd-movement{position:relative;overflow:hidden;background:linear-gradient(145deg,#10211c 0%,#142922 52%,#0d1a17 100%);padding:86px 44px 82px}
+.pd-movement::before{content:"";position:absolute;width:52vw;height:52vw;min-width:480px;min-height:480px;right:-18vw;top:-29vw;border-radius:50%;background:radial-gradient(circle,rgba(121,199,181,.12) 0%,rgba(121,199,181,.045) 36%,transparent 70%);pointer-events:none}
+.pd-movement-inner{position:relative;z-index:1}
+.pd-movement-head{grid-template-columns:1fr .75fr;gap:70px;margin:34px 0 58px}
+.pd-movement-head h2{font-size:clamp(34px,4.5vw,56px);letter-spacing:-.045em;line-height:1}
+.pd-movement-head p{font-size:13px;color:#9baba4}
+.pd-route{margin-bottom:48px}
+.pd-route-line{background:rgba(241,238,230,.14)}.pd-route-line span{background:#79c7b5}
+.pd-confidence-ledger{border-color:rgba(241,238,230,.15)}
+
+/* Provenance is a warm material chapter, not another block of UI. */
+.pd-provenance{max-width:1340px;padding-top:90px}
+.pd-provenance-grid{gap:clamp(52px,8vw,124px);margin-top:34px;padding:34px;background:var(--world-surface);border:1px solid var(--world-line);box-shadow:0 20px 56px rgba(25,28,24,.055)}
+.pd-maker-story>p{font-family:var(--font-editorial);font-size:clamp(20px,2.1vw,27px);color:var(--world-ink-soft)}
+.pd-maker-facts{border-color:var(--world-line)}.pd-maker-facts>div{border-color:var(--world-line)}
+.pd-text-link{border-color:var(--world-line-strong);color:var(--world-ink)}
+
+/* Reviews and related objects get gallery rhythm rather than card-grid weight. */
+.pd-reviews-section,.pd-more{max-width:1340px;padding-top:90px}
+.pd-review-number{font-size:clamp(48px,6vw,78px)}
+.pd-more-head h2{font-size:clamp(30px,4vw,48px);letter-spacing:-.045em}
+.pd-more-grid{grid-template-columns:1.3fr .85fr .85fr;gap:14px;margin-top:38px;align-items:start}
+.pd-more-img{aspect-ratio:1/1.12;background-color:var(--world-media);box-shadow:0 16px 46px rgba(25,28,24,.07)}
+.pd-more-card:first-child .pd-more-img{aspect-ratio:1.16/1}
+.pd-more-img::after{background:linear-gradient(180deg,rgba(0,0,0,.015),transparent 66%,rgba(0,0,0,.16))}
+.pd-more-copy{padding-top:10px}.pd-more-copy span{font-size:12px}.pd-more-copy strong{font-size:10.5px;color:var(--world-ink-soft)}
+
+@media(max-width:980px){
+  .pd-object{padding-left:24px;padding-right:24px}
+  .pd-object-grid{grid-template-columns:1fr;gap:34px}
+  .pd-info{position:static;max-width:720px}
+  .pd-name{max-width:14ch}
+  .pd-object-ledger{margin-top:36px}
+  .pd-provenance-grid{padding:28px}
+}
+@media(max-width:720px){
+  .pd-object{padding:20px 16px 64px}
+  .pd-object-top{padding-bottom:12px;margin-bottom:18px}
+  .pd-object-grid{gap:28px}
+  .pd-object-plinth{margin-inline:-16px;padding:0;border-inline:0;box-shadow:none;background:transparent}
+  .pd-object-plinth::before{display:none}
+  .pd-gallery-frame{margin:0!important}
+  .pd-main,.pd-main-placeholder{aspect-ratio:1/1.08}
+  .pd-main img{object-position:center}
+  .pd-image-index,.pd-image-open{bottom:13px}.pd-image-index{left:13px}.pd-image-open{right:13px}
+  .pd-thumbs{margin-right:-16px;padding-right:16px}.pd-thumb{flex-basis:88px}
+  .pd-maker-inline{padding-top:14px}
+  .pd-name{font-size:clamp(34px,10.7vw,46px);line-height:.98;margin:18px 0 21px;max-width:13ch}
+  .pd-desc{font-size:18px;line-height:1.5}
+  .pd-availability-row{align-items:flex-start;flex-direction:column;gap:8px}
+  .pd-commit{margin-inline:-4px}
+  .pd-actions{position:static!important;bottom:auto!important;background:transparent!important;backdrop-filter:none!important;padding:0!important;margin:0!important;box-shadow:none!important}
+  .pd-object-ledger{grid-template-columns:1fr 1fr;margin-top:30px}
+  .pd-object-ledger>div{padding:14px 10px 14px 0}
+  .pd-object-ledger>div+div{padding-left:10px}
+  .pd-object-ledger>div:nth-child(3){border-left:0;border-top:1px solid var(--world-line)}
+  .pd-object-ledger>div:nth-child(4){border-top:1px solid var(--world-line)}
+  .pd-object-ledger strong{white-space:normal}
+  .pd-movement{padding:64px 16px 62px}
+  .pd-movement-head{margin:27px 0 42px;gap:18px}
+  .pd-movement-head h2{font-size:clamp(32px,10vw,44px)}
+  .pd-provenance,.pd-reviews-section,.pd-more{padding-top:66px}
+  .pd-provenance-grid{padding:22px 18px;margin-top:28px;gap:36px}
+  .pd-maker-story>p{font-size:21px}
+  .pd-more-grid{grid-template-columns:1fr 1fr;gap:9px}
+  .pd-more-card:first-child{grid-column:1/-1}.pd-more-card:first-child .pd-more-img{aspect-ratio:1.35/1}
+  .pd-more-img{aspect-ratio:.92}
+}
+@media(max-width:430px){
+  .pd-object{padding-left:14px;padding-right:14px}.pd-object-plinth{margin-inline:-14px}.pd-thumbs{margin-right:-14px;padding-right:14px}
+  .pd-object-ledger span{font-size:8px}.pd-object-ledger strong{font-size:10.5px}
+  .pd-more-copy{display:block}.pd-more-copy strong{display:block;margin-top:3px}
+}
+
+/* Phase 17 — checkout becomes the quietest surface in the product journey */
+.pd-order-overlay{background:rgba(20,24,21,.28);backdrop-filter:blur(2px)}
+.pd-order-sheet{background:var(--world-surface);box-shadow:0 30px 100px rgba(19,23,20,.18)}
+.pd-order-flow{background:var(--world-surface);padding-top:38px}
+.pd-checkout-head{padding-right:38px}.pd-checkout-head h3{font-size:clamp(25px,2.5vw,34px);letter-spacing:-.04em;max-width:15ch}.pd-order-kicker,.pd-checkout-count{font-size:8.5px;letter-spacing:.1em}
+.pd-stepper{margin-top:24px}.pd-stepper button{min-height:46px;padding-top:8px;padding-bottom:8px}.pd-stepper button.on{background:color-mix(in srgb,var(--world-surface-2) 64%,transparent)}
+.pd-step-stage{padding-top:28px}.pd-step-intro p{font-size:12px;line-height:1.65}.pd-sheet-field{margin-bottom:18px}.pd-sheet-field input,.pd-sheet-field textarea{min-height:44px;font-size:14px}.pd-sheet-options button{min-height:40px;border-radius:4px}.pd-sheet-options button.on{background:var(--world-ink);color:var(--world-surface)}
+.pd-payment-contract{background:var(--util-surface-soft);border:1px solid var(--world-line);padding:15px}.pd-payment-mark{border-radius:5px}.pd-checkout-next{min-height:48px;border-radius:5px}.pd-checkout-back{font-size:10px}.pd-checkout-error{background:color-mix(in srgb,#F4E8E3 70%,transparent);border:1px solid color-mix(in srgb,var(--util-danger) 30%,transparent);padding:10px;color:var(--util-danger)}
+@media(max-width:720px){.pd-order-flow{padding-top:40px}.pd-checkout-head h3{font-size:29px}.pd-checkout-actions{background:linear-gradient(to top,var(--world-surface) 80%,color-mix(in srgb,var(--world-surface) 92%,transparent))}}
+
+
+/* PHASE 18 — governed media behavior */
+.pd-main{position:relative}.pd-main-media{position:absolute;inset:0}.pd-main:hover .pd-main-media :deep(img){transform:scale(1.014)}
+.pd-thumb{position:relative;overflow:hidden}.pd-thumb-media{position:absolute;inset:0}.pd-thumb:hover .pd-thumb-media :deep(img),.pd-thumb.on .pd-thumb-media :deep(img){transform:scale(1.015);filter:saturate(.98)}
+.pd-lightbox-media{width:min(88vw,1400px);height:88vh;max-height:88vh;box-shadow:0 22px 90px rgba(0,0,0,.34)}
+.pd-order-image{overflow:hidden}
+@media(max-width:640px){.pd-lightbox-media{width:100%;height:75vh}}
+@media(prefers-reduced-motion:reduce){.pd-main-media :deep(img),.pd-thumb-media :deep(img){transform:none!important;transition:none!important}}
 </style>

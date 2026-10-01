@@ -3,10 +3,12 @@ import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import Icon from './Icon.vue'
 import Spinner from './Spinner.vue'
+import MediaFrame from './MediaFrame.vue'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
   max: { type: Number, default: 5 },
+  purpose: { type: String, default: 'product' }, // product | property
 })
 import { analyzeImage } from '../lib/imageQuality'
 const emit = defineEmits(['update:modelValue'])
@@ -35,8 +37,10 @@ async function onFiles(e) {
     // analyze quality before committing (advice only — never blocks)
     try {
       const q = await analyzeImage(file)
-      if (q?.issues?.length) {
-        qualityTips.value.push({ name: file.name, severity: q.severity, issues: q.issues })
+      const issues = contextualIssues(q)
+      if (issues.length) {
+        const severity = issues.some(i => i.level === 'poor') ? 'poor' : 'warn'
+        qualityTips.value.push({ name: file.name, severity, issues })
       }
     } catch (e3) { /* analysis is best-effort */ }
     try {
@@ -53,6 +57,20 @@ async function onFiles(e) {
   if (added.length) emit('update:modelValue', [...photos.value, ...added])
   if (fileInput.value) fileInput.value.value = ''
   uploading.value = false
+}
+
+
+function contextualIssues(q) {
+  if (!q?.ok || q.unknown) return []
+  if (props.purpose !== 'property') return q.issues || []
+  const issues = []
+  if (q.width < 1100 || q.height < 650) issues.push({ key:'resolution', level:q.width < 800 ? 'poor' : 'warn', msg:`Property imagery is strongest at 1200×700px or larger. This is ${q.width}×${q.height}px.` })
+  if (q.aspect < 1.15) issues.push({ key:'aspect', level:'warn', msg:'Property lead images work best in landscape orientation so buyers can understand the surroundings.' })
+  if (q.aspect > 2.4) issues.push({ key:'aspect', level:'warn', msg:'This image is extremely wide and may lose important edges on phones. A 4:3 or 3:2 landscape crop is safer.' })
+  for (const issue of (q.issues || [])) {
+    if (['blur','dark','bright'].includes(issue.key)) issues.push(issue)
+  }
+  return issues
 }
 
 function remove(i) {
@@ -106,13 +124,13 @@ function makeFirst(i) {
         <div class="mpu-qtip-foot">It's uploaded — but a clearer photo sells more. You can replace it anytime.</div>
       </div>
     </div>
-    <div v-if="photos.length" class="mpu-hint">First photo is the main image customers see. Tap ★ to change which is main.</div>
+    <div v-if="photos.length" class="mpu-hint"><template v-if="purpose==='property'">First photo becomes the lead landscape. Prefer a clear wide view before close details.</template><template v-else>First photo is the main object image customers see. Tap ★ to change which is main.</template></div>
   </div>
 </template>
 
 <style scoped>
 .mpu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
-.mpu-item{position:relative;aspect-ratio:1;border-radius:12px;background-size:cover;background-position:center;background-color:var(--surface-3);border:1px solid var(--hairline);overflow:hidden}
+.mpu-item{position:relative;aspect-ratio:1;border-radius:12px;background-color:var(--surface-3);border:1px solid var(--hairline);overflow:hidden}.mpu-media{position:absolute;inset:0}
 .mpu-main{position:absolute;top:6px;left:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--accent);color:#fff;padding:3px 7px;border-radius:6px}
 .mpu-item-actions{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .15s ease}
 .mpu-item:hover .mpu-item-actions{opacity:1}

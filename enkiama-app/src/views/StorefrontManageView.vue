@@ -339,7 +339,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
             </div>
             <div class="sf-cover-btn"><PhotoUpload v-model="form.cover_url" kind="cover" /></div>
           </div>
-          <div class="sf-branding-hint">Add a cover photo and logo — this is how your shop appears on the marketplace.</div>
+          <div class="sf-branding-hint">Cover: wide 1600px+ image with the subject away from the edges. Logo: crisp square 512px+ identity mark.</div>
         </div>
         <div class="fg"><label>Tagline</label><input v-model="form.tagline" placeholder="Kitenge & kanga, delivered nationwide" /></div>
         <div class="fg"><label>About</label><input v-model="form.about" placeholder="Tell buyers about your business" /></div>
@@ -437,7 +437,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
                 <option v-for="s in sections" :key="s.id" :value="s.id">{{ s.name }}</option>
               </select>
             </div>
-            <div class="fg"><label>Photos <span style="color:var(--ink-faint);font-weight:400">(up to 5)</span></label><MultiPhotoUpload v-model="newProd.images" :max="5" /></div>
+            <div class="fg"><label>Photos <span style="color:var(--ink-faint);font-weight:400">(up to 5 · first image leads)</span></label><MultiPhotoUpload v-model="newProd.images" :max="5" /><div class="field-hint">Lead with a crisp square or 4:5 object image. Use later photos for detail, scale and context.</div></div>
             <button class="btn btn-accent" @click="addProduct"><Icon name="plus" :size="15" /> Add product</button>
           </div>
         </div>
@@ -465,7 +465,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
           </select>
         </div>
         <div class="fg"><label>Description</label><textarea v-model="editDraft.description" rows="2" placeholder="Anything a buyer should know"></textarea></div>
-        <div class="fg"><label>Photos</label><MultiPhotoUpload v-model="editDraft.images" :max="5" /></div>
+        <div class="fg"><label>Photos</label><MultiPhotoUpload v-model="editDraft.images" :max="5" /><div class="field-hint">First image is the marketplace lead. Keep it clear; use the rest for detail and context.</div></div>
         <div class="form-actions">
           <button class="btn btn-ghost" @click="editProduct=null">Cancel</button>
           <button class="btn btn-accent" :disabled="editBusy" @click="saveEdit"><Spinner v-if="editBusy" :size="15" /><span v-else>Save changes</span></button>

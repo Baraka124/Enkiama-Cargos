@@ -87,7 +87,7 @@ provide('toggleTheme', toggleTheme)
 
   <transition name="offline-slide">
     <div v-if="!online" class="offline-banner">
-      <Icon name="alert" :size="15" /> You're offline — changes will sync when you reconnect
+      <Icon name="alert" :size="15" /><span><strong>Offline</strong> · Live data and actions may be unavailable until you reconnect.</span>
     </div>
   </transition>
   <div class="toasts">

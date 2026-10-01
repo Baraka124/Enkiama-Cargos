@@ -1,5 +1,5 @@
 <script setup>
-// ENKIAMA MARKET V4 — property detail unfolds as Place → Context → Verification → Terms.
+// ENKIAMA MARKET V15 — Property / Geographic World. Place → Ground → Verification → Terms.
 // Existing contracts remain unchanged: property_detail, property_map, start_property_deal.
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -8,6 +8,8 @@ import AppHeader from '../components/AppHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
+import MediaFrame from '../components/MediaFrame.vue'
+import ExperienceState from '../components/ExperienceState.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { viewName, signalMotionReady } from '../lib/motion'
@@ -17,6 +19,7 @@ const router = useRouter()
 
 const listing = ref(null)
 const loading = ref(true)
+const loadError = ref('')
 const activeImg = ref(0)
 const galleryOpen = ref(false)
 const showContact = ref(false)
@@ -82,6 +85,7 @@ const monthlyAmount = computed(() => {
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   listing.value = null
   activeImg.value = 0
   galleryOpen.value = false
@@ -96,6 +100,7 @@ async function load() {
     if (listing.value) await loadLocationPin()
   } catch (e) {
     listing.value = null
+    loadError.value = 'The place record could not be loaded right now.'
   }
 
   loading.value = false
@@ -201,14 +206,10 @@ watch(() => route.params.id, (next, prev) => {
   <AppHeader title="Property" subtitle="Place" />
 
   <main class="pd-page">
-    <div v-if="loading" class="pd-load"><Spinner :size="26" /></div>
+    <ExperienceState v-if="loading" kind="loading" :world="'place'" eyebrow="Place" title="Reading the place record…" body="Location, verification context and terms will appear together." />
 
-    <div v-else-if="!listing" class="pd-missing">
-      <Icon name="pin" :size="34" />
-      <h2>Listing not found</h2>
-      <p>It may have been removed or is awaiting verification.</p>
-      <RouterLink to="/property" class="pd-missing-link">Return to property <Icon name="arrow" :size="14" /></RouterLink>
-    </div>
+    <div v-else-if="loadError" class="pd-missing"><ExperienceState kind="error" world="place" eyebrow="Place connection" title="The place record did not load." :body="loadError"><button type="button" @click="load">Try again</button><RouterLink to="/property">Return to Property</RouterLink></ExperienceState></div>
+    <div v-else-if="!listing" class="pd-missing"><ExperienceState kind="empty" world="place" eyebrow="Listing unavailable" title="This place is not currently published." body="It may have been withdrawn, sold, or returned to verification."><RouterLink to="/property">Explore other places</RouterLink></ExperienceState></div>
 
     <template v-else>
       <!-- 01 / PLACE -->
@@ -221,14 +222,16 @@ watch(() => route.params.id, (next, prev) => {
 
           <div class="pd-place-grid">
             <div class="pd-media-col">
-              <button v-if="imgs.length" type="button" class="pd-main-image" data-cursor="Open" :style="{backgroundImage:`url(${imgs[activeImg]})`,viewTransitionName:activeImg===0 ? viewName('property', listing.id) : 'none'}" aria-label="Open property gallery" @click="galleryOpen=true">
-                <span class="pd-image-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(imgs.length).padStart(2,'0') }}</span>
-                <span class="pd-image-open">View image ↗</span>
+              <button v-if="imgs.length" type="button" class="pd-main-image" data-cursor="Open" aria-label="Open property gallery" @click="galleryOpen=true">
+                <MediaFrame class="pd-main-media" v-depth="{pointer:3,scroll:7,rotate:.18,scale:1.005}" :src="imgs[activeImg]" :alt="`${listing.title} — image ${activeImg + 1}`" tone="place" :eager="activeImg===0" :transition-name="activeImg===0 ? viewName('property', listing.id) : ''" fallback-title="Property image unavailable">
+                  <span class="pd-image-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(imgs.length).padStart(2,'0') }}</span>
+                  <span class="pd-image-open">View image ↗</span>
+                </MediaFrame>
               </button>
-              <div v-else class="pd-main-image pd-no-image"><Icon name="pin" :size="44" /><span>Property image</span></div>
+              <MediaFrame v-else class="pd-main-image pd-no-image" tone="place" :alt="listing.title" fallback-title="Property image not supplied" fallback-note="Use the location, map and listing record to understand the place." />
 
               <div v-if="imgs.length > 1" class="pd-thumbs">
-                <button v-for="(im,i) in imgs" :key="i" type="button" class="pd-thumb" :class="{on:i===activeImg}" :style="{backgroundImage:`url(${im})`}" :aria-label="`View image ${i+1}`" @click="activeImg=i"><span>{{ String(i + 1).padStart(2,'0') }}</span></button>
+                <button v-for="(im,i) in imgs" :key="i" type="button" class="pd-thumb" :class="{on:i===activeImg}" :aria-label="`View image ${i+1}`" @click="activeImg=i"><MediaFrame class="pd-thumb-media" :src="im" :alt="`${listing.title} — image ${i+1}`" tone="place" /><span>{{ String(i + 1).padStart(2,'0') }}</span></button>
               </div>
             </div>
 
@@ -236,6 +239,10 @@ watch(() => route.params.id, (next, prev) => {
               <div class="pd-eyebrow"><span>{{ kindLabel }}</span><span>{{ listing.status === 'verified' ? 'Reviewed' : 'Pending review' }}</span></div>
               <h1>{{ listing.title }}</h1>
               <div class="pd-location"><Icon name="pin" :size="14" /> {{ placeLabel }}</div>
+              <div class="pd-place-signal">
+                <span>{{ locationPin ? (locationPin.exact ? 'Pinned location' : 'Approximate area') : 'Location context' }}</span>
+                <small>{{ locationPin ? 'Geography supplied with this listing' : 'Map point not supplied' }}</small>
+              </div>
 
               <div class="pd-price">{{ fmtPrice(listing) }}</div>
               <div class="pd-price-meta">
@@ -258,9 +265,9 @@ watch(() => route.params.id, (next, prev) => {
       </section>
 
       <!-- 02 / CONTEXT -->
-      <section id="pd-context" v-reveal class="pd-section pd-context">
+      <section id="pd-context" v-reveal="{variant:'section'}" class="pd-section pd-context">
         <div class="pd-shell">
-          <div class="pd-section-head"><div class="pd-index dark"><span>02</span><span>Context</span></div><p>A listing is more useful when the surrounding place is visible too.</p></div>
+          <div class="pd-section-head"><div class="pd-index dark"><span>02</span><span>Ground / Context</span></div><p>Read the listing against its actual geography: access, neighbouring area, utilities and location precision.</p></div>
 
           <div class="pd-context-grid">
             <div class="pd-context-map-wrap" :class="{empty:!locationPin}">
@@ -274,7 +281,7 @@ watch(() => route.params.id, (next, prev) => {
 
             <div class="pd-context-copy">
               <div class="pd-context-intro">
-                <span>Place notes</span>
+                <span>Ground notes</span>
                 <h2>{{ placeLabel }}</h2>
                 <p v-if="listing.description">{{ listing.description }}</p>
                 <p v-else>No additional property description was supplied.</p>
@@ -300,14 +307,14 @@ watch(() => route.params.id, (next, prev) => {
       </section>
 
       <!-- 03 / VERIFICATION -->
-      <section v-reveal class="pd-section pd-verification">
+      <section v-reveal="{variant:'section'}" class="pd-section pd-verification">
         <div class="pd-shell">
-          <div class="pd-section-head"><div class="pd-index dark"><span>03</span><span>Verification</span></div><p>What is known, what was declared, and what still needs independent checking.</p></div>
+          <div class="pd-section-head"><div class="pd-index dark"><span>03</span><span>Verification</span></div><p>Separate the physical place from the legal claim: what was reviewed, what was declared, and what remains yours to verify.</p></div>
 
           <div class="pd-ver-grid">
             <div class="pd-ver-title">
               <div class="pd-shield"><Icon name="shield" :size="24" /></div>
-              <h2>Know what has<br>been declared.</h2>
+              <h2>See the ground.<br><em>Verify the claim.</em></h2>
               <p>Enkiama review is a transparency checkpoint. It does not replace title searches, boundary checks, identity verification, contracts or professional legal advice.</p>
             </div>
 
@@ -343,7 +350,7 @@ watch(() => route.params.id, (next, prev) => {
       </section>
 
       <!-- 04 / TERMS — transaction becomes the quietest chapter -->
-      <section v-reveal class="pd-section pd-terms">
+      <section v-reveal="{variant:'section'}" class="pd-section pd-terms">
         <div class="pd-shell">
           <div class="pd-section-head"><div class="pd-index dark"><span>04</span><span>Terms</span></div><p>Move forward only when the place and verification context make sense to you.</p></div>
 
@@ -397,7 +404,7 @@ watch(() => route.params.id, (next, prev) => {
   <div v-if="galleryOpen && imgs.length" class="pd-lightbox" role="dialog" aria-modal="true" aria-label="Property gallery" @click.self="galleryOpen=false">
     <button type="button" class="pd-lightbox-close" aria-label="Close gallery" @click="galleryOpen=false"><Icon name="plus" :size="22" style="transform:rotate(45deg)" /></button>
     <button v-if="imgs.length > 1" type="button" class="pd-lightbox-nav prev" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
-    <img :src="imgs[activeImg]" :alt="`${listing?.title || 'Property'} image ${activeImg + 1}`" />
+    <MediaFrame class="pd-lightbox-media" :src="imgs[activeImg]" :alt="`${listing?.title || 'Property'} image ${activeImg + 1}`" tone="night" fit="contain" :eager="true" />
     <button v-if="imgs.length > 1" type="button" class="pd-lightbox-nav next" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
     <div class="pd-lightbox-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(imgs.length).padStart(2,'0') }}</div>
   </div>
@@ -466,4 +473,76 @@ watch(() => route.params.id, (next, prev) => {
   .pd-fact-ledger>div{grid-template-columns:74px 1fr}
   .pd-map-caption{max-height:42%;overflow:auto}
 }
+
+/* PHASE 15 — PROPERTY DETAIL / GEOGRAPHIC WORLD */
+.pd-page{background:#f5f1e8;color:#1d2922}
+.pd-place{background:#e8e0d2;padding-top:24px;padding-bottom:84px;position:relative;isolation:isolate;overflow:hidden}
+.pd-place::before{content:"";position:absolute;right:-15vw;top:-20vw;width:70vw;height:70vw;border-radius:50%;background:repeating-radial-gradient(ellipse at 50% 50%,transparent 0 31px,rgba(43,65,50,.05) 32px 33px);transform:rotate(-12deg) scaleY(.58);z-index:-1;pointer-events:none}
+.pd-topline{border-bottom-color:rgba(44,58,48,.15)}
+.pd-place-grid{grid-template-columns:minmax(0,1.32fr) minmax(350px,.68fr);gap:5.5vw;padding-top:42px}
+.pd-main-image{height:min(62vw,700px);min-height:520px;background-color:#d7d0c3;box-shadow:0 30px 76px rgba(69,56,41,.17);border:1px solid rgba(85,69,49,.08)}
+.pd-main-image::after{background:linear-gradient(180deg,rgba(10,18,13,.01) 52%,rgba(10,18,13,.28))}
+.pd-thumbs{gap:9px;padding-top:12px}.pd-thumb{width:94px;height:68px;border:1px solid rgba(61,75,64,.1)}
+.pd-identity{top:86px;padding-top:4px}
+.pd-eyebrow{border-bottom-color:rgba(44,58,48,.14);color:rgba(29,41,34,.56)}
+.pd-identity h1{font-size:clamp(42px,4.6vw,66px);line-height:.98;margin-top:24px}
+.pd-location{color:rgba(29,41,34,.64)}
+.pd-place-signal{display:grid;grid-template-columns:1fr;gap:3px;margin-top:18px;padding:13px 0;border-top:1px solid rgba(44,58,48,.12);border-bottom:1px solid rgba(44,58,48,.12)}
+.pd-place-signal span{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#385342}
+.pd-place-signal small{font-size:10.5px;color:rgba(29,41,34,.5)}
+.pd-price{margin-top:30px;font-size:20px}
+.pd-fact-ledger{border-top-color:rgba(44,58,48,.14);margin-top:28px}.pd-fact-ledger>div{border-bottom-color:rgba(44,58,48,.1)}
+.pd-scroll-cue{border-bottom-color:rgba(29,41,34,.28)}
+
+.pd-section{border-top-color:rgba(51,66,56,.12);padding:88px 0}
+.pd-context{background:#f6f2e9}
+.pd-section-head{border-bottom-color:rgba(51,66,56,.14);margin-bottom:38px}
+.pd-context-grid{grid-template-columns:minmax(0,1.28fr) minmax(330px,.72fr);gap:5.5vw}
+.pd-context-map-wrap{height:640px;background:#d8d5ca;border:1px solid rgba(58,73,61,.13);box-shadow:0 20px 60px rgba(66,55,41,.08)}
+.pd-map-caption{background:rgba(246,242,233,.93);border:1px solid rgba(62,73,62,.11);box-shadow:0 12px 34px rgba(57,46,34,.1)}
+.pd-context-intro>span{color:#806a50}
+.pd-context-intro h2{font-size:clamp(32px,3.6vw,50px)}
+.pd-context-intro p{color:rgba(29,41,34,.72)}
+.pd-context-ledger{border-top-color:rgba(51,66,56,.14)}.pd-context-ledger>div{border-bottom-color:rgba(51,66,56,.12)}
+:deep(.leaflet-tile-pane){filter:saturate(.72) sepia(.09) contrast(.93) brightness(1.03)}
+:deep(.pd-map-pin-dot){background:#263c30;box-shadow:0 7px 24px rgba(36,54,42,.24)}
+:deep(.pd-map-pin-dot span){background:#d8c19a}
+
+.pd-verification{background:#ded3c3;color:#1d2922;border-top:1px solid rgba(81,65,46,.08)}
+.pd-verification .pd-section-head{border-color:rgba(68,55,41,.16)}
+.pd-verification .pd-index{color:rgba(29,41,34,.5)}.pd-verification .pd-index span:first-child{color:#1d2922}.pd-verification .pd-section-head>p{color:rgba(29,41,34,.54)}
+.pd-shield{border-color:rgba(45,62,49,.18);color:#385742;background:rgba(247,243,234,.36)}
+.pd-ver-title h2{font-size:clamp(38px,4.5vw,60px)}
+.pd-ver-title h2 em{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;color:#704d34}
+.pd-ver-title>p{color:rgba(29,41,34,.6)}
+.pd-ver-ledger{border-top-color:rgba(68,55,41,.16)}.pd-ver-ledger>div{border-bottom-color:rgba(68,55,41,.13)}
+.pd-ver-num{color:rgba(29,41,34,.32)}.pd-ver-ledger p{color:rgba(29,41,34,.58)}.pd-ver-ledger strong{color:rgba(29,41,34,.6)}.pd-ver-ledger strong.yes{color:#3f684d}.pd-ver-ledger strong.wait{color:#8a672f}
+.pd-due{border-top-color:rgba(68,55,41,.15)}.pd-due span{color:#6f563a}.pd-due p{color:rgba(29,41,34,.62)}
+
+.pd-terms{background:#f5f1e8;padding-bottom:110px}.pd-terms-price>h2{font-size:clamp(38px,4.8vw,66px)}
+.pd-term-tags span{border-color:rgba(51,66,56,.14)}
+.pd-plan{border-top-color:rgba(51,66,56,.16)}.pd-plan-grid{background:rgba(51,66,56,.13);border-color:rgba(51,66,56,.13)}.pd-plan-grid>div{background:#f9f6ef}
+.pd-action-panel{border-top-color:#263c30}.pd-primary-action{background:#263c30;color:#f8f3ea}.pd-secondary-action{border-bottom-color:rgba(51,66,56,.14)}
+
+@media(max-width:960px){
+  .pd-place-grid{grid-template-columns:1fr;gap:38px}.pd-main-image{height:min(70vw,640px)}.pd-identity{max-width:820px}
+  .pd-context-grid{grid-template-columns:1fr}.pd-context-map-wrap{height:560px}.pd-context-copy{max-width:820px}
+}
+@media(max-width:680px){
+  .pd-place{padding-bottom:62px}.pd-place::before{width:130vw;height:130vw;right:-70vw;top:-10vw}
+  .pd-main-image{height:min(74svh,540px);min-height:330px;box-shadow:none}.pd-identity h1{font-size:42px}
+  .pd-place-signal{margin-top:15px}.pd-context-map-wrap{height:min(70svh,560px)}
+  .pd-ver-title h2{font-size:40px}.pd-terms-price>h2{font-size:42px}
+}
+@media(max-width:420px){
+  .pd-identity h1{font-size:38px}.pd-context-intro h2{font-size:32px}.pd-ver-title h2{font-size:37px}.pd-terms-price>h2{font-size:39px}
+}
+
+
+/* PHASE 18 — governed media behavior */
+.pd-main-image{position:relative}.pd-main-media{position:absolute;inset:0}.pd-main-image:hover .pd-main-media :deep(img){transform:scale(1.012)}
+.pd-thumb{position:relative;overflow:hidden}.pd-thumb-media{position:absolute;inset:0}.pd-thumb:hover .pd-thumb-media :deep(img),.pd-thumb.on .pd-thumb-media :deep(img){transform:scale(1.015)}
+.pd-lightbox-media{width:min(90vw,1450px);height:88vh;max-height:88vh}
+@media(max-width:640px){.pd-lightbox-media{width:100%;height:75vh}}
+@media(prefers-reduced-motion:reduce){.pd-main-media :deep(img),.pd-thumb-media :deep(img){transform:none!important;transition:none!important}}
 </style>

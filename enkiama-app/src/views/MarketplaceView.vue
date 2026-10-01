@@ -4,9 +4,12 @@ import { usePublic } from '../composables/usePublic'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import EmptyState from '../components/EmptyState.vue'
+import ExperienceState from '../components/ExperienceState.vue'
 import AppHeader from '../components/AppHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
+import { firstMedia } from '../lib/media'
 
 const stores = ref([])
 const heroStores = ref([])
@@ -19,6 +22,7 @@ const filterVerified = ref(false)
 const filterInStock = ref(false)
 const filterDeal = ref(false)
 const loading = ref(true)
+const loadError = ref('')
 const pub = usePublic()
 const corridor = ref('')
 const corridors = ['Dar es Salaam', 'Arusha', 'Mwanza', 'Dodoma', 'Mbeya', 'Tanga', 'Morogoro', 'Zanzibar Urban/West']
@@ -65,31 +69,30 @@ const otherStores = computed(() => stores.value.slice(1))
 const selectedCorridorLabel = computed(() => corridor.value ? corridor.value.replace(' Urban/West','') : 'All Tanzania')
 const activeFilterCount = computed(() => [filterVerified.value, filterInStock.value, filterDeal.value].filter(Boolean).length)
 
-const brokenImgs = ref(new Set())
-function pImg(p) {
-  if (brokenImgs.value.has(p.id)) return ''
-  const url = (Array.isArray(p.images) && p.images.length ? p.images[0] : p.image_url) || ''
-  const u = String(url).trim()
-  return (u && u !== 'null' && u.startsWith('http')) ? u : ''
-}
+function pImg(p) { return firstMedia(p) }
+
 function pctOff(p) {
   if (!p.compare_at_tzs || !p.price_tzs || p.compare_at_tzs <= p.price_tzs) return 0
   return Math.round((1 - p.price_tzs / p.compare_at_tzs) * 100)
 }
-function brokenImg(e, p) {
-  if (!p?.id) return
-  brokenImgs.value.add(p.id)
-  brokenImgs.value = new Set(brokenImgs.value)
-}
 
 async function load() {
   loading.value = true
-  if (view.value === 'shops') {
-    const { data } = await pub.browseStorefrontsV2(corridor.value, search.value, sort.value)
-    stores.value = data || []
-  } else {
-    const { data } = await pub.searchProducts(search.value, activeCategory.value, corridor.value)
-    products.value = data || []
+  loadError.value = ''
+  try {
+    if (view.value === 'shops') {
+      const { data, error } = await pub.browseStorefrontsV2(corridor.value, search.value, sort.value)
+      if (error) throw error
+      stores.value = data || []
+    } else {
+      const { data, error } = await pub.searchProducts(search.value, activeCategory.value, corridor.value)
+      if (error) throw error
+      products.value = data || []
+    }
+  } catch (e) {
+    loadError.value = 'The market could not be refreshed right now.'
+    if (view.value === 'shops') stores.value = []
+    else products.value = []
   }
   loading.value = false
   await nextTick()
@@ -156,12 +159,12 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
         <div class="mk12-intro">
           <div class="mk12-kicker"><span>01</span><span>Market · Tanzania</span></div>
 
-          <div class="mk12-copy">
+          <div class="mk12-copy" v-reveal="{variant:'copy'}">
             <h1>A market <em>in motion.</em></h1>
             <p>Discover useful objects, independent businesses and places across Tanzania — connected to Enkiama's tracked delivery network.</p>
           </div>
 
-          <form class="mk12-search" @submit.prevent="submitSearch">
+          <form class="mk12-search" v-reveal="{variant:'copy',delay:60}" @submit.prevent="submitSearch">
             <label for="market-search">{{ view === 'shops' ? 'Find a business' : 'Find an object' }}</label>
             <div class="mk12-search-line">
               <Icon name="search" :size="19" />
@@ -171,7 +174,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             </div>
           </form>
 
-          <div class="mk12-realms" aria-label="Market worlds">
+          <div class="mk12-realms" v-reveal="{variant:'section',delay:110}" aria-label="Market worlds">
             <button class="mk12-realm" :class="{active:view==='products'}" @click="setView('products')">
               <span class="mk12-realm-no">01</span>
               <span class="mk12-realm-copy"><strong>Goods</strong><small>{{ displayProducts.length ? `${displayProducts.length} objects available` : 'Objects for everyday life' }}</small></span>
@@ -193,12 +196,11 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
         </div>
 
         <div class="mk12-gallery" aria-label="Featured market objects">
-          <RouterLink v-if="heroProducts[0]" :to="`/shop/${heroProducts[0].shop_slug}/product/${heroProducts[0].id}`" class="mk12-main-object" data-cursor="View">
-            <div class="mk12-main-media" :style="{viewTransitionName:viewName('product', heroProducts[0].id)}">
-              <img :src="pImg(heroProducts[0])" :alt="heroProducts[0].name" @error="brokenImg($event, heroProducts[0])" />
+          <RouterLink v-if="heroProducts[0]" :to="`/shop/${heroProducts[0].shop_slug}/product/${heroProducts[0].id}`" class="mk12-main-object" data-cursor="View" v-reveal="{variant:'media',delay:80}">
+            <MediaFrame class="mk12-main-media" v-depth="{pointer:4.5,scroll:9,rotate:.28,scale:1.008}" :src="pImg(heroProducts[0])" :alt="heroProducts[0].name" tone="object" :eager="true" :transition-name="viewName('product', heroProducts[0].id)" fallback-title="Object image not supplied">
               <span class="mk12-media-index">Object / 01</span>
               <span class="mk12-media-open">Open ↗</span>
-            </div>
+            </MediaFrame>
             <div class="mk12-main-caption">
               <span>Featured object</span>
               <strong>{{ heroProducts[0].name }}</strong>
@@ -210,23 +212,21 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             <span>Market objects appear here as sellers publish them.</span>
           </div>
 
-          <RouterLink v-if="heroProducts[1]" :to="`/shop/${heroProducts[1].shop_slug}/product/${heroProducts[1].id}`" class="mk12-second-object" data-cursor="View">
-            <div class="mk12-second-media" :style="{viewTransitionName:viewName('product', heroProducts[1].id)}">
-              <img :src="pImg(heroProducts[1])" :alt="heroProducts[1].name" @error="brokenImg($event, heroProducts[1])" />
-            </div>
+          <RouterLink v-if="heroProducts[1]" :to="`/shop/${heroProducts[1].shop_slug}/product/${heroProducts[1].id}`" class="mk12-second-object" data-cursor="View" v-reveal="{variant:'media',delay:150}">
+            <MediaFrame class="mk12-second-media" v-depth="{pointer:7,scroll:14,rotate:.42,scale:1.012,invert:true}" :src="pImg(heroProducts[1])" :alt="heroProducts[1].name" tone="object" :eager="true" :transition-name="viewName('product', heroProducts[1].id)" fallback-title="Object image not supplied" />
             <div><span>Object / 02</span><strong>{{ heroProducts[1].name }}</strong></div>
           </RouterLink>
 
-          <button v-if="heroStore" class="mk12-business-object" @click="setView('shops')" data-cursor="Enter">
-            <div class="mk12-business-media" :class="{'has-cover':heroStore.cover_url}" :style="heroStore.cover_url ? {backgroundImage:`url(${heroStore.cover_url})`} : {'--store-accent':heroStore.accent || '#31584c'}">
+          <button v-if="heroStore" class="mk12-business-object" v-reveal="{variant:'media',delay:190}" @click="setView('shops')" data-cursor="Enter">
+            <MediaFrame class="mk12-business-media" v-depth="{pointer:3.2,scroll:7,rotate:.22,scale:1.006}" :src="heroStore.cover_url" :alt="`${heroStore.name} storefront`" tone="business" fallback-title="Business image not supplied" fallback-note="Store identity remains visible through its logo and products.">
               <div class="mk12-business-shade"></div>
               <div class="mk12-business-avatar" :style="{viewTransitionName:viewName('shop', heroStore.slug || heroStore.id)}"><Avatar :name="heroStore.name" :accent="heroStore.accent" :logo="heroStore.logo_url" :size="58" /></div>
-            </div>
+            </MediaFrame>
             <div class="mk12-business-copy"><span>Independent business</span><strong>{{ heroStore.name }}</strong><small>{{ heroStore.tagline || 'A storefront inside Enkiama Market.' }}</small></div>
             <span class="mk12-card-arrow">↗</span>
           </button>
 
-          <RouterLink to="/property" class="mk12-place-object" data-cursor="Place">
+          <RouterLink to="/property" class="mk12-place-object" data-cursor="Place" v-reveal="{variant:'copy',delay:220}">
             <div class="mk12-contours" aria-hidden="true">
               <span></span><span></span><span></span><span></span>
             </div>
@@ -238,7 +238,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
         </div>
       </div>
 
-      <div class="mk12-status">
+      <div class="mk12-status" v-reveal="{variant:'line',delay:240}">
         <span>Local discovery</span>
         <span>Tracked movement</span>
         <span>Visible provenance</span>
@@ -340,7 +340,13 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
         <div v-if="loading" class="mk-pgrid">
           <div v-for="i in 8" :key="i" class="mk-pcard mk-skeleton"></div>
         </div>
-        <EmptyState v-else-if="!displayProducts.length" icon="package" title="No products found" hint="Try a different search, category, location, or filter." />
+        <ExperienceState v-else-if="loadError" kind="error" world="market" eyebrow="Market connection" title="The market did not arrive." :body="loadError">
+          <button type="button" @click="load">Try again</button>
+          <button type="button" @click="search='';activeCategory='';corridor='';filterVerified=false;filterInStock=false;filterDeal=false;load()">Reset discovery</button>
+        </ExperienceState>
+        <ExperienceState v-else-if="!displayProducts.length" kind="empty" world="market" eyebrow="No matching objects" title="Nothing matches this view yet." body="Try widening the place, category, search, or availability filters. The market stays composed even when the answer is zero.">
+          <button type="button" @click="search='';activeCategory='';corridor='';filterVerified=false;filterInStock=false;filterDeal=false;load()">Show the full market</button>
+        </ExperienceState>
 
         <div v-else-if="activeCategory" class="mk-focused">
           <div class="mk-focused-head">
@@ -349,13 +355,11 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
           </div>
           <div class="mk-pgrid">
             <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard" data-cursor="View">
-              <div class="mk-pimg" :style="{viewTransitionName:viewName('product', p.id)}">
-                <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" loading="lazy" @error="brokenImg($event, p)" />
-                <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(145deg, ${p.shop_accent||'#0B6E5D'}, #111915)`}"><span>{{ (p.name||'?').slice(0,1).toUpperCase() }}</span></div>
+              <MediaFrame class="mk-pimg" :src="pImg(p)" :alt="p.name" tone="object" :transition-name="viewName('product', p.id)" fallback-title="Object image not supplied">
                 <span v-if="pctOff(p)" class="mk-poff">−{{ pctOff(p) }}%</span>
                 <span v-if="p.available === false" class="mk-psold">Sold out</span>
                 <span class="mk-open">↗</span>
-              </div>
+              </MediaFrame>
               <div class="mk-pbody">
                 <div class="mk-pname">{{ p.name }}</div>
                 <div class="mk-pprice-row"><span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span><span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span></div>
@@ -374,13 +378,11 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             </div>
             <div class="mk-editorial" :class="{'mk-editorial--flip': index % 2 === 1}">
               <RouterLink v-if="g.items[0]" :to="`/shop/${g.items[0].shop_slug}/product/${g.items[0].id}`" class="mk-feature-object" data-cursor="View">
-                <div class="mk-feature-media" :style="{viewTransitionName:viewName('product', g.items[0].id)}">
-                  <img v-if="pImg(g.items[0])" :src="pImg(g.items[0])" :alt="g.items[0].name" loading="lazy" @error="brokenImg($event, g.items[0])" />
-                  <div v-else class="mk-pimg-ph" :style="{background:`linear-gradient(145deg, ${g.items[0].shop_accent||'#0B6E5D'}, #111915)`}"><span>{{ (g.items[0].name||'?').slice(0,1).toUpperCase() }}</span></div>
+                <MediaFrame class="mk-feature-media" v-depth="{pointer:2.2,scroll:6,rotate:.16,scale:1.005}" :src="pImg(g.items[0])" :alt="g.items[0].name" tone="object" :transition-name="viewName('product', g.items[0].id)" fallback-title="Object image not supplied">
                   <span v-if="pctOff(g.items[0])" class="mk-poff">−{{ pctOff(g.items[0]) }}%</span>
                   <span v-if="g.items[0].available === false" class="mk-psold">Sold out</span>
                   <span class="mk-feature-open">Explore ↗</span>
-                </div>
+                </MediaFrame>
                 <div class="mk-feature-copy">
                   <span class="mk-feature-shop">{{ g.items[0].shop_name }}</span>
                   <h3>{{ g.items[0].name }}</h3>
@@ -391,10 +393,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
               <div class="mk-object-index">
                 <RouterLink v-for="(p,pIndex) in g.items.slice(1,5)" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-object-row" data-cursor="View">
                   <span class="mk-object-no">{{ String(pIndex + 2).padStart(2,'0') }}</span>
-                  <div class="mk-object-thumb" :style="{viewTransitionName:viewName('product', p.id)}">
-                    <img v-if="pImg(p)" :src="pImg(p)" :alt="p.name" loading="lazy" @error="brokenImg($event, p)" />
-                    <div v-else class="mk-object-thumb-ph" :style="{background:p.shop_accent||'#0B6E5D'}"></div>
-                  </div>
+                  <MediaFrame class="mk-object-thumb" :src="pImg(p)" :alt="p.name" tone="object" :transition-name="viewName('product', p.id)" fallback-title="" />
                   <div class="mk-object-copy">
                     <b>{{ p.name }}</b>
                     <span>{{ p.shop_name }}</span>
@@ -417,7 +416,8 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
           <p>Independent businesses connected to delivery, verification and a visible fulfilment history.</p>
         </div>
 
-        <div v-if="loading" class="mk-shopgrid">
+        <ExperienceState v-if="!loading && loadError" kind="error" world="business" eyebrow="Business directory" title="Businesses could not be loaded." :body="loadError"><button type="button" @click="load">Try again</button></ExperienceState>
+        <div v-else-if="loading" class="mk-shopgrid">
           <div v-for="i in 3" :key="i" class="mk-shopcard mk-skeleton"></div>
         </div>
         <EmptyState v-else-if="!stores.length" icon="search" title="No businesses here yet" :hint="corridor ? `No storefronts delivering to ${corridor} yet.` : 'Be the first business on the marketplace.'" />
@@ -670,4 +670,21 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
 @media(pointer:coarse){
   .mk-pcard:hover .mk-pimg img,.mk-shopcard:hover .mk-shop-open,.mk-object-row:hover,.mk-shop-feature:hover .mk-shop-feature-open{transform:none}
 }
+
+/* Phase 17 — discovery controls recede behind the market content */
+.mk-utility{padding:24px 0 22px;border-bottom:1px solid var(--market-line);background:transparent}
+.mk-modebar,.mk-locationbar,.mk-filterbar{gap:24px}
+.mk-modegroup{display:flex;align-items:center;gap:18px}.mk-util-label{font:500 8.5px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:#91978f}
+.mk-mode{font-size:11px;font-weight:600;color:#737b73;padding:6px 0;border-bottom:1px solid transparent}.mk-mode.on,.mk-mode:hover{color:var(--market-ink);border-bottom-color:var(--market-ink)}
+.mk-shop-sort{display:flex;gap:14px}.mk-shop-sort button{font-size:10px;padding:5px 0;border:0;border-bottom:1px solid transparent;background:transparent;color:#838981}.mk-shop-sort button.on{color:var(--market-ink);border-color:var(--market-ink)}
+.mk-locationbar{padding:14px 0}.mk-corridors{gap:16px}.mk-corr{font-size:10px;padding:7px 0;border:0;border-bottom:1px solid transparent;background:transparent;color:#7b827b}.mk-corr.on{color:var(--market-ink);border-color:var(--market-ink)}
+.mk-categorybar{padding:18px 0 14px;gap:22px}.mk-cat{font-size:14px}.mk-filterbar{padding-top:12px}.mk-filters{gap:14px}.mk-filter{font-size:10px;min-height:32px}.mk-filter-clear{font:600 9px var(--font-mono);text-transform:uppercase;letter-spacing:.05em}.mk-sortselect{font-size:9px}.mk-sortselect select{min-height:34px;padding-top:4px;padding-bottom:4px}
+@media(max-width:640px){.mk-utility{padding:18px 0}.mk-modebar{align-items:flex-start}.mk-modegroup{gap:14px}.mk-locationbar{padding:10px 0}.mk-filterbar{gap:12px}.mk-filter{min-height:40px}.mk-sortselect select{min-height:40px}}
+
+
+/* PHASE 18 — governed media behavior */
+.mk12-main-object:hover .mk12-main-media :deep(img),.mk12-second-object:hover .mk12-second-media :deep(img),.mk-pcard:hover .mk-pimg :deep(img),.mk-feature-object:hover .mk-feature-media :deep(img){transform:scale(1.022)}
+.mk-object-row:hover .mk-object-thumb :deep(img){transform:scale(1.025)}
+.mk12-business-media :deep(img){filter:saturate(.9) contrast(.98)}
+@media(prefers-reduced-motion:reduce){.mk12-main-media :deep(img),.mk12-second-media :deep(img),.mk-pimg :deep(img),.mk-feature-media :deep(img),.mk-object-thumb :deep(img){transform:none!important;transition:none!important}}
 </style>

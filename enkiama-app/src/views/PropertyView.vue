@@ -1,5 +1,5 @@
 <script setup>
-// ENKIAMA MARKET V4 — Property as place, not product.
+// ENKIAMA MARKET V15 — Property / Geographic World. Place, terrain and verification lead the experience.
 // Existing contracts remain unchanged: browse_properties, property_map, my_properties, withdraw_property.
 import { ref, computed, onMounted, onBeforeUnmount, inject, nextTick } from 'vue'
 import { supabase } from '../lib/supabase'
@@ -9,6 +9,7 @@ import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
 import EmptyState from '../components/EmptyState.vue'
 import PropertyForm from '../components/PropertyForm.vue'
+import MediaFrame from '../components/MediaFrame.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { viewName, signalMotionReady } from '../lib/motion'
@@ -206,8 +207,8 @@ onBeforeUnmount(() => {
       <div class="prop-stage-grid">
         <div class="prop-stage-copy">
           <div class="prop-kicker">LAND · HOME · FARM · RENTAL</div>
-          <h1>Land &amp; property,<br><em>seen in context.</em></h1>
-          <p>Explore place, access, services, ownership declarations and terms before you decide what deserves a closer look.</p>
+          <h1>Find a place.<br><em>Understand the ground.</em></h1>
+          <p>Land, homes and farms make more sense when geography comes first. Explore the landscape, access, services, declarations and terms before you decide what deserves a closer look.</p>
           <div class="prop-stage-actions">
             <button type="button" class="prop-text-action" @click="scrollToExplore">Explore listings <Icon name="arrow" :size="15" /></button>
             <button type="button" class="prop-text-action quiet" @click="setMapView(); scrollToExplore()">Open map <Icon name="pin" :size="15" /></button>
@@ -215,11 +216,14 @@ onBeforeUnmount(() => {
         </div>
 
         <RouterLink v-if="featured" :to="`/property/${featured.id}`" class="prop-feature" data-cursor="Place">
-          <div class="prop-feature-media" :style="featured.images?.[0] ? {backgroundImage:`url(${featured.images[0]})`} : {}">
-            <div v-if="!featured.images?.[0]" class="prop-feature-ph"><Icon name="pin" :size="38" /></div>
-            <span class="prop-feature-count">Featured / 01</span>
-            <span class="prop-feature-open">View place ↗</span>
-          </div>
+          <MediaFrame class="prop-feature-media" v-depth="{pointer:3.4,scroll:8,rotate:.2,scale:1.006}" :src="featured.images?.[0] || ''" :alt="featured.title" tone="place" :eager="true" :transition-name="viewName('property', featured.id)" fallback-title="Place image not supplied" fallback-note="Location and listing details remain available.">
+            <span class="prop-feature-count">Featured place</span>
+            <span class="prop-feature-open">Enter place ↗</span>
+            <div class="prop-feature-place">
+              <span><Icon name="pin" :size="12" /> {{ featured.location || featured.region || 'Tanzania' }}</span>
+              <small>{{ fmtSize(featured) || kindLabel(featured.kind) }}</small>
+            </div>
+          </MediaFrame>
           <div class="prop-feature-meta">
             <div>
               <span class="prop-feature-type">{{ kindLabel(featured.kind) }} · {{ featured.region || 'Tanzania' }}</span>
@@ -231,7 +235,12 @@ onBeforeUnmount(() => {
 
         <div v-else-if="loading" class="prop-feature prop-feature-loading">
           <div class="prop-feature-media"></div>
-          <div class="prop-feature-meta"><div><span>Loading collection</span><h2>Finding verified places…</h2></div></div>
+          <div class="prop-feature-meta"><div><span>Loading geography</span><h2>Finding reviewed places…</h2></div></div>
+        </div>
+
+        <div v-else class="prop-feature prop-feature-empty">
+          <div class="prop-feature-media"><div class="prop-feature-ph"><Icon name="pin" :size="38" /><span>No reviewed place in this collection yet</span></div></div>
+          <div class="prop-feature-meta"><div><span class="prop-feature-type">Tanzania · Property</span><h2>The next reviewed place will appear here.</h2></div></div>
         </div>
       </div>
 
@@ -250,7 +259,7 @@ onBeforeUnmount(() => {
           <button class="mine-close" type="button" aria-label="Close my listings" @click="showMine=false"><Icon name="plus" :size="16" style="transform:rotate(45deg)" /></button>
         </div>
         <div v-for="m in myListings" :key="m.id" class="mine-row">
-          <div class="mine-thumb" :style="m.images?.[0] ? {backgroundImage:`url(${m.images[0]})`} : {}"><Icon v-if="!m.images?.[0]" name="pin" :size="16" /></div>
+          <MediaFrame class="mine-thumb" :src="m.images?.[0] || ''" :alt="m.title" tone="place" fallback-title="" />
           <div class="mine-info"><b>{{ m.title }}</b><span>{{ m.location }} · {{ fmtPrice(m) }}</span></div>
           <span class="mine-status" :class="'st-'+m.status">
             <template v-if="m.status==='verified'"><Icon name="check" :size="11" /> Live</template>
@@ -292,7 +301,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- MAP / geography becomes an environment, not a utility box -->
-        <div v-show="propView==='map'" v-reveal class="prop-map-shell">
+        <div v-show="propView==='map'" v-reveal="{variant:'section'}" class="prop-map-shell">
           <div class="prop-map-label"><span>TANZANIA</span><small>Property geography</small></div>
           <div id="propmap" class="prop-map"></div>
           <div class="prop-map-key"><span><i></i> Select a price marker to inspect a place</span></div>
@@ -316,15 +325,25 @@ onBeforeUnmount(() => {
             <div v-for="i in 4" :key="i" class="prop-object prop-object-sk"><div class="prop-object-media"></div><div class="prop-object-copy"></div></div>
           </div>
 
-          <EmptyState v-else-if="!listings.length" icon="pin" title="No verified listings yet" hint="Verified plots, farms, houses and rentals will appear here after review." />
+          <div v-else-if="!listings.length" class="prop-empty">
+            <div class="prop-empty-terrain" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
+            <div class="prop-empty-copy">
+              <span>Nothing reviewed here yet</span>
+              <h3>No places in this collection.</h3>
+              <p>Reviewed plots, farms, houses and rentals will appear here as they are published. Try another property type or open the geographic view.</p>
+              <div class="prop-empty-actions">
+                <button type="button" @click="activeKind=''; load()">Show all property</button>
+                <button type="button" @click="setMapView">Open map</button>
+              </div>
+            </div>
+          </div>
 
           <div v-else class="prop-object-list">
-            <RouterLink v-for="(l,i) in listings" :key="l.id" :to="`/property/${l.id}`" class="prop-object" :class="{reverse:i%2===1}" data-cursor="Place" v-reveal="{delay:Math.min(i*35,175)}">
-              <div class="prop-object-media" :style="Object.assign({}, l.images?.[0] ? {backgroundImage:`url(${l.images[0]})`} : {}, {viewTransitionName:viewName('property', l.id)})">
-                <span v-if="!l.images?.[0]" class="prop-object-ph"><Icon name="pin" :size="32" /></span>
+            <RouterLink v-for="(l,i) in listings" :key="l.id" :to="`/property/${l.id}`" class="prop-object" :class="{reverse:i%2===1}" data-cursor="Place" v-reveal="{variant:'section',delay:Math.min(i*35,175)}">
+              <MediaFrame class="prop-object-media" v-depth="{pointer:2.2,scroll:6,rotate:.12,scale:1.004}" :src="l.images?.[0] || ''" :alt="l.title" tone="place" :transition-name="viewName('property', l.id)" fallback-title="Place image not supplied">
                 <span class="prop-object-index">{{ String(i + 1).padStart(2,'0') }} / {{ String(listings.length).padStart(2,'0') }}</span>
                 <span class="prop-object-view">Enter ↗</span>
-              </div>
+              </MediaFrame>
 
               <div class="prop-object-copy">
                 <div class="prop-object-top"><span>{{ kindLabel(l.kind) }}</span><span>{{ l.region || 'Tanzania' }}</span></div>
@@ -352,8 +371,8 @@ onBeforeUnmount(() => {
         <div class="prop-section-index"><span>03</span><span>Verification</span></div>
         <div class="prop-trust-grid">
           <div class="prop-trust-title">
-            <h2>A checkpoint,<br>not a shortcut.</h2>
-            <p>Enkiama review improves listing quality and transparency. It does not replace independent legal verification before a property transaction.</p>
+            <h2>Review the place.<br><em>Then verify the claim.</em></h2>
+            <p>Enkiama review improves listing quality and transparency. Property still requires independent checks of title, identity, boundaries and transaction documents.</p>
           </div>
           <div class="prop-trust-ledger">
             <div><span>01</span><b>Before publication</b><p>Listing information is reviewed before it appears in this collection.</p></div>
@@ -489,4 +508,116 @@ onBeforeUnmount(() => {
   .prop-object-facts{gap:8px}.prop-object-price{font-size:17px}
   .prop-map-shell{margin-left:-14px;margin-right:-14px}
 }
+
+/* PHASE 15 — PROPERTY / GEOGRAPHIC WORLD
+   Geography is a material: limestone, sand, clay, forest ink and real landscape media. */
+.prop-page{background:#f5f1e8}
+.prop-stage{background:#e8e0d2;color:#1d2922;min-height:680px;padding-top:28px;padding-bottom:28px;isolation:isolate}
+.prop-stage::before{inset:0;background:radial-gradient(ellipse at 78% 20%,rgba(126,151,119,.18),transparent 30%),radial-gradient(ellipse at 12% 84%,rgba(180,139,99,.11),transparent 30%);width:auto;height:auto;border-radius:0;z-index:-2}
+.prop-stage::after{content:"";position:absolute;right:-11%;top:-28%;width:62vw;height:62vw;max-width:840px;max-height:840px;border-radius:50%;background:repeating-radial-gradient(ellipse at 48% 52%,transparent 0 28px,rgba(40,58,46,.055) 29px 30px);transform:rotate(-13deg) scaleY(.66);pointer-events:none;z-index:-1}
+.prop-stage-index span:last-child,.prop-stage-status{color:rgba(29,41,34,.54)}
+.prop-live-dot{background:#58745f;box-shadow:0 0 0 5px rgba(88,116,95,.1)}
+.prop-stage-grid{grid-template-columns:minmax(0,.72fr) minmax(480px,1.28fr);gap:6.5vw;padding:42px 0 46px}
+.prop-kicker{color:#7c6b56}
+.prop-stage-copy h1{font-size:clamp(48px,5.4vw,78px);line-height:.98;max-width:640px}
+.prop-stage-copy h1 em{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;color:#6e4d35;letter-spacing:-.035em}
+.prop-stage-copy p{font-size:14px;line-height:1.72;color:rgba(29,41,34,.66);max-width:500px}
+.prop-text-action{color:#1d2922;border-bottom-color:rgba(29,41,34,.34)}
+.prop-text-action.quiet{color:rgba(29,41,34,.58);border-bottom-color:rgba(29,41,34,.18)}
+.prop-feature{position:relative}
+.prop-feature-media{height:500px;background-color:#d9d2c5;box-shadow:0 28px 70px rgba(69,58,44,.16);border:1px solid rgba(83,68,50,.08)}
+.prop-feature-media::after{background:linear-gradient(180deg,rgba(20,29,23,.02) 45%,rgba(20,29,23,.45));opacity:1}
+.prop-feature:hover .prop-feature-media::after{opacity:.82}
+.prop-feature-ph{background:linear-gradient(145deg,#d8d0c2,#cbbca8);color:rgba(29,41,34,.42);gap:12px;flex-direction:column}
+.prop-feature-ph span{font-size:10px;letter-spacing:.09em;text-transform:uppercase}
+.prop-feature-count,.prop-feature-open{color:rgba(255,255,255,.9)}
+.prop-feature-place{position:absolute;z-index:2;left:18px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between;gap:18px;width:calc(100% - 36px);color:#fff}
+.prop-feature-place span{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:650}
+.prop-feature-place small{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+.prop-feature-meta{padding-top:18px}
+.prop-feature-type{color:rgba(29,41,34,.48)}
+.prop-feature-meta h2{font-size:22px;color:#1d2922}
+.prop-feature-price{color:rgba(29,41,34,.76)}
+.prop-feature-loading .prop-feature-media{background:linear-gradient(90deg,#d9d2c5,#ece6db,#d9d2c5);background-size:220% 100%}
+.prop-feature-loading h2{color:rgba(29,41,34,.56)}
+.prop-feature-empty .prop-feature-media{box-shadow:none}
+.prop-stage-foot{border-top-color:rgba(29,41,34,.15)}
+.prop-stage-fact+ .prop-stage-fact{border-left-color:rgba(29,41,34,.12)}
+.prop-stage-fact>span{color:rgba(29,41,34,.34)}
+.prop-stage-fact b{color:rgba(29,41,34,.88)}
+.prop-stage-fact small{color:rgba(29,41,34,.54)}
+
+.prop-wrap{max-width:1240px;padding-top:70px}
+.prop-section-head{border-bottom-color:rgba(52,65,56,.16)}
+.prop-kind-nav{border-bottom-color:rgba(52,65,56,.16)}
+.prop-kind.on{color:#294233}
+.prop-viewbar{border-bottom-color:rgba(52,65,56,.14)}
+.prop-vt.on{color:#294233}
+.prop-object{border-bottom-color:rgba(52,65,56,.13);gap:6.5vw}
+.prop-object-media{background-color:#ded7ca;box-shadow:0 22px 58px rgba(71,59,43,.10)}
+.prop-object-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(21,29,24,.28));pointer-events:none}
+.prop-object-index,.prop-object-view{z-index:2}
+.prop-object-copy h3{font-size:clamp(28px,3.2vw,46px)}
+.prop-object-top{border-bottom-color:rgba(52,65,56,.13)}
+.prop-object-facts>div{border-top-color:rgba(52,65,56,.13)}
+.prop-object-trust{color:#3d6049}
+
+.prop-map-shell{height:min(76vh,760px);min-height:590px;background:#d7d4c8;border:1px solid rgba(69,82,71,.15);box-shadow:0 20px 60px rgba(65,55,43,.08)}
+.prop-map-shell::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:300;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.prop-map-label{background:rgba(243,239,230,.9);color:#203027;border:1px solid rgba(53,69,58,.12)}
+.prop-map-key{background:rgba(34,50,40,.9);color:#f4efe5}
+.prop-map-key i{background:#d7b888}
+.prop-mapcard{background:rgba(247,244,237,.96);box-shadow:0 24px 70px rgba(52,42,31,.2);border:1px solid rgba(75,62,45,.11)}
+.prop-mapcard-trust{color:#426a50}
+:deep(.leaflet-tile-pane){filter:saturate(.72) sepia(.09) contrast(.93) brightness(1.03)}
+:deep(.prop-pin-badge){background:#263c30;color:#f7f2e9;border-color:rgba(255,255,255,.45);box-shadow:0 8px 24px rgba(37,49,40,.24)}
+:deep(.prop-pin-badge::after){background:#263c30}
+
+.prop-empty{display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.1fr);min-height:360px;border-top:1px solid rgba(52,65,56,.14);border-bottom:1px solid rgba(52,65,56,.14);background:#ebe5d9}
+.prop-empty-terrain{position:relative;min-height:360px;overflow:hidden;background:linear-gradient(145deg,#d7cfbf,#e9e2d5)}
+.prop-empty-terrain::before,.prop-empty-terrain::after{content:"";position:absolute;border:1px solid rgba(45,65,51,.13);border-radius:50%;transform:rotate(-15deg) scaleY(.52)}
+.prop-empty-terrain::before{width:440px;height:440px;left:-80px;top:-60px;box-shadow:0 0 0 28px rgba(45,65,51,.025),0 0 0 58px rgba(45,65,51,.02),0 0 0 92px rgba(45,65,51,.018)}
+.prop-empty-terrain::after{width:250px;height:250px;right:-40px;bottom:-80px;box-shadow:0 0 0 22px rgba(119,83,54,.03),0 0 0 46px rgba(119,83,54,.02)}
+.prop-empty-terrain span{position:absolute;height:1px;background:rgba(41,63,49,.14);transform-origin:left center}
+.prop-empty-terrain span:nth-child(1){width:55%;left:16%;top:38%;transform:rotate(-12deg)}
+.prop-empty-terrain span:nth-child(2){width:42%;left:28%;top:55%;transform:rotate(17deg)}
+.prop-empty-terrain span:nth-child(3){width:34%;left:8%;top:70%;transform:rotate(-28deg)}
+.prop-empty-terrain i{position:absolute;width:9px;height:9px;border-radius:50%;background:#294233;left:52%;top:45%;box-shadow:0 0 0 7px rgba(41,66,51,.12)}
+.prop-empty-copy{padding:54px clamp(30px,5vw,72px);display:flex;flex-direction:column;justify-content:center}
+.prop-empty-copy>span{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:#806a50}
+.prop-empty-copy h3{font-family:'Space Grotesk',sans-serif;font-size:clamp(30px,4vw,52px);font-weight:540;line-height:1;letter-spacing:-.045em;margin:14px 0}
+.prop-empty-copy p{max-width:540px;font-size:13px;line-height:1.7;color:rgba(29,41,34,.62);margin:0}
+.prop-empty-actions{display:flex;gap:24px;margin-top:28px;flex-wrap:wrap}
+.prop-empty-actions button{border:0;background:transparent;color:#1d2922;font:inherit;font-size:11px;font-weight:700;padding:0 0 6px;border-bottom:1px solid rgba(29,41,34,.35);cursor:pointer}
+
+.prop-trust{margin-top:86px;padding:58px clamp(28px,5vw,70px);background:#ded3c3;border:1px solid rgba(84,66,45,.08)}
+.prop-trust>.prop-section-index{border-bottom-color:rgba(67,55,40,.16)}
+.prop-trust-grid{gap:8vw;padding-top:34px}
+.prop-trust-title h2{font-size:clamp(36px,4.5vw,58px)}
+.prop-trust-title h2 em{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;color:#704d34}
+.prop-trust-ledger{border-top-color:rgba(67,55,40,.16)}
+.prop-trust-ledger>div{border-bottom-color:rgba(67,55,40,.13)}
+
+@media(max-width:960px){
+  .prop-stage-grid{grid-template-columns:1fr;gap:42px}.prop-feature{max-width:none}.prop-feature-media{height:min(62vw,520px)}
+  .prop-empty{grid-template-columns:1fr}.prop-empty-terrain{min-height:260px}.prop-empty-copy{padding:38px 28px}
+}
+@media(max-width:680px){
+  .prop-stage{padding-left:18px;padding-right:18px}.prop-stage::after{width:100vw;height:100vw;right:-42%;top:-4%}.prop-stage-copy h1{font-size:46px}.prop-stage-copy p{font-size:13px}
+  .prop-feature-media{height:min(72svh,480px);min-height:310px;margin-left:-18px;margin-right:-18px}.prop-feature-meta{padding-top:14px}.prop-feature-place{left:14px;right:14px;width:auto}
+  .prop-stage-foot{margin-top:24px}.prop-stage-fact,.prop-stage-fact+ .prop-stage-fact{border-top-color:rgba(29,41,34,.1)}
+  .prop-viewbar{background:rgba(245,241,232,.92)}
+  .prop-map-shell{height:calc(100svh - 118px);min-height:540px}
+  .prop-empty{margin-left:-16px;margin-right:-16px}.prop-empty-terrain{min-height:220px}.prop-empty-copy{padding:32px 20px 38px}
+  .prop-trust{margin-left:-16px;margin-right:-16px;padding:46px 20px;border-left:0;border-right:0}
+}
+@media(max-width:420px){
+  .prop-stage{padding-left:14px;padding-right:14px}.prop-feature-media{margin-left:-14px;margin-right:-14px}.prop-stage-copy h1{font-size:42px}
+  .prop-empty{margin-left:-14px;margin-right:-14px}.prop-trust{margin-left:-14px;margin-right:-14px}
+}
+
+
+/* PHASE 18 — governed media behavior */
+.prop-feature:hover .prop-feature-media :deep(img),.prop-object:hover .prop-object-media :deep(img){transform:scale(1.018)}
+@media(prefers-reduced-motion:reduce){.prop-feature-media :deep(img),.prop-object-media :deep(img){transform:none!important;transition:none!important}}
 </style>
