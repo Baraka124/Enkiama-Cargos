@@ -148,7 +148,7 @@ async function viewDoc(path) {
   try {
     const { data, error } = await supabase.storage.from('driver-docs').createSignedUrl(path, 120)
     if (error || !data?.signedUrl) { toast('Could not open document', 'warn'); return }
-    window.open(data.signedUrl, '_blank')
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
   } catch (e) { toast('Could not open document', 'warn') }
 }
 async function reviewDriver(id, decision) {
@@ -545,7 +545,7 @@ function fmtWhen(ts) {
     </div>
     <!-- mobile: theme quick-toggle + overflow menu -->
     <div class="tb-actions-mobile">
-      <button class="btn btn-ghost tb-icon-btn" @click="toggleTheme"><Icon :name="theme==='dark'?'sun':'moon'" :size="17" /></button>
+      <button type="button" class="btn btn-ghost tb-icon-btn" :aria-label="theme==='dark'?'Switch to light mode':'Switch to dark mode'" @click="toggleTheme"><Icon :name="theme==='dark'?'sun':'moon'" :size="17" /></button>
       <button aria-label="Menu" class="btn btn-ghost tb-icon-btn" @click="menuOpen=!menuOpen"><Icon name="menu" :size="18" /></button>
     </div>
     <div v-if="menuOpen" class="tb-menu-scrim" @click="menuOpen=false"></div>
@@ -924,8 +924,8 @@ function fmtWhen(ts) {
       <template v-else>
         <div class="creds-done"><Icon name="check" :size="20" /> Login ready — use these to sign in</div>
         <div class="creds-box">
-          <div class="creds-row"><span class="creds-lab">Email</span><code class="creds-val">{{ loginCreds.email }}</code><button class="creds-copy" @click="copyText(loginCreds.email)"><Icon name="link" :size="13" /></button></div>
-          <div class="creds-row"><span class="creds-lab">Password</span><code class="creds-val">{{ loginCreds.password }}</code><button class="creds-copy" @click="copyText(loginCreds.password)"><Icon name="link" :size="13" /></button></div>
+          <div class="creds-row"><span class="creds-lab">Email</span><code class="creds-val">{{ loginCreds.email }}</code><button type="button" class="creds-copy" aria-label="Copy login email" @click="copyText(loginCreds.email)"><Icon name="link" :size="13" /></button></div>
+          <div class="creds-row"><span class="creds-lab">Password</span><code class="creds-val">{{ loginCreds.password }}</code><button type="button" class="creds-copy" aria-label="Copy temporary password" @click="copyText(loginCreds.password)"><Icon name="link" :size="13" /></button></div>
         </div>
         <p class="sub" style="margin-top:12px">Open the login page in a private/incognito window, sign in with these, and you'll see exactly what this driver sees.</p>
         <button class="btn btn-accent btn-block" @click="loginDriver=null; loginCreds=null" style="margin-top:12px">Done</button>
@@ -999,8 +999,8 @@ function fmtWhen(ts) {
       <!-- proof of delivery, if present -->
       <div v-if="detail.podPhotoUrl || detail.podSignature" class="panel" style="margin-bottom:16px;padding:14px">
         <div class="trk-lab" style="margin-bottom:10px"><Icon name="camera" :size="12" /> Proof of delivery</div>
-        <img v-if="detail.podPhotoUrl" :src="detail.podPhotoUrl" style="width:100%;border-radius:12px;margin-bottom:8px;max-height:180px;object-fit:cover" />
-        <img v-if="detail.podSignature" :src="detail.podSignature" style="width:120px;border:1px solid var(--hairline);border-radius:8px;background:#fff" />
+        <img v-if="detail.podPhotoUrl" :src="detail.podPhotoUrl" alt="Proof of delivery photo" style="width:100%;border-radius:12px;margin-bottom:8px;max-height:180px;object-fit:cover" />
+        <img v-if="detail.podSignature" :src="detail.podSignature" alt="Proof of delivery signature" style="width:120px;border:1px solid var(--hairline);border-radius:8px;background:#fff" />
       </div>
 
       <!-- full custody timeline -->
@@ -1078,18 +1078,18 @@ function fmtWhen(ts) {
   </div>
 
   <!-- NEW CONSIGNMENT MODAL -->
-  <div v-if="bookModal" class="overlay" v-escape="() => { closeBooking }" @click.self="closeBooking">
+  <div v-if="bookModal" class="overlay" v-escape="closeBooking" @click.self="closeBooking">
     <div class="modal">
       <!-- SUCCESS STATE -->
       <div v-if="bookedCode" class="book-success">
         <div class="book-success-ic"><Icon name="check" :size="30" /></div>
         <div class="book-success-code">{{ bookedCode }}</div>
         <div class="book-success-sub">Parcel booked on {{ carrier?.name }}. Share the tracking link with the receiver.</div>
-        <div class="book-success-link" @click="copyTrackLink">
+        <button type="button" class="book-success-link" @click="copyTrackLink">
           <Icon name="link" :size="15" />
           <span class="code">{{ trackUrl }}</span>
           <Icon :name="copied ? 'check' : 'inbox'" :size="15" />
-        </div>
+        </button>
         <div style="display:flex;gap:10px">
           <button class="btn btn-ghost" style="flex:1" @click="closeBooking">Done</button>
           <button class="btn btn-accent" style="flex:1" @click="startAnother"><Icon name="plus" :size="15" /> Book another</button>

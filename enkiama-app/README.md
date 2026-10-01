@@ -1,6 +1,6 @@
-# Enkiama Cargos — Phase 18 Governed Media System
+# Enkiama Cargos — Phase 23 Final Production Hardening
 
-This cumulative project includes all experience work through Phase 18. Market, Object, Business and Property now share one governed media renderer and purpose-aware upload guidance. See `PHASE_18_MEDIA_SYSTEM.md`.
+This cumulative project includes all experience work through Phase 23. The final Market, Object, Business, Property and Movement art direction now includes route fallbacks, defensive formatting, stale-session hardening, map/data guards, proof-media governance, compact-screen protection and final release QA. See `PHASE_23_FINAL_PRODUCTION_HARDENING.md`.
 
 # Enkiama Cargos
 
@@ -16,9 +16,9 @@ Functions) - Leaflet. Deploys as a static site.
 
 ## Current experience build
 
-**V18 — Governed Media System**
+**V23 — Final Visual QA + Production Hardening**
 
-The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement and governed media across desktop, laptop, tablet and mobile. See the phase notes through `PHASE_18_MEDIA_SYSTEM.md`.
+The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement, governed media, spatial motion, resilient states, responsive art direction, and accessibility/performance hardening. See the phase notes through `PHASE_23_FINAL_PRODUCTION_HARDENING.md`.
 
 ---
 
@@ -107,7 +107,6 @@ https://<project-ref>.functions.supabase.co/momo-webhook
 
 ## What's next
 - SMS provider (Twilio / Africa's Talking) for driver OTP + notifications
-- Live driver GPS
 - PWA (installable on phones)
 
 ---
@@ -170,3 +169,18 @@ The public experience now uses one restrained spatial grammar: shared media dept
 
 ## Phase 20 — Resilient states
 Loading, zero-result, sold/unavailable, missing-record, connectivity and offline states now use one world-aware recovery language instead of generic spinners, broken empty pages or conflating network failure with "not found".
+
+
+## Phase 21 — Responsive Art Direction
+
+Large desktop, laptop, tablet, phone and compact-phone layouts now have deliberate composition rules rather than simple scale-down behavior. The public shell and all flagship Market worlds share device-tier spacing, media scale, stacking, and touch behavior without changing data or commerce contracts. See `PHASE_21_RESPONSIVE_ART_DIRECTION.md`.
+
+
+## Phase 22 — Accessibility + Performance
+
+Keyboard focus, route announcements, modal focus management, contrast, reduced-motion/data behavior, lazy public maps, background polling suspension and below-fold rendering are now part of the production baseline. Backend/data contracts remain unchanged. See `PHASE_22_ACCESSIBILITY_PERFORMANCE.md`.
+
+
+## Phase 23 — Final Production Hardening
+
+The cumulative release now includes a designed 404 route, defensive number/date formatting, map-coordinate guards, governed proof media, auth-header hydration hardening, long-content overflow protection, compact/wide-screen stress protection and final release QA. Backend/data contracts remain unchanged. See `PHASE_23_FINAL_PRODUCTION_HARDENING.md`.

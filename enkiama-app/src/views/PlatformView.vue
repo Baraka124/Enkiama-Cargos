@@ -11,6 +11,8 @@ import EmptyState from '../components/EmptyState.vue'
 import BrandMark from '../components/BrandMark.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import Spinner from '../components/Spinner.vue'
+import { formatTZS } from '../lib/format'
+import { validMediaUrl } from '../lib/media'
 
 const router = useRouter()
 const toast = inject('toast')
@@ -661,7 +663,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
         <div v-for="d in disputes" :key="d.id" class="pdisp-card">
           <div class="pdisp-top">
             <div><span class="pdisp-code mono">{{ d.code }}</span> <span class="pdisp-reason">{{ reasonLabel(d.reason) }}</span></div>
-            <span class="pdisp-cod" v-if="d.cod">TZS {{ Number(d.cod).toLocaleString() }}</span>
+            <span class="pdisp-cod" v-if="d.cod">{{ formatTZS(d.cod) }}</span>
           </div>
           <div class="pdisp-by">Raised by <b>{{ d.raised_by }}</b> ({{ d.raised_role }}) · {{ d.phone }}</div>
           <p v-if="d.detail" class="pdisp-detail">"{{ d.detail }}"</p>
@@ -672,7 +674,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
               <span class="pdisp-ev-who">{{ e.actor }}<span v-if="e.role"> · {{ e.role }}</span></span>
               <span class="pdisp-ev-at">{{ e.at ? new Date(e.at).toLocaleString() : '' }}</span>
             </div>
-            <div v-if="d.pod_photo" class="pdisp-pod"><Icon name="camera" :size="12" /> Proof of delivery photo on file<a :href="d.pod_photo" target="_blank" class="pdisp-pod-link">View</a></div>
+            <div v-if="validMediaUrl(d.pod_photo)" class="pdisp-pod"><Icon name="camera" :size="12" /> Proof of delivery photo on file<a :href="d.pod_photo" target="_blank" rel="noopener noreferrer" class="pdisp-pod-link">View</a></div>
             <div v-else class="pdisp-nopod">No proof-of-delivery photo recorded</div>
           </div>
           <div class="pdisp-actions">
@@ -699,7 +701,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
             <div class="pprop-body">
               <div class="pprop-top">
                 <div><b>{{ p.title }}</b><span class="pprop-loc">{{ p.location }}, {{ p.region }} · {{ p.kind }}</span></div>
-                <div class="pprop-price">{{ p.price_tzs ? 'TZS '+Number(p.price_tzs).toLocaleString() : 'Price on request' }}</div>
+                <div class="pprop-price">{{ p.price_tzs ? formatTZS(p.price_tzs) : 'Price on request' }}</div>
               </div>
               <div class="pprop-detail">
                 <span v-if="p.size_value">{{ p.size_value }} {{ p.size_unit }}</span>

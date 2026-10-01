@@ -10,9 +10,9 @@ import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import MediaFrame from '../components/MediaFrame.vue'
 import ExperienceState from '../components/ExperienceState.vue'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { loadLeaflet } from '../lib/leaflet'
 import { viewName, signalMotionReady } from '../lib/motion'
+import { formatNumber, formatTZS, finiteNumber } from '../lib/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +25,7 @@ const galleryOpen = ref(false)
 const showContact = ref(false)
 const locationPin = ref(null)
 
+let Leaflet = null
 let detailMap = null
 let detailMarker = null
 let approxCircle = null
@@ -64,23 +65,25 @@ function fmtPrice(l) {
       : l.price_basis === 'per_sqm'
         ? ' / m²'
         : ''
-  return 'TZS ' + Number(l.price_tzs).toLocaleString() + basis
+  return 'TZS ' + formatNumber(l.price_tzs) + basis
 }
 
 function tzs(n) {
-  return n || n === 0 ? 'TZS ' + Math.round(Number(n)).toLocaleString() : ''
+  return n || n === 0 ? formatTZS(n, { fallback: '' }) : ''
 }
 
 const depositAmount = computed(() => {
   const l = listing.value
-  if (!l?.installments_ok || !l.deposit_pct || !l.price_tzs) return 0
-  return Math.round(l.price_tzs * l.deposit_pct / 100)
+  const price = finiteNumber(l?.price_tzs), pct = finiteNumber(l?.deposit_pct)
+  if (!l?.installments_ok || price === null || pct === null || pct <= 0) return 0
+  return Math.max(0, Math.round(price * pct / 100))
 })
 
 const monthlyAmount = computed(() => {
   const l = listing.value
-  if (!l?.installments_ok || !l.installment_months || !l.price_tzs) return 0
-  return Math.round((l.price_tzs - depositAmount.value) / l.installment_months)
+  const price = finiteNumber(l?.price_tzs), months = finiteNumber(l?.installment_months)
+  if (!l?.installments_ok || price === null || months === null || months <= 0) return 0
+  return Math.max(0, Math.round((price - depositAmount.value) / months))
 })
 
 async function load() {
@@ -106,7 +109,7 @@ async function load() {
   loading.value = false
   await nextTick()
   signalMotionReady()
-  if (listing.value && locationPin.value) renderContextMap()
+  if (listing.value && locationPin.value) await renderContextMap()
 }
 
 async function loadLocationPin() {
@@ -122,29 +125,31 @@ async function loadLocationPin() {
   }
 }
 
-function renderContextMap() {
+async function renderContextMap() {
+  try { Leaflet ||= await loadLeaflet() } catch (e) { return }
   const p = locationPin.value
-  if (!p?.lat || !p?.lng || !document.getElementById('property-context-map')) return
+  const lat = finiteNumber(p?.lat), lng = finiteNumber(p?.lng)
+  if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180 || !document.getElementById('property-context-map')) return
   destroyMap()
 
-  detailMap = L.map('property-context-map', {
+  detailMap = Leaflet.map('property-context-map', {
     zoomControl: true,
     attributionControl: false,
     scrollWheelZoom: false,
     zoomSnap: 0.5,
-  }).setView([p.lat, p.lng], p.exact ? 13 : 11)
+  }).setView([lat, lng], p.exact ? 13 : 11)
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(detailMap)
+  Leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(detailMap)
 
-  const icon = L.divIcon({
+  const icon = Leaflet.divIcon({
     className: 'pd-map-pin',
     html: '<div class="pd-map-pin-dot"><span></span></div>',
     iconSize: [1, 1],
   })
-  detailMarker = L.marker([p.lat, p.lng], { icon }).addTo(detailMap)
+  detailMarker = Leaflet.marker([lat, lng], { icon }).addTo(detailMap)
 
   if (!p.exact) {
-    approxCircle = L.circle([p.lat, p.lng], {
+    approxCircle = Leaflet.circle([lat, lng], {
       radius: 2500,
       color: '#536d5b',
       weight: 1,
@@ -171,7 +176,7 @@ function nextImage(dir = 1) {
 }
 
 function scrollToContext() {
-  document.getElementById('pd-context')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  document.getElementById('pd-context')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
 }
 
 async function startDeal() {
@@ -196,7 +201,7 @@ onMounted(load)
 onBeforeUnmount(destroyMap)
 watch(() => route.params.id, (next, prev) => {
   if (next && next !== prev) {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
     load()
   }
 })
@@ -231,7 +236,7 @@ watch(() => route.params.id, (next, prev) => {
               <MediaFrame v-else class="pd-main-image pd-no-image" tone="place" :alt="listing.title" fallback-title="Property image not supplied" fallback-note="Use the location, map and listing record to understand the place." />
 
               <div v-if="imgs.length > 1" class="pd-thumbs">
-                <button v-for="(im,i) in imgs" :key="i" type="button" class="pd-thumb" :class="{on:i===activeImg}" :aria-label="`View image ${i+1}`" @click="activeImg=i"><MediaFrame class="pd-thumb-media" :src="im" :alt="`${listing.title} — image ${i+1}`" tone="place" /><span>{{ String(i + 1).padStart(2,'0') }}</span></button>
+                <button v-for="(im,i) in imgs" :key="i" type="button" class="pd-thumb" :class="{on:i===activeImg}" :aria-label="`View image ${i+1}`" :aria-pressed="i===activeImg" @click="activeImg=i"><MediaFrame class="pd-thumb-media" :src="im" :alt="`${listing.title} — image ${i+1}`" tone="place" /><span>{{ String(i + 1).padStart(2,'0') }}</span></button>
               </div>
             </div>
 
@@ -271,7 +276,7 @@ watch(() => route.params.id, (next, prev) => {
 
           <div class="pd-context-grid">
             <div class="pd-context-map-wrap" :class="{empty:!locationPin}">
-              <div v-if="locationPin" id="property-context-map" class="pd-context-map"></div>
+              <div v-if="locationPin" id="property-context-map" class="pd-context-map" role="region" aria-label="Property location map"></div>
               <div v-else class="pd-map-empty"><Icon name="pin" :size="26" /><span>No map point supplied for this listing.</span></div>
               <div v-if="locationPin" class="pd-map-caption">
                 <span>{{ locationPin.exact ? 'Pinned location' : 'Approximate area' }}</span>
@@ -401,11 +406,11 @@ watch(() => route.params.id, (next, prev) => {
   <SiteFooter />
 
   <!-- full-screen property gallery -->
-  <div v-if="galleryOpen && imgs.length" class="pd-lightbox" role="dialog" aria-modal="true" aria-label="Property gallery" @click.self="galleryOpen=false">
+  <div v-if="galleryOpen && imgs.length" v-focus-trap v-escape="() => galleryOpen=false" class="pd-lightbox" role="dialog" aria-modal="true" aria-label="Property gallery" tabindex="-1" @click.self="galleryOpen=false">
     <button type="button" class="pd-lightbox-close" aria-label="Close gallery" @click="galleryOpen=false"><Icon name="plus" :size="22" style="transform:rotate(45deg)" /></button>
-    <button v-if="imgs.length > 1" type="button" class="pd-lightbox-nav prev" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
+    <button type="button" v-if="imgs.length > 1" type="button" class="pd-lightbox-nav prev" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
     <MediaFrame class="pd-lightbox-media" :src="imgs[activeImg]" :alt="`${listing?.title || 'Property'} image ${activeImg + 1}`" tone="night" fit="contain" :eager="true" />
-    <button v-if="imgs.length > 1" type="button" class="pd-lightbox-nav next" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
+    <button type="button" v-if="imgs.length > 1" type="button" class="pd-lightbox-nav next" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
     <div class="pd-lightbox-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(imgs.length).padStart(2,'0') }}</div>
   </div>
 </template>
@@ -545,4 +550,25 @@ watch(() => route.params.id, (next, prev) => {
 .pd-lightbox-media{width:min(90vw,1450px);height:88vh;max-height:88vh}
 @media(max-width:640px){.pd-lightbox-media{width:100%;height:75vh}}
 @media(prefers-reduced-motion:reduce){.pd-main-media :deep(img),.pd-thumb-media :deep(img){transform:none!important;transition:none!important}}
+
+/* ═══ PHASE 21 — PROPERTY DETAIL RESPONSIVE ART DIRECTION ═══ */
+@media(min-width:1600px){
+  .pd-shell{width:min(1400px,calc(100% - 112px))}.pd-place-grid{grid-template-columns:minmax(0,1.38fr) minmax(380px,.62fr);gap:88px}.pd-main-image{height:680px}
+  .pd-context-grid{grid-template-columns:minmax(0,1.3fr) minmax(360px,.7fr);gap:88px}.pd-context-map-wrap{height:650px}.pd-terms-grid{gap:110px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .pd-shell{width:min(1240px,calc(100% - 64px))}.pd-place-grid{grid-template-columns:minmax(0,1.25fr) minmax(350px,.75fr);gap:52px}.pd-main-image{height:min(56vw,610px)}
+  .pd-context-grid{grid-template-columns:minmax(0,1.2fr) minmax(330px,.8fr);gap:52px}.pd-context-map-wrap{height:540px}.pd-terms-grid{gap:64px}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .pd-shell{width:min(900px,calc(100% - 48px))}.pd-place-grid{grid-template-columns:1fr;gap:34px}.pd-main-image{height:min(64vw,590px)}.pd-identity{max-width:760px}
+  .pd-context-grid{grid-template-columns:1fr}.pd-context-map-wrap{height:min(62svh,560px)}.pd-context-copy{max-width:760px}.pd-ver-grid,.pd-terms-grid{grid-template-columns:1fr;gap:46px}.pd-action-panel{max-width:620px}
+}
+@media(max-width:767px){
+  .pd-shell{width:calc(100% - 32px)}.pd-place{padding-top:16px}.pd-main-image{height:min(70svh,540px);min-height:320px;margin-inline:-16px}.pd-thumbs{margin-right:-16px}.pd-identity h1{font-size:clamp(38px,10vw,44px)}
+  .pd-context-map-wrap{height:min(68svh,560px);margin-inline:-16px}.pd-verification,.pd-terms{padding-left:0;padding-right:0}.pd-section{padding:64px 0}
+}
+@media(max-width:390px){
+  .pd-shell{width:calc(100% - 24px)}.pd-main-image,.pd-context-map-wrap{margin-inline:-12px}.pd-thumbs{margin-right:-12px}.pd-identity h1{font-size:36px}.pd-context-intro h2{font-size:31px}.pd-ver-title h2{font-size:35px}
+}
 </style>

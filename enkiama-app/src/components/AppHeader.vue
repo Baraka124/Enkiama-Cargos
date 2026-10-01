@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import CarrierMark from './CarrierMark.vue'
@@ -61,18 +61,24 @@ function closeSheets() { menuOpen.value = false; navOpen.value = false }
 async function doSignOut() { closeSheets(); await signOut(); router.push('/login') }
 
 const myShop = ref(null)
-onMounted(async () => {
-  if (!session?.value?.user?.id) return
+let shopLoadSeq = 0
+async function loadMyShop(userId) {
+  const seq = ++shopLoadSeq
+  myShop.value = null
+  if (!userId) return
   try {
-    const { data } = await supabase.from('storefront').select('slug,name').eq('owner_id', session.value.user.id).maybeSingle()
-    myShop.value = data || null
-  } catch (e) {}
-})
+    const { data } = await supabase.from('storefront').select('slug,name').eq('owner_id', userId).maybeSingle()
+    if (seq === shopLoadSeq) myShop.value = data || null
+  } catch (e) {
+    if (seq === shopLoadSeq) myShop.value = null
+  }
+}
+watch(() => session?.value?.user?.id || '', loadMyShop, { immediate: true })
 function isCurrent(path) { return route.path === path }
 </script>
 
 <template>
-  <header class="ah" :class="[`ah--${world}`, {'ah--movement':movement}]">
+  <header v-escape="closeSheets" class="ah" :class="[`ah--${world}`, {'ah--movement':movement}]">
     <div class="ah-inner">
       <button class="ah-brand" type="button" @click="router.push('/')" aria-label="Enkiama home">
         <template v-if="carrier">
@@ -99,7 +105,7 @@ function isCurrent(path) { return route.path === path }
       <div class="ah-actions">
         <slot />
 
-        <button class="ah-explore" type="button" @click="navOpen = !navOpen; menuOpen = false" :aria-expanded="navOpen">
+        <button class="ah-explore" type="button" @click="navOpen = !navOpen; menuOpen = false" :aria-expanded="navOpen" aria-controls="enkiama-explore" aria-haspopup="true">
           Explore <span aria-hidden="true">↘</span>
         </button>
 
@@ -107,7 +113,7 @@ function isCurrent(path) { return route.path === path }
           <RouterLink v-if="!isLoggedIn" to="/login" class="ah-signin">Sign in</RouterLink>
 
           <div v-else class="ah-account">
-            <button class="ah-chip" :class="{'ah-chip-admin': isPlatformAdmin}" @click="menuOpen = !menuOpen; navOpen = false" :aria-expanded="menuOpen">
+            <button type="button" class="ah-chip" :class="{'ah-chip-admin': isPlatformAdmin}" @click="menuOpen = !menuOpen; navOpen = false" :aria-expanded="menuOpen" aria-controls="enkiama-account-menu" aria-haspopup="dialog">
               <Avatar :name="displayName" size="sm" />
               <span class="ah-chip-id">
                 <span class="ah-chip-name">{{ displayName }}</span>
@@ -118,7 +124,7 @@ function isCurrent(path) { return route.path === path }
             </button>
 
             <transition name="ah-menu">
-              <div v-if="menuOpen" class="ah-menu" v-click-outside="() => menuOpen=false">
+              <div v-if="menuOpen" id="enkiama-account-menu" v-focus-trap class="ah-menu" role="dialog" aria-label="Account menu" tabindex="-1" v-click-outside="() => menuOpen=false">
                 <div class="ah-menu-handle" aria-hidden="true"></div>
                 <div class="ah-menu-head">
                   <Avatar :name="displayName" />
@@ -139,7 +145,7 @@ function isCurrent(path) { return route.path === path }
                 <RouterLink to="/market" class="ah-menu-item" @click="closeSheets"><Icon name="box" :size="15" /> Market</RouterLink>
                 <RouterLink to="/track" class="ah-menu-item" @click="closeSheets"><Icon name="pin" :size="15" /> Track a parcel</RouterLink>
                 <div class="ah-menu-sep"></div>
-                <button class="ah-menu-item danger" @click="doSignOut"><Icon name="signout" :size="15" /> Sign out</button>
+                <button type="button" class="ah-menu-item danger" @click="doSignOut"><Icon name="signout" :size="15" /> Sign out</button>
               </div>
             </transition>
           </div>
@@ -148,7 +154,7 @@ function isCurrent(path) { return route.path === path }
     </div>
 
     <transition name="ah-menu">
-      <div v-if="navOpen" class="ah-mobile-nav" v-click-outside="() => navOpen=false">
+      <div v-if="navOpen" id="enkiama-explore" v-focus-trap class="ah-mobile-nav" role="navigation" aria-label="Explore Enkiama" tabindex="-1" v-click-outside="() => navOpen=false">
         <div class="ah-menu-handle" aria-hidden="true"></div>
         <div class="ah-mobile-label">Explore Enkiama</div>
         <RouterLink v-for="item in primaryNav" :key="item.to" :to="item.to" :class="{on:navActive(item)}" @click="navOpen=false">
@@ -179,7 +185,7 @@ function isCurrent(path) { return route.path === path }
 .ah-chip-id{display:flex;flex-direction:column;align-items:flex-start;line-height:1.08}.ah-chip-name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:650;color:inherit}.ah-chip-role{margin-top:2px;font:600 8px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--world-ink-faint)}.ah-chip-caret{color:var(--world-ink-faint);font-size:11px}
 .ah-admin-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;background:var(--en-gold);color:#fff;font-size:8px;font-weight:800}.ah-chip-admin{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--en-gold) 55%,transparent)}
 
-.ah-menu,.ah-mobile-nav{background:color-mix(in srgb,var(--world-surface) 96%,transparent);border:1px solid var(--world-line-strong);box-shadow:var(--shadow-lg);backdrop-filter:blur(20px)}.ah-menu{position:absolute;top:calc(100% + 10px);right:0;width:270px;border-radius:18px;padding:10px;z-index:90}.ah-menu-handle{display:none;width:38px;height:3px;margin:0 auto 8px;border-radius:999px;background:var(--world-line-strong)}.ah-menu-head{display:flex;align-items:center;gap:11px;padding:10px 10px 13px;border-bottom:1px solid var(--world-line);margin-bottom:6px}.ah-menu-name{font-weight:700;font-size:13px;color:var(--world-ink)}.ah-menu-role{margin-top:2px;font-size:10px;color:var(--world-ink-faint);overflow:hidden;text-overflow:ellipsis;max-width:180px;white-space:nowrap}.ah-menu-spaces-l{font:600 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--world-ink-faint);padding:7px 11px}.ah-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:550;color:var(--world-ink-soft);background:none;border:0;font-family:inherit;text-align:left;cursor:pointer;text-decoration:none;position:relative}.ah-menu-item:hover{background:var(--world-surface-2);color:var(--world-ink)}.ah-menu-item.danger{color:var(--owed-ink)}.ah-menu-sep{height:1px;background:var(--world-line);margin:6px 4px}.ah-space.cur{background:var(--world-accent-soft);color:var(--world-accent-ink)}.ah-cur-dot{position:absolute;right:13px;width:6px;height:6px;border-radius:50%;background:var(--world-accent)}.ah-admin-tag-menu{margin-left:7px}
+.ah-menu,.ah-mobile-nav{background:color-mix(in srgb,var(--world-surface) 96%,transparent);border:1px solid var(--world-line-strong);box-shadow:var(--shadow-lg);backdrop-filter:blur(20px)}.ah-menu{position:absolute;top:calc(100% + 10px);right:0;width:270px;border-radius:18px;padding:10px;z-index:90}.ah-menu-handle{display:none;width:38px;height:3px;margin:0 auto 8px;border-radius:999px;background:var(--world-line-strong)}.ah-menu-head{display:flex;align-items:center;gap:11px;padding:10px 10px 13px;border-bottom:1px solid var(--world-line);margin-bottom:6px}.ah-menu-name{font-weight:700;font-size:13px;color:var(--world-ink)}.ah-menu-role{margin-top:2px;font-size:10px;color:var(--world-ink-faint);overflow:hidden;text-overflow:ellipsis;max-width:180px;white-space:nowrap}.ah-menu-spaces-l{font:600 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--world-ink-faint);padding:7px 11px}.ah-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:550;color:var(--world-ink-soft);background:none;border:0;font-family:inherit;text-align:left;cursor:pointer;text-decoration:none;position:relative}.ah-menu-item:hover{background:var(--world-surface-2);color:var(--world-ink)}.ah-menu-item>span:not(.ah-cur-dot){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ah-menu-item.danger{color:var(--owed-ink)}.ah-menu-sep{height:1px;background:var(--world-line);margin:6px 4px}.ah-space.cur{background:var(--world-accent-soft);color:var(--world-accent-ink)}.ah-cur-dot{position:absolute;right:13px;width:6px;height:6px;border-radius:50%;background:var(--world-accent)}.ah-admin-tag-menu{margin-left:7px}
 
 .ah-mobile-nav{display:none;position:fixed;z-index:88;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:14px 10px 10px;border-radius:20px}.ah-mobile-label{padding:5px 12px 10px;font:600 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--world-ink-faint)}.ah-mobile-nav a{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:11px 12px;border-radius:12px;border-bottom:1px solid var(--world-line);font:600 15px/1 var(--font-display);color:var(--world-ink);text-decoration:none}.ah-mobile-nav a:last-child{border-bottom:0}.ah-mobile-nav a.on{color:var(--world-accent-ink);background:var(--world-accent-soft)}
 .ah-menu-enter-active,.ah-menu-leave-active{transition:opacity .18s var(--ease),transform .18s var(--ease)}.ah-menu-enter-from,.ah-menu-leave-to{opacity:0;transform:translateY(-5px)}
@@ -190,5 +196,30 @@ function isCurrent(path) { return route.path === path }
   .ah-actions{gap:6px}.ah-explore{min-width:42px;width:42px;padding:0;justify-content:center;font-size:0}.ah-explore::before{content:"•••";font-size:11px;letter-spacing:2px;line-height:1}.ah-explore span{display:none}.ah-signin{min-height:40px;padding:0 13px}.ah-chip{width:42px;height:42px;padding:4px;justify-content:center}.ah-chip-id,.ah-chip-caret{display:none}
   .ah-menu{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));width:auto;max-height:min(72dvh,580px);overflow:auto;border-radius:20px;padding:14px 10px 10px;overscroll-behavior:contain}.ah-menu-handle{display:block}.ah-menu-head{padding:10px 12px 14px}.ah-menu-item{min-height:48px;padding:11px 12px}
   .ah-mobile-nav{display:block}.ah-mobile-nav .ah-menu-handle{display:block}
+}
+
+/* PHASE 21 — shell composition by device tier */
+@media(min-width:1600px){
+  .ah-inner{width:min(1480px,calc(100% - 144px));min-height:76px;gap:34px}
+  .ah-primary{gap:36px}.ah-primary a{font-size:11.5px}.ah-context-copy small{max-width:280px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .ah-inner{width:min(1320px,calc(100% - 80px));min-height:70px;gap:24px}
+  .ah-primary{gap:24px}.ah-context-copy small{max-width:190px}
+}
+@media(max-width:1179px){
+  .ah-inner{width:min(980px,calc(100% - 48px));grid-template-columns:minmax(0,1fr) auto;min-height:64px;gap:16px}
+  .ah-primary{display:none}.ah-explore{display:inline-flex}.ah-context-copy small{display:none}
+  .ah-brand{gap:11px}.ah-actions{gap:7px}
+}
+@media(max-width:640px){
+  .ah-inner{width:calc(100% - 28px);min-height:58px;gap:8px}
+  .ah-context{gap:8px}.ah-context-line{height:22px}.ah-context-copy strong{font-size:10.5px;max-width:90px}
+  .ah-explore{min-width:42px;min-height:42px;padding:0 11px}.ah-signin{min-height:42px}
+}
+@media(max-width:420px){
+  .ah-inner{width:calc(100% - 24px)}
+  .ah-context-line,.ah-context-copy{display:none}
+  .ah-brand{gap:0}.ah-explore{padding-inline:10px}.ah-explore>span:first-child{display:none}
 }
 </style>

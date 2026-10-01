@@ -1,8 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, inject, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { loadLeaflet } from '../lib/leaflet'
 import { useI18n } from '../composables/useI18n'
 import { usePublic } from '../composables/usePublic'
 import { supabase, fmtTZS } from '../lib/supabase'
@@ -13,7 +12,9 @@ import SiteFooter from '../components/SiteFooter.vue'
 import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ExperienceState from '../components/ExperienceState.vue'
+import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
+import { formatDateTime, finiteNumber } from '../lib/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -111,6 +112,7 @@ const owed = computed(() => (parcel.value?.payMode === 'cash' && !['collected','
 // live driver position — privacy-scoped by the existing RPC
 const livePos = ref(null)
 const liveAgo = ref('')
+let Leaflet = null
 let trkMap = null
 let trkMarker = null
 let livePoll = null
@@ -124,24 +126,37 @@ async function loadLive() {
     const { data } = await supabase.rpc('track_live_location', { p_code: code.value })
     livePos.value = data || null
     if (!data) return
-    const mins = Math.round((Date.now() - new Date(data.updated_at)) / 60000)
-    liveAgo.value = mins <= 1 ? 'just now' : `${mins} min ago`
+    const updatedAt = data.updated_at ? new Date(data.updated_at) : null
+    const mins = updatedAt && !Number.isNaN(updatedAt.getTime()) ? Math.max(0, Math.round((Date.now() - updatedAt.getTime()) / 60000)) : null
+    liveAgo.value = mins === null ? 'recently' : mins <= 1 ? 'just now' : `${mins} min ago`
     await nextTick()
-    renderLiveMap(data)
+    await renderLiveMap(data)
   } catch (e) { livePos.value = null }
 }
-function renderLiveMap(d) {
+async function renderLiveMap(d) {
+  Leaflet ||= await loadLeaflet()
   const el = document.getElementById('trkmap')
   if (!el) return
-  const ll = [d.lat, d.lng]
+  const lat = finiteNumber(d?.lat), lng = finiteNumber(d?.lng)
+  if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return
+  const ll = [lat, lng]
   if (!trkMap) {
-    trkMap = L.map('trkmap', { zoomControl:true, attributionControl:false, scrollWheelZoom:false }).setView(ll, 14)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(trkMap)
+    trkMap = Leaflet.map('trkmap', { zoomControl:true, attributionControl:false, scrollWheelZoom:false }).setView(ll, 14)
+    Leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom:19 }).addTo(trkMap)
   }
-  const icon = L.divIcon({ className:'trk-driver-pin', html:'<div class="tdp"><span></span></div>', iconSize:[30,30], iconAnchor:[15,15] })
-  if (!trkMarker) trkMarker = L.marker(ll, { icon }).addTo(trkMap).bindPopup(`<b>${d.driver || 'Driver'}</b><br>heading to ${d.dest || 'you'}`)
+  const icon = Leaflet.divIcon({ className:'trk-driver-pin', html:'<div class="tdp"><span></span></div>', iconSize:[30,30], iconAnchor:[15,15] })
+  if (!trkMarker) trkMarker = Leaflet.marker(ll, { icon }).addTo(trkMap).bindPopup(`<b>${d.driver || 'Driver'}</b><br>heading to ${d.dest || 'you'}`)
   else trkMarker.setLatLng(ll)
   trkMap.panTo(ll)
+}
+
+function syncLivePolling() {
+  if (livePoll) { clearInterval(livePoll); livePoll = null }
+  if (!document.hidden && parcel.value && code.value) livePoll = setInterval(loadLive, 15000)
+}
+function onVisibilityChange() {
+  if (document.hidden) syncLivePolling()
+  else if (parcel.value) { loadLive(); syncLivePolling() }
 }
 
 function resetTrackingVisuals() {
@@ -201,7 +216,7 @@ async function track() {
   }
 
   await loadLive()
-  livePoll = setInterval(loadLive, 15000)
+  syncLivePolling()
 }
 
 // confirmation + review
@@ -300,8 +315,14 @@ watch(() => route.params.code, async (next) => {
   }
 })
 
-onMounted(() => { if (code.value) track() })
-onUnmounted(() => { resetTrackingVisuals() })
+onMounted(() => {
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  if (code.value) track()
+})
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  resetTrackingVisuals()
+})
 </script>
 
 <template>
@@ -321,7 +342,7 @@ onUnmounted(() => { resetTrackingVisuals() })
           <div class="movement-search">
             <span class="movement-search-index">ENK</span>
             <input v-model="code" class="mono" placeholder="XXXX" aria-label="Tracking code" @keyup.enter="track" />
-            <button class="movement-search-btn" :disabled="busy" @click="track">
+            <button type="button" class="movement-search-btn" :disabled="busy" @click="track">
               <Spinner v-if="busy" :size="16" />
               <template v-else>Open journey <Icon name="arrow" :size="15" /></template>
             </button>
@@ -416,7 +437,7 @@ onUnmounted(() => { resetTrackingVisuals() })
             <h2>{{ parcel.driver || 'Your driver' }} is moving toward you.</h2>
             <p>This position is provided by the active delivery record and refreshes automatically.</p>
           </div>
-          <div id="trkmap" class="trk-map"></div>
+          <div id="trkmap" class="trk-map" role="region" aria-label="Live parcel location map"></div>
         </section>
 
         <!-- CHAPTER 03 / LEDGER -->
@@ -450,12 +471,12 @@ onUnmounted(() => { resetTrackingVisuals() })
             <div class="chapter-line"><span>04</span><span>Arrival</span><span>Proof & receiver agency</span></div>
 
             <div v-if="parcel.podPhoto" class="proof-grid">
-              <div class="proof-image"><img :src="parcel.podPhoto" alt="Proof of delivery" /></div>
+              <div class="proof-image"><MediaFrame class="proof-image-media" :src="parcel.podPhoto" alt="Proof of delivery" tone="neutral" ratio="4 / 3" fallback-title="Proof image unavailable" /></div>
               <div class="proof-copy">
                 <div class="proof-kicker">Proof of delivery</div>
                 <h2>A visible final handoff.</h2>
                 <p>The delivery record includes photographic proof{{ parcel.podAt ? ' and a recorded timestamp' : '' }}.</p>
-                <div v-if="parcel.podAt" class="proof-time mono">{{ new Date(parcel.podAt).toLocaleString('en-GB') }}</div>
+                <div v-if="parcel.podAt" class="proof-time mono">{{ formatDateTime(parcel.podAt, { locale:'en-GB' }) }}</div>
               </div>
             </div>
 
@@ -463,11 +484,11 @@ onUnmounted(() => { resetTrackingVisuals() })
               <template v-if="parcel.stage==='delivered'">
                 <div class="arrival-action-copy"><span>Parcel in hand?</span><h2>Close the journey.</h2><p>Confirm receipt with the last four digits of the phone attached to this parcel.</p></div>
                 <div class="arrival-action-control">
-                  <button v-if="!confirmStep" class="arrival-primary" @click="startConfirm">Confirm receipt <Icon name="arrow" :size="16" /></button>
+                  <button type="button" v-if="!confirmStep" class="arrival-primary" @click="startConfirm">Confirm receipt <Icon name="arrow" :size="16" /></button>
                   <div v-else class="arrival-confirm">
                     <label>Last 4 phone digits</label>
-                    <div><input v-model="last4" inputmode="numeric" maxlength="4" placeholder="0000" class="mono" @keyup.enter="confirm" /><button :disabled="busy" @click="confirm"><Spinner v-if="busy" :size="15" /><span v-else>Confirm</span></button></div>
-                    <button class="arrival-cancel" @click="confirmStep=false">Cancel</button>
+                    <div><input v-model="last4" inputmode="numeric" maxlength="4" placeholder="0000" class="mono" @keyup.enter="confirm" /><button type="button" :disabled="busy" @click="confirm"><Spinner v-if="busy" :size="15" /><span v-else>Confirm</span></button></div>
+                    <button type="button" class="arrival-cancel" @click="confirmStep=false">Cancel</button>
                   </div>
                 </div>
               </template>
@@ -483,9 +504,9 @@ onUnmounted(() => { resetTrackingVisuals() })
             <div v-if="!['confirmed','cancelled'].includes(parcel.stage)" class="receiver-agency">
               <div v-if="requestSent" class="agency-sent"><Icon name="check" :size="16" /> {{ requestSent }}</div>
               <template v-else>
-                <button @click="showReschedule=true"><Icon name="clock" :size="15" /><span>Reschedule</span><small>Ask for another delivery time</small></button>
-                <button @click="showReport=true"><Icon name="alert" :size="15" /><span>Report</span><small>Tell the carrier what went wrong</small></button>
-                <button class="agency-dispute" @click="showDispute=true"><Icon name="shield" :size="15" /><span>Dispute</span><small>Ask Enkiama to review the custody record</small></button>
+                <button type="button" @click="showReschedule=true"><Icon name="clock" :size="15" /><span>Reschedule</span><small>Ask for another delivery time</small></button>
+                <button type="button" @click="showReport=true"><Icon name="alert" :size="15" /><span>Report</span><small>Tell the carrier what went wrong</small></button>
+                <button type="button" class="agency-dispute" @click="showDispute=true"><Icon name="shield" :size="15" /><span>Dispute</span><small>Ask Enkiama to review the custody record</small></button>
               </template>
             </div>
           </div>
@@ -513,45 +534,45 @@ onUnmounted(() => { resetTrackingVisuals() })
 
     <!-- DISPUTE -->
     <div v-if="showDispute" class="overlay" v-escape="() => { showDispute=false }" @click.self="showDispute=false">
-      <div class="modal movement-modal">
+      <div v-focus-trap class="modal movement-modal" role="dialog" aria-modal="true" tabindex="-1">
         <div class="modal-kicker">Custody review</div><h3>Raise a dispute</h3>
         <p>Tell us what happened. The existing custody events and available proof can be reviewed as evidence.</p>
         <div class="fg"><label>What's the problem?</label><select v-model="disputeReason"><option value="not_delivered">It was never delivered</option><option value="damaged">It arrived damaged</option><option value="wrong_item">Wrong item</option><option value="not_as_described">Not as described</option><option value="other">Something else</option></select></div>
         <div class="fg"><label>Your name</label><input v-model="disputeName" placeholder="Your name" /></div>
         <div class="fg"><label>Phone</label><input v-model="disputePhone" placeholder="+255…" /></div>
         <div class="fg"><label>Details</label><textarea v-model="disputeDetail" rows="3" placeholder="Explain what happened."></textarea></div>
-        <div class="form-actions"><button class="btn btn-ghost" @click="showDispute=false">Cancel</button><button class="btn btn-accent" :disabled="busy" @click="submitDispute"><Spinner v-if="busy" :size="15" /><span v-else>Submit dispute</span></button></div>
+        <div class="form-actions"><button type="button" class="btn btn-ghost" @click="showDispute=false">Cancel</button><button type="button" class="btn btn-accent" :disabled="busy" @click="submitDispute"><Spinner v-if="busy" :size="15" /><span v-else>Submit dispute</span></button></div>
       </div>
     </div>
 
     <!-- RESCHEDULE -->
     <div v-if="showReschedule" class="overlay" v-escape="() => { showReschedule=false }" @click.self="showReschedule=false">
-      <div class="modal movement-modal"><div class="modal-kicker">Receiver request</div><h3>Reschedule delivery</h3><p>Tell {{ parcel?.carrier }} when works better.</p>
+      <div v-focus-trap class="modal movement-modal" role="dialog" aria-modal="true" tabindex="-1"><div class="modal-kicker">Receiver request</div><h3>Reschedule delivery</h3><p>Tell {{ parcel?.carrier }} when works better.</p>
         <div class="fg"><label>When would you like it?</label><select v-model="reschedWhen"><option>Later today</option><option>Tomorrow</option><option>This weekend</option><option>Call me first</option><option>Leave with neighbour</option></select></div>
         <div class="fg"><label>Anything to add? <span class="opt">optional</span></label><input v-model="reschedNote" placeholder="e.g. after 5pm, gate on the left" /></div>
-        <div class="confirm-actions"><button class="btn btn-ghost" @click="showReschedule=false">Cancel</button><button class="btn btn-accent" :disabled="busy" @click="submitReschedule"><Spinner v-if="busy" :size="15" /><span v-else>Send request</span></button></div>
+        <div class="confirm-actions"><button type="button" class="btn btn-ghost" @click="showReschedule=false">Cancel</button><button type="button" class="btn btn-accent" :disabled="busy" @click="submitReschedule"><Spinner v-if="busy" :size="15" /><span v-else>Send request</span></button></div>
       </div>
     </div>
 
     <!-- REPORT -->
     <div v-if="showReport" class="overlay" v-escape="() => { showReport=false }" @click.self="showReport=false">
-      <div class="modal movement-modal"><div class="modal-kicker">Carrier notice</div><h3>Report a problem</h3><p>Let {{ parcel?.carrier }} know what is wrong with {{ parcel?.code }}.</p>
+      <div v-focus-trap class="modal movement-modal" role="dialog" aria-modal="true" tabindex="-1"><div class="modal-kicker">Carrier notice</div><h3>Report a problem</h3><p>Let {{ parcel?.carrier }} know what is wrong with {{ parcel?.code }}.</p>
         <div class="fg"><label>What's the issue?</label><select v-model="reportIssue"><option>Wrong delivery address</option><option>Nobody was available</option><option>Parcel looks damaged</option><option>Wrong item / not mine</option><option>Driver couldn't find me</option><option>Other</option></select></div>
         <div class="fg" v-if="reportIssue==='Other'"><label>Describe it</label><input v-model="reportOther" placeholder="Tell us what happened" /></div>
-        <div class="confirm-actions"><button class="btn btn-ghost" @click="showReport=false">Cancel</button><button class="btn btn-accent" :disabled="busy" @click="submitReport"><Spinner v-if="busy" :size="15" /><span v-else>Send report</span></button></div>
+        <div class="confirm-actions"><button type="button" class="btn btn-ghost" @click="showReport=false">Cancel</button><button type="button" class="btn btn-accent" :disabled="busy" @click="submitReport"><Spinner v-if="busy" :size="15" /><span v-else>Send report</span></button></div>
       </div>
     </div>
 
     <!-- REVIEW -->
     <div v-if="reviewStep" class="overlay" v-escape="() => { reviewStep=false }" @click.self="reviewStep=false">
-      <div class="modal movement-modal review-modal">
+      <div v-focus-trap class="modal movement-modal review-modal" role="dialog" aria-modal="true" tabindex="-1">
         <div v-if="reviewDone" class="review-thanks"><div><Icon name="check" :size="28" /></div><h3>Asante.</h3><p>Your review adds another layer of useful experience data.</p></div>
         <template v-else>
           <div class="modal-kicker">Journey complete</div><h3>How was the movement?</h3><p>Rate the delivery first. Product rating is optional.</p>
-          <div class="review-block"><label>Delivery</label><div class="review-stars"><button v-for="n in 5" :key="n" :class="{ on:n<=rvDelivery }" @click="rvDelivery=n"><Icon name="star" :size="28" /></button></div></div>
-          <div class="review-block"><label>Product <span>optional</span></label><div class="review-stars"><button v-for="n in 5" :key="n" :class="{ on:n<=rvProduct }" @click="rvProduct=n"><Icon name="star" :size="28" /></button></div></div>
+          <div class="review-block"><label>Delivery</label><div class="review-stars"><button type="button" v-for="n in 5" :key="n" :class="{ on:n<=rvDelivery }" :aria-label="`Rate delivery ${n} out of 5`" :aria-pressed="rvDelivery===n" @click="rvDelivery=n"><Icon name="star" :size="28" /></button></div></div>
+          <div class="review-block"><label>Product <span>optional</span></label><div class="review-stars"><button type="button" v-for="n in 5" :key="n" :class="{ on:n<=rvProduct }" :aria-label="`Rate product ${n} out of 5`" :aria-pressed="rvProduct===n" @click="rvProduct=n"><Icon name="star" :size="28" /></button></div></div>
           <div class="fg"><input v-model="rvComment" placeholder="Comment (optional)" /></div><div class="fg"><input v-model="rvName" placeholder="Your name (optional)" /></div>
-          <div class="confirm-actions"><button class="btn btn-ghost" @click="reviewStep=false">Skip</button><button class="btn btn-accent" :disabled="busy" @click="submitReview"><Spinner v-if="busy" :size="15" /><span v-else>Submit review</span></button></div>
+          <div class="confirm-actions"><button type="button" class="btn btn-ghost" @click="reviewStep=false">Skip</button><button type="button" class="btn btn-accent" :disabled="busy" @click="submitReview"><Spinner v-if="busy" :size="15" /><span v-else>Submit review</span></button></div>
         </template>
       </div>
     </div>
@@ -630,7 +651,7 @@ onUnmounted(() => { resetTrackingVisuals() })
 .ledger-list{border-top:1px solid rgba(255,255,255,.16)}.ledger-row{display:grid;grid-template-columns:72px 60px 1fr;gap:24px;padding:30px 0;border-bottom:1px solid rgba(255,255,255,.13);align-items:start}.ledger-row.current{background:linear-gradient(90deg,rgba(169,205,185,.05),transparent)}
 .ledger-index{font-size:11px;color:rgba(255,255,255,.28);padding-top:10px}.ledger-mark{width:42px;height:42px;border:1px solid rgba(255,255,255,.18);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#a9cdb9}.ledger-title{display:flex;align-items:center;gap:12px}.ledger-title strong{font-size:16px;font-weight:600}.ledger-title span{font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:#a9cdb9;border:1px solid rgba(169,205,185,.28);padding:4px 8px;border-radius:999px}.ledger-time{font-size:11px;color:rgba(255,255,255,.38);margin-top:6px}.ledger-actor{display:flex;align-items:center;gap:6px;font-size:11px;color:#a9cdb9;margin-top:8px}.ledger-main blockquote{margin:9px 0 0;padding:0;border:0;font-family:Georgia,serif;font-style:italic;font-size:14px;color:rgba(255,255,255,.52)}.ledger-empty{border-top:1px solid rgba(255,255,255,.16);padding:34px 0;font-size:13px;color:rgba(255,255,255,.45)}
 
-.movement-proof-section{background:#f4f1eb;padding:96px 0 120px}.proof-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:72px;align-items:center;padding:64px 0 88px}.proof-image{height:520px;overflow:hidden;background:#ddd8cf}.proof-image img{width:100%;height:100%;object-fit:cover}.proof-kicker,.arrival-action-copy>span,.arrival-action>div>span{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#737871;margin-bottom:18px}.proof-copy h2{font-size:clamp(42px,5vw,68px)}.proof-copy p{font-size:15px;line-height:1.75;color:#646963;margin:24px 0}.proof-time{font-size:11px;color:#7e837d;border-top:1px solid #d4d0c7;padding-top:16px}
+.movement-proof-section{background:#f4f1eb;padding:96px 0 120px}.proof-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:72px;align-items:center;padding:64px 0 88px}.proof-image{height:520px;overflow:hidden;background:#ddd8cf}.proof-image :deep(.proof-image-media){width:100%;height:100%}.proof-kicker,.arrival-action-copy>span,.arrival-action>div>span{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#737871;margin-bottom:18px}.proof-copy h2{font-size:clamp(42px,5vw,68px)}.proof-copy p{font-size:15px;line-height:1.75;color:#646963;margin:24px 0}.proof-time{font-size:11px;color:#7e837d;border-top:1px solid #d4d0c7;padding-top:16px}
 .arrival-action{border-top:1px solid #bfc0ba;border-bottom:1px solid #bfc0ba;padding:48px 0;display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}.arrival-action h2{font-size:clamp(38px,4.5vw,58px)}.arrival-action p{font-size:14px;line-height:1.7;color:#676c66;max-width:470px;margin:18px 0 0}.arrival-primary{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;border-bottom:1px solid #171a18;background:transparent;padding:18px 0;font-size:14px;font-weight:650;cursor:pointer}.arrival-confirm label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:#777b75;margin-bottom:10px}.arrival-confirm>div{display:grid;grid-template-columns:1fr auto;border-bottom:1px solid #171a18}.arrival-confirm input{border:0;background:transparent;padding:14px 0;font-size:22px;letter-spacing:.22em;outline:none}.arrival-confirm>div button{border:0;background:transparent;font-weight:650;cursor:pointer}.arrival-cancel{border:0;background:transparent;color:#777b75;padding:10px 0;font-size:11px;cursor:pointer}.arrival-action.complete{grid-template-columns:70px 1fr}.arrival-complete-icon{width:58px;height:58px;border-radius:50%;background:#2f704f;color:#fff;display:flex;align-items:center;justify-content:center}.arrival-action.complete h2{font-size:44px}
 .receiver-agency{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #bfc0ba}.receiver-agency button{border:0;border-right:1px solid #d4d0c7;background:transparent;text-align:left;padding:28px 30px 28px 0;display:grid;grid-template-columns:28px 1fr;cursor:pointer;color:#262a27}.receiver-agency button+button{padding-left:30px}.receiver-agency button:last-child{border-right:0}.receiver-agency button svg{grid-row:1/3}.receiver-agency button span{font-size:13px;font-weight:650}.receiver-agency button small{display:block;font-size:11px;line-height:1.45;color:#7b807a;margin-top:4px}.receiver-agency button:hover span{color:#2d684b}.agency-sent{grid-column:1/-1;padding:26px 0;display:flex;align-items:center;gap:10px;color:#2d684b;font-size:13px}
 
@@ -751,4 +772,29 @@ onUnmounted(() => { resetTrackingVisuals() })
   .movement-entry{min-height:auto}.movement-entry.compact{min-height:auto}.movement-entry-layout{padding:52px 0 44px;gap:36px}.movement-entry h1{font-size:48px}.movement-entry h1.result-entry-title{font-size:44px}.movement-search{grid-template-columns:42px minmax(0,1fr) auto}.movement-search-btn{font-size:0;padding-left:10px}.movement-search-btn svg{display:block}.movement-entry-visual{min-height:260px;margin-left:-2px}.entry-network-head{left:14px;right:14px;top:14px}.entry-network-head small{display:none}.entry-route-svg{top:48px;height:185px}.entry-route-start{left:4%;bottom:30px}.entry-route-mid{left:42%;top:73px}.entry-route-end{right:3%;top:40px}.entry-route-signal{display:none}.entry-route-stop small{display:none}.now-signal{min-height:235px}.now-signal-foot{flex-direction:column;gap:6px}.now-signal-foot small{text-align:left;max-width:none}.movement-ledger-section{padding-top:70px;padding-bottom:78px}
 }
 @media(prefers-reduced-motion:reduce){.entry-route-glow{stroke-dasharray:none}.now-signal-track i,.now-signal-marker{transition:none}}
+
+/* ═══ PHASE 21 — MOVEMENT RESPONSIVE ART DIRECTION ═══ */
+@media(min-width:1600px){
+  .movement-entry-inner,.movement-wrap,.movement-primer-inner{width:min(1380px,calc(100% - 112px))}.movement-entry{min-height:680px}.movement-entry-layout{grid-template-columns:minmax(0,.8fr) minmax(560px,1.2fr);gap:100px;padding:88px 0}
+  .movement-entry-visual{min-height:470px}.now-grid{grid-template-columns:minmax(0,1fr) 400px;gap:110px}.movement-live-overlay{left:max(56px,calc((100% - 1380px)/2));width:440px}
+  .route-heading,.ledger-heading{gap:110px}.proof-grid{gap:96px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .movement-entry-inner,.movement-wrap,.movement-primer-inner{width:min(1240px,calc(100% - 64px))}.movement-entry-layout{grid-template-columns:minmax(0,.88fr) minmax(460px,1.12fr);gap:56px;padding:66px 0}
+  .movement-entry-visual{min-height:390px}.movement-entry h1{font-size:clamp(54px,5.6vw,74px)}.now-grid{gap:58px}.movement-live-overlay{left:max(32px,calc((100% - 1240px)/2))}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .movement-entry-inner,.movement-wrap,.movement-primer-inner{width:min(900px,calc(100% - 48px))}.movement-entry-layout{grid-template-columns:1fr;gap:44px;padding:58px 0}.movement-entry-copycol{max-width:720px}.movement-entry-visual{min-height:340px}
+  .now-grid,.route-heading,.ledger-heading,.proof-grid,.arrival-action,.primer-grid{grid-template-columns:1fr;gap:38px}.now-signal{max-width:700px}.movement-live-map{height:min(72svh,650px)}
+  .movement-live-overlay{left:24px;width:min(410px,calc(100% - 48px))}.receiver-agency{grid-template-columns:1fr 1fr 1fr}
+}
+@media(max-width:767px){
+  .movement-entry-inner,.movement-wrap,.movement-primer-inner{width:calc(100% - 28px)}.movement-entry-layout{padding:46px 0 40px;gap:32px}.movement-entry h1{font-size:clamp(44px,12vw,52px)}.movement-entry-visual{min-height:260px}
+  .movement-live-map{height:70svh;min-height:480px}.movement-live-overlay{left:14px;width:calc(100% - 28px);top:auto;bottom:14px;transform:none;padding:18px}.movement-live-map:hover .movement-live-overlay{transform:none}
+  .route-heading,.ledger-heading{padding:48px 0 64px}.route-heading h2,.ledger-heading h2{font-size:clamp(38px,10vw,48px)}.proof-image{height:320px}
+  .receiver-agency{grid-template-columns:1fr}.arrival-action{grid-template-columns:1fr;gap:26px}
+}
+@media(max-width:390px){
+  .movement-entry-inner,.movement-wrap,.movement-primer-inner{width:calc(100% - 24px)}.movement-entry h1{font-size:43px}.movement-search{grid-template-columns:34px minmax(0,1fr) auto}.movement-live-map{min-height:450px}
+}
 </style>

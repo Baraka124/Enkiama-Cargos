@@ -7,6 +7,7 @@ import Icon from './Icon.vue'
 import Spinner from './Spinner.vue'
 import CarrierMark from './CarrierMark.vue'
 import TrustBadge from './TrustBadge.vue'
+import { formatTZS } from '../lib/format'
 
 const props = defineProps({ carrierId: { type: String, required: true } })
 const emit = defineEmits(['close', 'changed'])
@@ -59,9 +60,9 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="cp-overlay" @click.self="emit('close')">
+  <div class="cp-overlay" v-escape="() => emit('close')" @click.self="emit('close')">
     <div class="cp">
-      <button class="cp-x" @click="emit('close')"><Icon name="plus" :size="18" style="transform:rotate(45deg)" /></button>
+      <button type="button" class="cp-x" aria-label="Close carrier profile" @click="emit('close')"><Icon name="plus" :size="18" style="transform:rotate(45deg)" /></button>
 
       <div v-if="loading" class="cp-load"><Spinner :size="26" /></div>
       <template v-else-if="data">
@@ -92,7 +93,7 @@ onMounted(load)
             <div class="cp-stat"><span class="cp-stat-v">{{ s.delivered }}</span><span class="cp-stat-l">Delivered</span></div>
             <div class="cp-stat"><span class="cp-stat-v" :class="{bad:s.failed}">{{ s.failed }}</span><span class="cp-stat-l">Failed</span></div>
             <div class="cp-stat"><span class="cp-stat-v">{{ s.drivers }}</span><span class="cp-stat-l">Drivers</span></div>
-            <div class="cp-stat"><span class="cp-stat-v">TZS {{ Number(s.cash_to_collect||0).toLocaleString() }}</span><span class="cp-stat-l">Cash to collect</span></div>
+            <div class="cp-stat"><span class="cp-stat-v">{{ formatTZS(s.cash_to_collect || 0, { fallback: 'TZS 0' }) }}</span><span class="cp-stat-l">Cash to collect</span></div>
           </div>
 
           <div class="cp-cols">

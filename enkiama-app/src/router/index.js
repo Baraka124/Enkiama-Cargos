@@ -23,6 +23,7 @@ const routes = [
   { path: '/my-shop', name: 'my-shop', component: () => import('../views/StorefrontManageView.vue') },
   { path: '/reset', name: 'reset', component: () => import('../views/ResetView.vue'), meta: { public: true } },
   { path: '/account', name: 'account', component: () => import('../views/AccountView.vue') },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('../views/NotFoundView.vue'), meta: { public: true } },
 ]
 
 const router = createRouter({
@@ -41,6 +42,17 @@ const EXPERIENCE_WORLD = {
 }
 // V10 — each public world has its own material atmosphere. Keep browser chrome
 // in sync on mobile so the experience does not end at the viewport edge.
+
+const ROUTE_TITLE = {
+  home:'Enkiama Cargos', login:'Sign in · Enkiama', market:'Market · Enkiama', product:'Product · Enkiama',
+  shop:'Business · Enkiama', property:'Property · Enkiama', 'property-detail':'Property · Enkiama',
+  track:'Track · Enkiama', deliveries:'My Movement · Enkiama', account:'Account · Enkiama',
+  dispatch:'Dispatch · Enkiama', driver:'Driver · Enkiama', send:'Sender · Enkiama', platform:'Platform · Enkiama',
+  reset:'Reset password · Enkiama', join:'Join · Enkiama', 'join-driver':'Join as driver · Enkiama',
+  'driver-apply':'Driver application · Enkiama', 'property-deal':'Property purchase · Enkiama', 'my-shop':'My shop · Enkiama',
+  'no-profile':'Welcome · Enkiama', 'not-found':'Page not found · Enkiama',
+}
+
 const WORLD_THEME_COLOR = {
   core:'#F2EFE8', market:'#EEE8DC', object:'#F5F2EB', place:'#EDE8DE',
   business:'#EFE3D3', movement:'#0C1714',
@@ -48,6 +60,7 @@ const WORLD_THEME_COLOR = {
 router.afterEach((to) => {
   if (typeof document === 'undefined') return
   const world = EXPERIENCE_WORLD[to.name] || 'core'
+  document.title = ROUTE_TITLE[to.name] || 'Enkiama Cargos'
   document.documentElement.dataset.enWorld = world
   let meta = document.querySelector('meta[name="theme-color"]')
   if (!meta) {

@@ -10,6 +10,7 @@ import SiteFooter from '../components/SiteFooter.vue'
 import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 import { firstMedia } from '../lib/media'
+import { formatNumber } from '../lib/format'
 
 const stores = ref([])
 const heroStores = ref([])
@@ -120,7 +121,7 @@ function setView(v) {
   view.value = v
   activeCategory.value = ''
   load()
-  requestAnimationFrame(() => document.querySelector('#market-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  requestAnimationFrame(() => document.querySelector('#market-discovery')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }))
 }
 function setCategory(c) {
   activeCategory.value = activeCategory.value === c ? '' : c
@@ -138,7 +139,7 @@ function onSearch() {
 function submitSearch() {
   clearTimeout(searchTimer)
   load()
-  requestAnimationFrame(() => document.querySelector('#market-discovery')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  requestAnimationFrame(() => document.querySelector('#market-discovery')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }))
 }
 function setSort(s) { sort.value = s; load() }
 function clearFilters() {
@@ -174,13 +175,13 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             </div>
           </form>
 
-          <div class="mk12-realms" v-reveal="{variant:'section',delay:110}" aria-label="Market worlds">
-            <button class="mk12-realm" :class="{active:view==='products'}" @click="setView('products')">
+          <div class="mk12-realms" v-reveal="{variant:'section',delay:110}" role="group" aria-label="Market worlds">
+            <button type="button" class="mk12-realm" :class="{active:view==='products'}" :aria-pressed="view==='products'" @click="setView('products')">
               <span class="mk12-realm-no">01</span>
               <span class="mk12-realm-copy"><strong>Goods</strong><small>{{ displayProducts.length ? `${displayProducts.length} objects available` : 'Objects for everyday life' }}</small></span>
               <span class="mk12-realm-arrow">↗</span>
             </button>
-            <button class="mk12-realm" :class="{active:view==='shops'}" @click="setView('shops')">
+            <button type="button" class="mk12-realm" :class="{active:view==='shops'}" :aria-pressed="view==='shops'" @click="setView('shops')">
               <span class="mk12-realm-no">02</span>
               <span class="mk12-realm-copy"><strong>Businesses</strong><small>{{ heroStore ? `Meet ${heroStore.name}` : 'People behind the market' }}</small></span>
               <span class="mk12-realm-arrow">↗</span>
@@ -204,7 +205,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             <div class="mk12-main-caption">
               <span>Featured object</span>
               <strong>{{ heroProducts[0].name }}</strong>
-              <small>{{ heroProducts[0].shop_name }} · TZS {{ Number(heroProducts[0].price_tzs).toLocaleString() }}</small>
+              <small>{{ heroProducts[0].shop_name }} · TZS {{ formatNumber(heroProducts[0].price_tzs) }}</small>
             </div>
           </RouterLink>
           <div v-else class="mk12-main-object mk12-media-fallback" aria-hidden="true">
@@ -217,7 +218,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             <div><span>Object / 02</span><strong>{{ heroProducts[1].name }}</strong></div>
           </RouterLink>
 
-          <button v-if="heroStore" class="mk12-business-object" v-reveal="{variant:'media',delay:190}" @click="setView('shops')" data-cursor="Enter">
+          <button type="button" v-if="heroStore" class="mk12-business-object" v-reveal="{variant:'media',delay:190}" @click="setView('shops')" data-cursor="Enter">
             <MediaFrame class="mk12-business-media" v-depth="{pointer:3.2,scroll:7,rotate:.22,scale:1.006}" :src="heroStore.cover_url" :alt="`${heroStore.name} storefront`" tone="business" fallback-title="Business image not supplied" fallback-note="Store identity remains visible through its logo and products.">
               <div class="mk12-business-shade"></div>
               <div class="mk12-business-avatar" :style="{viewTransitionName:viewName('shop', heroStore.slug || heroStore.id)}"><Avatar :name="heroStore.name" :accent="heroStore.accent" :logo="heroStore.logo_url" :size="58" /></div>
@@ -251,38 +252,38 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
         <div class="mk-modebar">
           <div class="mk-modegroup">
             <span class="mk-util-label">Explore</span>
-            <button class="mk-mode" :class="{on:view==='products'}" @click="setView('products')">Products</button>
-            <button class="mk-mode" :class="{on:view==='shops'}" @click="setView('shops')">Businesses</button>
+            <button type="button" class="mk-mode" :class="{on:view==='products'}" :aria-pressed="view==='products'" @click="setView('products')">Products</button>
+            <button type="button" class="mk-mode" :class="{on:view==='shops'}" :aria-pressed="view==='shops'" @click="setView('shops')">Businesses</button>
             <RouterLink to="/property" class="mk-mode">Property &amp; land</RouterLink>
           </div>
           <span v-if="view==='products'" class="mk-count">{{ displayProducts.length }} product{{ displayProducts.length===1?'':'s' }}</span>
           <div v-else class="mk-shop-sort" aria-label="Sort shops">
-            <button :class="{on:sort==='recommended'}" @click="setSort('recommended')">Recommended</button>
-            <button :class="{on:sort==='rating'}" @click="setSort('rating')">Top rated</button>
-            <button :class="{on:sort==='newest'}" @click="setSort('newest')">Newest</button>
+            <button type="button" :class="{on:sort==='recommended'}" :aria-pressed="sort==='recommended'" @click="setSort('recommended')">Recommended</button>
+            <button type="button" :class="{on:sort==='rating'}" :aria-pressed="sort==='rating'" @click="setSort('rating')">Top rated</button>
+            <button type="button" :class="{on:sort==='newest'}" :aria-pressed="sort==='newest'" @click="setSort('newest')">Newest</button>
           </div>
         </div>
 
         <div v-if="view==='shops' || search || activeCategory" class="mk-locationbar">
           <span class="mk-util-label">Deliver to</span>
           <div class="mk-corridors">
-            <button v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" @click="filterCorridor(c)">{{ c.replace(' Urban/West','') }}</button>
+            <button type="button" v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" :aria-pressed="corridor===c" @click="filterCorridor(c)">{{ c.replace(' Urban/West','') }}</button>
           </div>
         </div>
 
         <template v-if="view==='products'">
           <div v-if="categories.length" class="mk-categorybar">
-            <button class="mk-cat" :class="{on:!activeCategory}" @click="setCategory('')">All</button>
-            <button v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" @click="setCategory(c.category)">
+            <button type="button" class="mk-cat" :class="{on:!activeCategory}" :aria-pressed="!activeCategory" @click="setCategory('')">All</button>
+            <button type="button" v-for="c in categories" :key="c.category" class="mk-cat" :class="{on:activeCategory===c.category}" :aria-pressed="activeCategory===c.category" @click="setCategory(c.category)">
               {{ c.category }} <sup>{{ c.count }}</sup>
             </button>
           </div>
           <div class="mk-filterbar">
             <div class="mk-filters">
-              <button class="mk-filter" :class="{on:filterVerified}" @click="filterVerified=!filterVerified"><span class="mk-filter-dot"></span>Verified</button>
-              <button class="mk-filter" :class="{on:filterInStock}" @click="filterInStock=!filterInStock"><span class="mk-filter-dot"></span>Available</button>
-              <button class="mk-filter" :class="{on:filterDeal}" @click="filterDeal=!filterDeal"><span class="mk-filter-dot"></span>Offers</button>
-              <button v-if="activeFilterCount" class="mk-filter-clear" @click="clearFilters">Clear {{ activeFilterCount }}</button>
+              <button type="button" class="mk-filter" :class="{on:filterVerified}" :aria-pressed="filterVerified" @click="filterVerified=!filterVerified"><span class="mk-filter-dot"></span>Verified</button>
+              <button type="button" class="mk-filter" :class="{on:filterInStock}" :aria-pressed="filterInStock" @click="filterInStock=!filterInStock"><span class="mk-filter-dot"></span>Available</button>
+              <button type="button" class="mk-filter" :class="{on:filterDeal}" :aria-pressed="filterDeal" @click="filterDeal=!filterDeal"><span class="mk-filter-dot"></span>Offers</button>
+              <button type="button" v-if="activeFilterCount" class="mk-filter-clear" @click="clearFilters">Clear {{ activeFilterCount }}</button>
             </div>
             <label class="mk-sortselect">
               <span>Sort</span>
@@ -307,7 +308,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
           <div class="mk-network-state">
             <span>Current reach</span>
             <strong>{{ selectedCorridorLabel }}</strong>
-            <button v-if="corridor" @click="filterCorridor(corridor)">Reset</button>
+            <button type="button" v-if="corridor" @click="filterCorridor(corridor)">Reset</button>
           </div>
         </div>
 
@@ -322,7 +323,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             <path d="M48 46 C40 56 34 65 29 73" />
             <path d="M91 53 C89 60 86 65 82 70" />
           </svg>
-          <button v-for="n in corridorNodes" :key="n.name" class="mk-network-node" :class="{on:corridor===n.name}" :style="{left:n.x+'%',top:n.y+'%'}" @click="filterCorridor(n.name)">
+          <button type="button" v-for="n in corridorNodes" :key="n.name" class="mk-network-node" :class="{on:corridor===n.name}" :aria-pressed="corridor===n.name" :style="{left:n.x+'%',top:n.y+'%'}" @click="filterCorridor(n.name)">
             <span class="mk-node-dot"></span>
             <span class="mk-node-label"><b>{{ n.name.replace(' Urban/West','') }}</b><small>{{ n.code }}</small></span>
           </button>
@@ -334,7 +335,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
       <section v-if="view==='products'" class="mk-content">
         <div v-if="search" class="mk-searchinfo">
           <span>{{ displayProducts.length }} result{{ displayProducts.length===1?'':'s' }} for <strong>“{{ search }}”</strong></span>
-          <button @click="search=''; submitSearch()">Clear search</button>
+          <button type="button" @click="search=''; submitSearch()">Clear search</button>
         </div>
 
         <div v-if="loading" class="mk-pgrid">
@@ -351,7 +352,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
         <div v-else-if="activeCategory" class="mk-focused">
           <div class="mk-focused-head">
             <div><span>Category</span><h2>{{ activeCategory }}</h2></div>
-            <button @click="setCategory(activeCategory)">View all market <span>↗</span></button>
+            <button type="button" @click="setCategory(activeCategory)">View all market <span>↗</span></button>
           </div>
           <div class="mk-pgrid">
             <RouterLink v-for="p in displayProducts" :key="p.id" :to="`/shop/${p.shop_slug}/product/${p.id}`" class="mk-pcard" data-cursor="View">
@@ -362,7 +363,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
               </MediaFrame>
               <div class="mk-pbody">
                 <div class="mk-pname">{{ p.name }}</div>
-                <div class="mk-pprice-row"><span class="mk-pprice">TZS {{ Number(p.price_tzs).toLocaleString() }}</span><span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ Number(p.compare_at_tzs).toLocaleString() }}</span></div>
+                <div class="mk-pprice-row"><span class="mk-pprice">TZS {{ formatNumber(p.price_tzs) }}</span><span v-if="p.compare_at_tzs && p.compare_at_tzs > p.price_tzs" class="mk-pwas">{{ formatNumber(p.compare_at_tzs) }}</span></div>
                 <div class="mk-pfoot"><span>{{ p.shop_name }}</span><span v-if="p.verified_delivery" class="mk-pverif"><Icon name="check" :size="10" /> Verified</span></div>
               </div>
             </RouterLink>
@@ -374,7 +375,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             <div class="mk-section-head">
               <div class="mk-section-index">{{ String(index + 2).padStart(2,'0') }}</div>
               <div class="mk-section-copy"><span>Collection</span><h2>{{ g.category }}</h2></div>
-              <button class="mk-section-more" @click="setCategory(g.category)">Explore {{ g.items.length }} <span>↗</span></button>
+              <button type="button" class="mk-section-more" @click="setCategory(g.category)">Explore {{ g.items.length }} <span>↗</span></button>
             </div>
             <div class="mk-editorial" :class="{'mk-editorial--flip': index % 2 === 1}">
               <RouterLink v-if="g.items[0]" :to="`/shop/${g.items[0].shop_slug}/product/${g.items[0].id}`" class="mk-feature-object" data-cursor="View">
@@ -386,7 +387,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
                 <div class="mk-feature-copy">
                   <span class="mk-feature-shop">{{ g.items[0].shop_name }}</span>
                   <h3>{{ g.items[0].name }}</h3>
-                  <div class="mk-feature-price"><strong>TZS {{ Number(g.items[0].price_tzs).toLocaleString() }}</strong><span v-if="g.items[0].compare_at_tzs && g.items[0].compare_at_tzs > g.items[0].price_tzs">{{ Number(g.items[0].compare_at_tzs).toLocaleString() }}</span></div>
+                  <div class="mk-feature-price"><strong>TZS {{ formatNumber(g.items[0].price_tzs) }}</strong><span v-if="g.items[0].compare_at_tzs && g.items[0].compare_at_tzs > g.items[0].price_tzs">{{ formatNumber(g.items[0].compare_at_tzs) }}</span></div>
                 </div>
               </RouterLink>
 
@@ -398,10 +399,10 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
                     <b>{{ p.name }}</b>
                     <span>{{ p.shop_name }}</span>
                   </div>
-                  <div class="mk-object-price">TZS {{ Number(p.price_tzs).toLocaleString() }}</div>
+                  <div class="mk-object-price">TZS {{ formatNumber(p.price_tzs) }}</div>
                   <span class="mk-object-arrow">↗</span>
                 </RouterLink>
-                <button v-if="g.items.length > 5" class="mk-object-all" @click="setCategory(g.category)">See all {{ g.items.length }} in {{ g.category }} <span>↗</span></button>
+                <button type="button" v-if="g.items.length > 5" class="mk-object-all" @click="setCategory(g.category)">See all {{ g.items.length }} in {{ g.category }} <span>↗</span></button>
               </div>
             </div>
           </section>
@@ -687,4 +688,42 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
 .mk-object-row:hover .mk-object-thumb :deep(img){transform:scale(1.025)}
 .mk12-business-media :deep(img){filter:saturate(.9) contrast(.98)}
 @media(prefers-reduced-motion:reduce){.mk12-main-media :deep(img),.mk12-second-media :deep(img),.mk-pimg :deep(img),.mk-feature-media :deep(img),.mk-object-thumb :deep(img){transform:none!important;transition:none!important}}
+
+/* ═══ PHASE 21 — MARKET RESPONSIVE ART DIRECTION ═══ */
+@media(min-width:1600px){
+  .mk12-shell{width:min(1520px,calc(100% - 112px));min-height:820px;grid-template-columns:minmax(420px,.84fr) minmax(660px,1.16fr);gap:104px;padding:82px 0 60px}
+  .mk12-gallery{min-height:700px}.mk12-copy h1{font-size:clamp(68px,4.9vw,88px)}
+  .mk12-status{width:min(1520px,calc(100% - 112px))}.mk-body{width:min(1480px,calc(100% - 112px))}
+  .mk-network{gap:120px}.mk-network-map{min-height:540px}.mk-feature-media{min-height:560px}
+  .mk-prow{grid-template-columns:repeat(6,minmax(0,1fr))}.mk-pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .mk12-shell{width:min(1320px,calc(100% - 64px));min-height:700px;grid-template-columns:minmax(350px,.88fr) minmax(520px,1.12fr);gap:52px;padding:58px 0 44px}
+  .mk12-gallery{min-height:570px}.mk12-copy h1{font-size:clamp(54px,5.2vw,72px)}.mk12-kicker{margin-bottom:38px}.mk12-realms{margin-top:38px}
+  .mk12-status{width:min(1320px,calc(100% - 64px))}.mk-body{width:min(1320px,calc(100% - 64px))}
+  .mk-prow{grid-template-columns:repeat(5,minmax(0,1fr))}.mk-pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}.mk-shopgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mk-network{gap:60px}.mk-network-map{min-height:430px}.mk-feature-media{min-height:470px}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .mk12-shell{width:min(900px,calc(100% - 48px));grid-template-columns:1fr;min-height:auto;padding:48px 0 38px;gap:42px}
+  .mk12-intro{max-width:780px}.mk12-copy h1{font-size:clamp(54px,7.2vw,68px);max-width:660px}.mk12-copy p{max-width:56ch}
+  .mk12-search{max-width:720px}.mk12-realms{max-width:720px}.mk12-gallery{width:100%;max-width:820px;min-height:590px;margin-inline:auto}
+  .mk12-status{width:min(900px,calc(100% - 48px));justify-content:flex-start;overflow-x:auto}.mk-body{width:min(900px,calc(100% - 48px))}
+  .mk-network{grid-template-columns:1fr;gap:34px;padding:68px 0 78px}.mk-network-copy{max-width:680px}.mk-network-map{min-height:500px}
+  .mk-editorial,.mk-editorial--flip{grid-template-columns:1fr}.mk-editorial--flip .mk-feature-object,.mk-editorial--flip .mk-object-index{grid-column:auto;grid-row:auto}
+  .mk-prow,.mk-pgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.mk-shop-feature{grid-template-columns:1fr}.mk-shop-feature-visual{min-height:500px}.mk-shopgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mk-business-intro,.mk-cta{grid-template-columns:1fr;gap:18px}.mk-business-intro p{max-width:520px}.mk-cta{padding-inline:28px}
+}
+@media(max-width:767px){
+  .mk12-shell{width:calc(100% - 28px);padding:34px 0 26px;gap:32px}.mk12-kicker{margin-bottom:24px}.mk12-copy h1{font-size:clamp(45px,13.5vw,60px)}.mk12-copy p{max-width:38ch}
+  .mk12-gallery{min-height:0}.mk12-main-media{height:clamp(340px,58svh,500px);min-height:0}.mk12-status{width:calc(100% - 28px)}.mk-body{width:calc(100% - 28px)}
+  .mk-network-map{min-height:min(60svh,500px)}.mk-prow,.mk-pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mk-section-head{grid-template-columns:34px 1fr auto}.mk-sections{gap:66px}.mk-feature-media{min-height:min(64svh,500px)}
+}
+@media(max-width:430px){
+  .mk12-shell,.mk12-status,.mk-body{width:calc(100% - 24px)}
+  .mk12-gallery{grid-template-columns:1fr}.mk12-main-object,.mk12-second-object,.mk12-business-object,.mk12-place-object{grid-column:1!important;grid-row:auto!important}
+  .mk12-second-media{height:auto;aspect-ratio:4/3}.mk12-business-object{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center}.mk12-business-media{width:92px;height:92px}.mk12-place-object{height:124px}
+  .mk12-main-media{height:clamp(330px,55svh,450px)}.mk-prow,.mk-pgrid{grid-template-columns:1fr 1fr;gap:28px 10px}.mk-shopgrid{grid-template-columns:1fr}
+}
 </style>

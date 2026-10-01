@@ -1,49 +1,40 @@
-# Enkiama Cargos V9 — Vercel deployment
+# Enkiama Cargos V23 — Existing Vercel project update
 
-This is the complete cumulative V9 project. Desktop, laptop, tablet and mobile layouts are in the same responsive Vue application; there is no separate mobile build.
+This is the cumulative V23 project. Desktop, laptop, tablet and mobile are one Vue/Vite application.
 
-## Vercel
+## Existing deployment
 
-- Framework preset: Vite
-- Build command: `npm run build`
-- Output directory: `dist`
-- Install command: `npm install` (Vercel default is also fine)
+If this repository is already connected to Vercel, do **not** create a new project. Copy/update the `enkiama-app` contents, commit, and push to the same branch. Vercel will redeploy the existing project automatically.
 
-## Environment variables
-
-Add these in Vercel → Project Settings → Environment Variables:
+Existing Vercel environment variables remain in place; only add them again if Vercel reports that they are missing:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Use the values from your Supabase project. Do not commit a private service-role key to this frontend project.
+Never expose a Supabase service-role key in this frontend.
 
-## SPA routing
+## Build settings
 
-`vercel.json` is already included and rewrites application routes to `index.html`, so Vue Router routes work after refresh/direct navigation.
+- Framework: Vite
+- Install: `npm install` / Vercel default
+- Build: `npm run build`
+- Output: `dist`
 
-## Included cumulative experience
+`vercel.json` retains the SPA fallback. The application currently uses Vue hash history, so public application states also remain refresh-safe behind the static host.
 
-- Market / Discovery
-- Product Experience
-- Property & Land Experience
-- Movement / Tracking
-- Business / Storefront Identity
-- Shared Motion & View Transitions
-- Checkout & Conversion
-- Mobile Excellence
-- Original operational views and Supabase project files
-
-## Local check
+## Local release check
 
 ```bash
 npm install
-npm run dev
-```
-
-Production check:
-
-```bash
 npm run build
 npm run preview
+```
+
+## Suggested Git update
+
+```bash
+git status
+git add enkiama-app
+git commit -m "Update Enkiama Market to V23"
+git push origin main
 ```

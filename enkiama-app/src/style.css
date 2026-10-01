@@ -9,8 +9,6 @@
    - Utility surfaces stay quiet and highly legible.
    - World tokens change by route through html[data-en-world].
    ═══════════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;450;500;600&family=Space+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
-
 :root{
   /* ── BRAND MATERIALS ──────────────────────────────────────── */
   --en-ivory:#F5F1E8;
@@ -35,7 +33,7 @@
   --world-surface-3:#DED8CE;
   --world-ink:#171A17;
   --world-ink-soft:#505852;
-  --world-ink-faint:#7C857E;
+  --world-ink-faint:#626A64;
   --world-line:rgba(23,26,23,.13);
   --world-line-strong:rgba(23,26,23,.22);
   --world-accent:#173E34;
@@ -120,28 +118,28 @@
    ink, spacing, type and interaction rules so the product remains Enkiama. */
 html[data-en-world="market"]{
   --world-canvas:#EEE8DC; --world-surface:#F8F4EC; --world-surface-2:#E6DED1; --world-surface-3:#D8CCBB;
-  --world-ink:#182019; --world-ink-soft:#566057; --world-ink-faint:#7B857C;
+  --world-ink:#182019; --world-ink-soft:#566057; --world-ink-faint:#59625B;
   --world-line:rgba(24,32,25,.13); --world-line-strong:rgba(24,32,25,.22);
   --world-accent:#1B493B; --world-accent-soft:#D9E6DF; --world-accent-ink:#12352B;
   --world-highlight:#C7A15B; --world-media:#CEBEA7; --world-nav:#14201B; --world-nav-2:#1B2A24;
 }
 html[data-en-world="object"]{
   --world-canvas:#F5F2EB; --world-surface:#FCFAF6; --world-surface-2:#ECE8DF; --world-surface-3:#DED8CE;
-  --world-ink:#171A17; --world-ink-soft:#565A55; --world-ink-faint:#80847F;
+  --world-ink:#171A17; --world-ink-soft:#565A55; --world-ink-faint:#626862;
   --world-line:rgba(23,26,23,.11); --world-line-strong:rgba(23,26,23,.20);
   --world-accent:#29493D; --world-accent-soft:#DFE8E3; --world-accent-ink:#1D362D;
   --world-highlight:#B99353; --world-media:#D9D2C7; --world-nav:#171C19; --world-nav-2:#222A26;
 }
 html[data-en-world="place"]{
   --world-canvas:#F5F1E8; --world-surface:#E8E0D2; --world-surface-2:#DED3C3; --world-surface-3:#CDBEA8;
-  --world-ink:#1D2922; --world-ink-soft:#5F695F; --world-ink-faint:#7F8278;
+  --world-ink:#1D2922; --world-ink-soft:#5F695F; --world-ink-faint:#5F655C;
   --world-line:rgba(42,58,47,.13); --world-line-strong:rgba(42,58,47,.22);
   --world-accent:#385342; --world-accent-soft:#DDE4D9; --world-accent-ink:#294233;
   --world-highlight:#A87952; --world-media:#D7C9B4; --world-nav:#203027; --world-nav-2:#2A3A31;
 }
 html[data-en-world="business"]{
   --world-canvas:#EFE3D3; --world-surface:#F8F0E5; --world-surface-2:#E5D6C3; --world-surface-3:#D5C1A8;
-  --world-ink:#211B17; --world-ink-soft:#62584F; --world-ink-faint:#8B7E72;
+  --world-ink:#211B17; --world-ink-soft:#62584F; --world-ink-faint:#655B53;
   --world-line:rgba(49,38,29,.13); --world-line-strong:rgba(49,38,29,.22);
   --world-accent:#7C533A; --world-accent-soft:#EADDD0; --world-accent-ink:#5D3B28;
   --world-highlight:#BA8D50; --world-media:#D0B391; --world-nav:#241C17; --world-nav-2:#30251E;
@@ -2070,3 +2068,113 @@ input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):focus,select
 .offline-banner{background:rgba(23,34,28,.96)!important;color:#f3f1e8!important;border-top:1px solid rgba(255,255,255,.12);backdrop-filter:blur(18px);font-size:11px;letter-spacing:.01em}
 .offline-banner strong{font-weight:750;color:#fff}.offline-banner span{display:block}
 @media(max-width:640px){.offline-banner{justify-content:flex-start;text-align:left;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 21 — RESPONSIVE ART DIRECTION
+   Device classes are composed deliberately rather than scaled blindly.
+   large desktop → laptop → tablet → phone → compact phone.
+   ═══════════════════════════════════════════════════════════════ */
+:root{--en-device-tier:desktop;--en-reading-max:68ch;--en-touch:42px}
+@media(min-width:1600px){
+  :root{--en-device-tier:large-desktop;--page-max:1480px;--page-gutter:72px;--en-touch:42px}
+  .en-shell{width:min(var(--page-max),calc(100% - 144px))}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  :root{--en-device-tier:laptop;--page-max:1320px;--page-gutter:40px;--en-touch:42px}
+}
+@media(min-width:768px) and (max-width:1179px){
+  :root{--en-device-tier:tablet;--page-max:980px;--page-gutter:24px;--en-touch:44px}
+  .modal{max-width:min(680px,calc(100vw - 48px))}
+}
+@media(max-width:767px){
+  :root{--en-device-tier:phone;--page-gutter:16px;--en-touch:46px}
+  .en-shell{width:calc(100% - 32px)}
+  .btn,button,input,select,textarea{scroll-margin-top:84px}
+}
+@media(max-width:390px){
+  :root{--en-device-tier:compact-phone;--page-gutter:12px}
+  .en-shell{width:calc(100% - 24px)}
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 22 — ACCESSIBILITY + PERFORMANCE
+   Keyboard parity · readable contrast · resilient focus · reduced data/motion ·
+   lighter below-fold rendering. Utility and commerce behavior are unchanged.
+   ═══════════════════════════════════════════════════════════════ */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.skip-link{border:0;cursor:pointer;position:fixed;z-index:10000;left:16px;top:10px;transform:translateY(-160%);padding:10px 14px;border-radius:6px;background:var(--world-ink);color:var(--world-canvas);font:700 12px/1 var(--font-body);box-shadow:var(--shadow-md);transition:transform .16s var(--ease)}
+.skip-link:focus{transform:translateY(0)}
+
+/* Keep keyboard focus visible even where component CSS removes input outlines. */
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid color-mix(in srgb,var(--world-accent) 86%,#fff 14%)!important;outline-offset:3px!important;box-shadow:0 0 0 2px var(--world-canvas),0 0 0 5px color-mix(in srgb,var(--world-accent) 38%,transparent)!important}
+:where(input,select,textarea):focus-visible{border-color:var(--world-accent)!important}
+:where(button,[role="button"],[aria-haspopup="menu"]):disabled{cursor:not-allowed;opacity:.55}
+
+/* Long editorial chapters can skip paint/layout work until they approach viewport. */
+:where(.mk-network,.mk-collections,.sf14-story,.sf14-collections,.sf14-record,.pd-movement,.pd-provenance,.pd-more,.prop-collection,.prop-verification,.movement-custody,.arrival-section){content-visibility:auto;contain-intrinsic-size:auto 760px}
+
+/* Better forced-colour/high-contrast behavior. */
+@media (prefers-contrast:more){
+  :root{--world-line:rgba(23,26,23,.28);--world-line-strong:rgba(23,26,23,.42)}
+  a{text-decoration-thickness:1.5px;text-underline-offset:3px}
+  .btn,button,input,select,textarea{border-color:currentColor}
+}
+@media (forced-colors:active){
+  :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid Highlight!important;box-shadow:none!important}
+  .en-media-skeleton{display:none!important}
+}
+
+/* Motion and data saving are first-class accessibility/performance choices. */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+@media (prefers-reduced-data:reduce){
+  .en-media-skeleton{animation:none!important;background:var(--world-surface-2)!important}
+  .en-depth{transform:none!important}
+  .ah{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+}
+
+@media(pointer:coarse){
+  button,.btn,[role="button"]{min-height:44px}
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{min-height:44px}
+}
+
+.signature-clear{display:inline-flex;background:none;border:0;padding:6px 0;color:var(--ink-faint);font:inherit;cursor:pointer}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 23 — PRODUCTION HARDENING
+   Stress-safe typography, compact screens, oversized data and media.
+   ═══════════════════════════════════════════════════════════════ */
+/* Long real-world names must wrap inside the composition rather than create horizontal overflow. */
+:where(.mk12-copy h1,.mk12-main-caption strong,.mk12-business-copy strong,.pd-name,.pd-provenance h2,.sf14-title,.sf14-story h2,.sf14-collection h2,.prop-stage-copy h1,.prop-object-copy h3,.pd-identity h1,.movement-entry h1,.now-copy h1,.receiver-hero h1,.deal-title,.cp-name,.ah-menu-name){overflow-wrap:anywhere;word-break:normal;hyphens:auto}
+:where(.mk12-shell,.pd-object-grid,.sf14-hero-grid,.sf14-story-grid,.prop-stage-grid,.prop-object,.pd-place-grid,.pd-context-grid,.now-grid,.receiver-hero-grid)>*{min-width:0}
+
+/* Money and codes remain exact but can survive pathological values without widening the viewport. */
+.money{max-width:100%;min-width:0}.money-val{max-width:100%;overflow-wrap:anywhere}
+.mono,[class*="code"],[class*="tracking"]{font-variant-numeric:tabular-nums}
+
+/* Media and embedded maps can never exceed their owning layout. */
+img,video,canvas,svg{max-width:100%}
+.leaflet-container{max-width:100%;isolation:isolate}
+
+/* Production viewport hardening: modern mobile browser chrome + minimum supported width. */
+:where(.receiver-page,.movement-page,.mk,.pd-page,.np-wrap,.jn,.join2){min-height:100svh}
+@supports(min-height:100dvh){:where(.receiver-page,.movement-page,.mk,.pd-page,.np-wrap,.jn,.join2){min-height:100dvh}}
+
+@media(max-width:360px){
+  :root{--page-gutter:10px}
+  .en-shell{width:calc(100% - 20px)}
+  .btn{padding-inline:14px}
+  .modal{padding:16px}
+  .xs h2{font-size:30px}
+  .xs-copy{padding-inline:18px}
+}
+
+/* Very wide displays should preserve editorial tension rather than stretching text/media indefinitely. */
+@media(min-width:2200px){
+  :root{--page-max:1600px;--page-gutter:96px}
+  .en-shell{width:min(1600px,calc(100% - 192px))}
+}

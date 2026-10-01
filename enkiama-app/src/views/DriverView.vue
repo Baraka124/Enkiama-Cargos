@@ -169,7 +169,7 @@ function renderMap() {
 }
 function navigateTo(p) {
   const [lat, lng] = geoFor(p.addr)
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank')
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank', 'noopener,noreferrer')
 }
 
 const space = ref(null)
@@ -410,12 +410,12 @@ async function logout(){ await signOut(); router.push('/login') }
           style="width:100%;border:1px solid var(--hairline-2);border-radius:12px;background:#FFFFFF;touch-action:none"
           @mousedown="sigStart" @mousemove="sigDraw" @mouseup="sigEnd" @mouseleave="sigEnd"
           @touchstart.prevent="sigStart" @touchmove.prevent="sigDraw" @touchend.prevent="sigEnd"></canvas>
-        <div class="p-sub" style="margin-top:4px;cursor:pointer" @click="nextTickClearSig">↺ clear</div>
+        <button type="button" class="p-sub signature-clear" @click="nextTickClearSig">↺ clear signature</button>
       </div>
 
       <div class="fg"><label>Photo (optional)</label>
         <input type="file" accept="image/*" capture="environment" @change="onPhoto" />
-        <img v-if="photoData" :src="photoData" style="width:100%;border-radius:12px;margin-top:8px;max-height:160px;object-fit:cover" />
+        <img v-if="photoData" :src="photoData" alt="Delivery photo preview" style="width:100%;border-radius:12px;margin-top:8px;max-height:160px;object-fit:cover" />
       </div>
 
       <div class="fg"><label>Who received it?</label>

@@ -13,6 +13,7 @@ import PhotoUpload from '../components/PhotoUpload.vue'
 import MultiPhotoUpload from '../components/MultiPhotoUpload.vue'
 import CarrierMark from '../components/CarrierMark.vue'
 import Skeleton from '../components/Skeleton.vue'
+import { formatTZS } from '../lib/format'
 
 const router = useRouter()
 const toast = inject('toast')
@@ -20,7 +21,7 @@ const { profile, signOut } = useAuth()
 const sf = useStorefront()
 
 const store = ref(null)
-const tzs = (n) => 'TZS ' + (Number(n) || 0).toLocaleString()
+const tzs = (n) => formatTZS(n, { fallback: 'TZS 0' })
 const products = ref([])
 const setupIncomplete = computed(() => products.value.length === 0 || !selectedCarrier.value)
 const loading = ref(true)
@@ -387,7 +388,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
                 <div v-if="p.description" class="p-sub">{{ p.description }}</div>
                 <div v-if="p.options && p.options.length" class="mgr-opts-line">{{ p.options.map(o => o.name + ' (' + o.choices.length + ')').join(' · ') }}</div>
               </div>
-              <div class="mgr-prod-price">{{ p.price_tzs ? 'TZS '+p.price_tzs.toLocaleString() : '—' }}</div>
+              <div class="mgr-prod-price">{{ p.price_tzs ? formatTZS(p.price_tzs) : '—' }}</div>
               <button class="mgr-opt-btn" @click="openEdit(p)" title="Edit this product"><Icon name="edit" :size="13" /> Edit</button>
               <button class="mgr-opt-btn" @click="openOptions(p)" title="Sizes, colours, variants"><Icon name="swap" :size="13" /> Options</button>
               <div class="mgr-stockbox">
@@ -481,7 +482,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         <div v-for="(opt,oi) in optDraft" :key="oi" class="opt-group">
           <div class="opt-group-head">
             <input v-model="opt.name" class="opt-name-in" placeholder="e.g. Size" />
-            <button class="opt-del" @click="optDraft.splice(oi,1)"><Icon name="plus" :size="13" style="transform:rotate(45deg)" /></button>
+            <button type="button" class="opt-del" aria-label="Remove option" @click="optDraft.splice(oi,1)"><Icon name="plus" :size="13" style="transform:rotate(45deg)" /></button>
           </div>
           <div class="opt-choices">
             <span v-for="(ch,ci) in opt.choices" :key="ci" class="opt-choice">{{ ch }}<button @click="opt.choices.splice(ci,1)">×</button></span>

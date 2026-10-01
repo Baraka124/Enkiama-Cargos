@@ -1,5 +1,5 @@
 <script setup>
-import { watchEffect, provide, ref, onMounted, onUnmounted } from 'vue'
+import { watchEffect, provide, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from './composables/useAuth'
 import Icon from './components/Icon.vue'
 import MotionCursor from './components/MotionCursor.vue'
@@ -8,6 +8,19 @@ import { supportsViewTransitions } from './lib/motion'
 
 const { carrier } = useAuth()
 const router = useRouter()
+const routeName = computed(() => router.currentRoute.value?.name || 'page')
+const routeAnnouncement = computed(() => ({
+  home:'Enkiama home', login:'Sign in', market:'Market', product:'Product', shop:'Business', property:'Property', 'property-detail':'Property detail', track:'Track a parcel', deliveries:'My movement', account:'Account', dispatch:'Dispatch', driver:'Driver workspace', send:'Sender workspace', platform:'Platform', 'not-found':'Page not found'
+}[routeName.value] || 'Enkiama') + ' loaded')
+function focusMain() {
+  requestAnimationFrame(() => {
+    const target = document.querySelector('main,[role="main"],h1') || document.getElementById('app')
+    if (!target) return
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+    target.focus({ preventScroll: true })
+    target.scrollIntoView({ block: 'start', behavior: 'auto' })
+  })
+}
 const routeBusy = ref(false)
 const nativeViewTransitions = supportsViewTransitions()
 let removeMotionBefore = null
@@ -72,8 +85,11 @@ provide('toggleTheme', toggleTheme)
 </script>
 
 <template>
+  <button class="skip-link" type="button" @click="focusMain">Skip to main content</button>
+  <div class="sr-only" aria-live="polite" aria-atomic="true">{{ routeAnnouncement }}</div>
+
   <transition name="en-route-signal">
-    <div v-if="routeBusy" class="en-route-signal" aria-hidden="true"><i></i></div>
+    <div v-if="routeBusy" class="en-route-signal" role="progressbar" aria-label="Loading page" aria-valuetext="Loading"><i aria-hidden="true"></i></div>
   </transition>
 
   <router-view v-slot="{ Component, route }">
@@ -86,13 +102,13 @@ provide('toggleTheme', toggleTheme)
   <MotionCursor />
 
   <transition name="offline-slide">
-    <div v-if="!online" class="offline-banner">
-      <Icon name="alert" :size="15" /><span><strong>Offline</strong> · Live data and actions may be unavailable until you reconnect.</span>
+    <div v-if="!online" class="offline-banner" role="status" aria-live="polite">
+      <Icon name="alert" :size="15" aria-hidden="true" /><span><strong>Offline</strong> · Live data and actions may be unavailable until you reconnect.</span>
     </div>
   </transition>
-  <div class="toasts">
-    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
-      <Icon :name="t.type === 'ok' ? 'check' : t.type === 'warn' ? 'alert' : 'inbox'" :size="16" />
+  <div class="toasts" aria-live="polite" aria-relevant="additions text">
+    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type" :role="t.type === 'warn' ? 'alert' : 'status'">
+      <Icon :name="t.type === 'ok' ? 'check' : t.type === 'warn' ? 'alert' : 'inbox'" :size="16" aria-hidden="true" />
       <span>{{ t.msg }}</span>
     </div>
   </div>

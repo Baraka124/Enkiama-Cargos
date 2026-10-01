@@ -3,6 +3,7 @@
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
+import { formatTZS } from '../lib/format'
 import AppHeader from '../components/AppHeader.vue'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
@@ -50,7 +51,7 @@ function stageEventTime(key) {
   if (isNaN(d)) return ''
   return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
 }
-function tzs(n) { return n ? 'TZS ' + Number(n).toLocaleString() : '' }
+function tzs(n) { return n ? formatTZS(n, { fallback: '' }) : '' }
 
 // advancing the deal
 const nextStage = computed(() => {

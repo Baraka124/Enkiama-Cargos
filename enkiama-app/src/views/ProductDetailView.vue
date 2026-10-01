@@ -16,6 +16,7 @@ import ExperienceState from '../components/ExperienceState.vue'
 import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 import { mediaList } from '../lib/media'
+import { formatTZS } from '../lib/format'
 
 const route = useRoute()
 const toast = inject('toast')
@@ -50,7 +51,7 @@ const shopPlace = computed(() => shop.value.region || shop.value.city || 'Tanzan
 const orderTotal = computed(() => (Number(p.value.price_tzs) || 0) * (Number(form.value.qty) || 1))
 const reviewItems = computed(() => Array.isArray(reviews.value?.reviews) ? reviews.value.reviews : [])
 
-function tzs(n) { return n || n === 0 ? 'TZS ' + Number(n).toLocaleString() : '' }
+function tzs(n) { return n || n === 0 ? formatTZS(n, { fallback: '' }) : '' }
 
 async function loadConfidence() {
   confidence.value = null
@@ -239,7 +240,7 @@ function shareProduct() {
 onMounted(load)
 watch(() => route.params.id, (newId, oldId) => {
   if (newId && newId !== oldId) {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
     load()
   }
 })
@@ -311,7 +312,7 @@ watch(() => route.params.id, (newId, oldId) => {
                 class="pd-thumb"
                 :class="{on:i===activeImg}"
                 type="button"
-                :aria-label="`View image ${i+1}`"
+                :aria-label="`View image ${i+1}`" :aria-pressed="i===activeImg"
                 @click="activeImg=i"
               >
                 <MediaFrame class="pd-thumb-media" :src="img" :alt="`${p.name} — image ${i+1}`" tone="object" />
@@ -525,17 +526,17 @@ watch(() => route.params.id, (newId, oldId) => {
   <SiteFooter />
 
   <!-- full-screen image viewing stays entirely presentation-only -->
-  <div v-if="galleryOpen && images.length" class="pd-lightbox" @click.self="galleryOpen=false">
+  <div v-if="galleryOpen && images.length" v-focus-trap v-escape="() => galleryOpen=false" class="pd-lightbox" role="dialog" aria-modal="true" aria-label="Product image gallery" tabindex="-1" @click.self="galleryOpen=false">
     <button class="pd-lightbox-close" type="button" aria-label="Close image" @click="galleryOpen=false"><Icon name="plus" :size="20" style="transform:rotate(45deg)" /></button>
-    <button v-if="images.length > 1" class="pd-lightbox-nav prev" type="button" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
+    <button type="button" v-if="images.length > 1" class="pd-lightbox-nav prev" type="button" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
     <MediaFrame class="pd-lightbox-media" :src="images[activeImg]" :alt="p.name" tone="night" fit="contain" :eager="true" />
-    <button v-if="images.length > 1" class="pd-lightbox-nav next" type="button" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
+    <button type="button" v-if="images.length > 1" class="pd-lightbox-nav next" type="button" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
     <span class="pd-lightbox-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(images.length).padStart(2,'0') }}</span>
   </div>
 
   <!-- CHECKOUT — V8: choose → identity → destination → confirm → movement -->
   <div v-if="showOrder" v-escape="closeOrder" class="overlay pd-order-overlay" @click.self="closeOrder">
-    <div class="pd-order-sheet" role="dialog" aria-modal="true" :aria-label="orderCode ? 'Order confirmed' : `Order ${p.name}`">
+    <div v-focus-trap tabindex="-1" class="pd-order-sheet" role="dialog" aria-modal="true" :aria-label="orderCode ? 'Order confirmed' : `Order ${p.name}`">
       <button class="pd-order-close" type="button" aria-label="Close order" :disabled="ordering" @click="closeOrder">
         <Icon name="plus" :size="18" style="transform:rotate(45deg)" />
       </button>
@@ -666,7 +667,7 @@ watch(() => route.params.id, (newId, oldId) => {
           <div v-if="checkoutError" class="pd-checkout-error" role="alert"><span>!</span>{{ checkoutError }}</div>
 
           <footer class="pd-checkout-actions">
-            <button v-if="checkoutStep > 1" class="pd-checkout-back" type="button" :disabled="ordering" @click="checkoutBack">← Back</button>
+            <button type="button" v-if="checkoutStep > 1" class="pd-checkout-back" type="button" :disabled="ordering" @click="checkoutBack">← Back</button>
             <span v-else class="pd-checkout-security"><Icon name="shield" :size="13" /> Tracked by Enkiama</span>
 
             <button v-if="checkoutStep < 4" class="pd-checkout-next" type="button" @click="checkoutNext">
@@ -1035,4 +1036,31 @@ watch(() => route.params.id, (newId, oldId) => {
 .pd-order-image{overflow:hidden}
 @media(max-width:640px){.pd-lightbox-media{width:100%;height:75vh}}
 @media(prefers-reduced-motion:reduce){.pd-main-media :deep(img),.pd-thumb-media :deep(img){transform:none!important;transition:none!important}}
+
+/* ═══ PHASE 21 — OBJECT RESPONSIVE ART DIRECTION ═══ */
+@media(min-width:1600px){
+  .pd-object{max-width:1500px;padding:44px 56px 96px}.pd-object-grid{grid-template-columns:minmax(0,1.45fr) minmax(360px,.55fr);gap:84px}
+  .pd-main,.pd-main-placeholder{aspect-ratio:1.08/1}.pd-info{top:104px}.pd-name{font-size:58px}.pd-object-ledger{margin-top:50px}
+  .pd-provenance,.pd-reviews-section,.pd-more{max-width:1400px}.pd-movement{padding-inline:56px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .pd-object{max-width:1320px;padding:34px 40px 82px}.pd-object-grid{grid-template-columns:minmax(0,1.24fr) minmax(340px,.76fr);gap:48px}
+  .pd-main,.pd-main-placeholder{aspect-ratio:1.05/1}.pd-info{top:82px}.pd-name{font-size:clamp(42px,3.7vw,52px)}.pd-desc{font-size:18px}
+  .pd-provenance,.pd-reviews-section,.pd-more{max-width:1240px}.pd-movement{padding:76px 40px 72px}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .pd-object{max-width:900px;padding:30px 24px 74px}.pd-object-grid{grid-template-columns:1fr;gap:34px}.pd-info{position:static;max-width:780px}
+  .pd-main,.pd-main-placeholder{aspect-ratio:4/3}.pd-thumbs{gap:9px}.pd-thumb{flex-basis:110px}.pd-name{font-size:clamp(40px,6.5vw,54px);max-width:15ch}.pd-desc{max-width:44ch}
+  .pd-object-ledger{grid-template-columns:repeat(4,1fr)}.pd-movement{padding:70px 28px}.pd-movement-head{grid-template-columns:1fr 1fr;gap:44px}
+  .pd-provenance-grid{grid-template-columns:1fr;gap:42px}.pd-more-grid{grid-template-columns:1.35fr 1fr 1fr}
+}
+@media(max-width:767px){
+  .pd-object{padding:18px 16px 60px}.pd-object-top{margin-bottom:16px}.pd-main,.pd-main-placeholder{aspect-ratio:1/1.08}.pd-name{font-size:clamp(34px,10vw,45px)}
+  .pd-thumbs{scroll-snap-type:x mandatory}.pd-thumb{scroll-snap-align:start;flex-basis:88px}.pd-object-ledger{grid-template-columns:1fr 1fr}
+  .pd-movement{padding:60px 16px}.pd-movement-head{grid-template-columns:1fr;gap:18px}.pd-more-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:390px){
+  .pd-object{padding-inline:12px}.pd-object-plinth{margin-inline:-12px}.pd-thumbs{margin-right:-12px;padding-right:12px}.pd-name{font-size:34px}.pd-price{font-size:18px}
+  .pd-option{padding:10px}.pd-more-grid{gap:8px}.pd-more-copy span{font-size:11px}
+}
 </style>

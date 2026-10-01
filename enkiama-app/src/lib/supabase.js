@@ -1,3 +1,4 @@
+import { formatTZS } from './format'
 import { createClient } from '@supabase/supabase-js'
 
 const url = import.meta.env.VITE_SUPABASE_URL
@@ -12,4 +13,4 @@ export const supabase = createClient(url || 'http://localhost', key || 'anon', {
 })
 
 // Convenience: TZS formatter used across the app
-export const fmtTZS = (n) => 'TZS ' + Number(n || 0).toLocaleString()
+export const fmtTZS = (n) => formatTZS(n, { fallback: 'TZS 0' })

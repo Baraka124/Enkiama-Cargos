@@ -1,16 +1,19 @@
 <script setup>
+import { computed } from 'vue'
+import { formatNumber } from '../lib/format'
 // Renders money the way premium fintech does: currency symbol set lighter and
 // smaller than the value, value in tabular figures. "TZS 45,000" → muted TZS + bold 45,000.
-defineProps({
+const props = defineProps({
   amount: { type: [Number, String], default: 0 },
   currency: { type: String, default: 'TZS' },
   size: { type: String, default: '' }, // '', 'lg', 'xl' for emphasis
 })
+const displayValue = computed(() => formatNumber(props.amount, { fallback: '0', maximumFractionDigits: 2 }))
 </script>
 
 <template>
   <span class="money" :class="size ? 'money--'+size : ''">
-    <span class="money-cur">{{ currency }}</span><span class="money-val">{{ Number(amount || 0).toLocaleString() }}</span>
+    <span class="money-cur">{{ currency }}</span><span class="money-val">{{ displayValue }}</span>
   </span>
 </template>
 

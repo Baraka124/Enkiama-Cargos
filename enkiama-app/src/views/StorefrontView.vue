@@ -12,6 +12,7 @@ import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 import { firstMedia } from '../lib/media'
 import { supabase } from '../lib/supabase'
+import { formatTZS } from '../lib/format'
 
 const route = useRoute()
 const pub = usePublic()
@@ -96,7 +97,7 @@ async function load() {
   }
 }
 
-function tzs(n) { return n !== null && n !== undefined && n !== '' ? 'TZS ' + Number(n).toLocaleString() : '' }
+function tzs(n) { return n !== null && n !== undefined && n !== '' ? formatTZS(n, { fallback: '' }) : '' }
 function prodRating(p) { return productRatings.value?.[p.id] || null }
 function galleryImg(p) {
   if (!p || (p.id && sfBroken.value.has(p.id))) return ''
@@ -115,10 +116,10 @@ function shareShop() {
   const url = window.location.href
   const text = `Explore ${store.value?.name} on Enkiama — products with tracked delivery: ${url}`
   if (navigator.share) navigator.share({ title: store.value?.name, text, url }).catch(() => {})
-  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+  else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
 }
 function collectionId(index) { return `collection-${index + 1}` }
-function scrollToCollections() { document.querySelector('#collections')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+function scrollToCollections() { document.querySelector('#collections')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }) }
 
 onMounted(load)
 watch(() => route.params.slug, (next, prev) => { if (next && next !== prev) load() })
@@ -408,4 +409,28 @@ watch(() => route.params.slug, (next, prev) => { if (next && next !== prev) load
 .sf14-story-image:hover .sf14-story-media-frame :deep(img),.sf14-feature:hover .sf14-feature-media :deep(img){transform:scale(1.022)}
 .sf14-object-float:hover .sf14-object-float-media :deep(img){transform:scale(1.018)}
 @media(prefers-reduced-motion:reduce){.sf14-story-media-frame :deep(img),.sf14-feature-media :deep(img),.sf14-object-float-media :deep(img){transform:none!important;transition:none!important}}
+
+/* ═══ PHASE 21 — BUSINESS RESPONSIVE ART DIRECTION ═══ */
+@media(min-width:1600px){
+  .sf14-shell{width:min(1420px,calc(100% - 112px))}.sf14-hero-grid{grid-template-columns:minmax(0,.78fr) minmax(600px,1.22fr);gap:104px}.sf14-visual{min-height:650px}.sf14-visual-frame{height:610px}
+  .sf14-story-grid{gap:130px}.sf14-collection{grid-template-columns:160px minmax(460px,1.12fr) minmax(340px,.88fr);gap:46px}.sf14-collection.reverse{grid-template-columns:160px minmax(340px,.88fr) minmax(460px,1.12fr)}
+  .sf14-record-grid{gap:110px}.sf14-continue-grid{grid-template-columns:1fr 460px;gap:130px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .sf14-shell{width:min(1240px,calc(100% - 64px))}.sf14-hero-grid{grid-template-columns:minmax(0,.86fr) minmax(500px,1.14fr);gap:62px}.sf14-visual{min-height:560px}.sf14-visual-frame{height:530px}
+  .sf14-story-grid{gap:72px}.sf14-collection,.sf14-collection.reverse{grid-template-columns:120px minmax(0,1fr);gap:30px}.sf14-collection .sf14-feature,.sf14-collection.reverse .sf14-feature{grid-column:2;grid-row:1}.sf14-collection .sf14-ledger,.sf14-collection.reverse .sf14-ledger{grid-column:2;grid-row:2}.sf14-collection-meta{grid-row:1 / span 2}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .sf14-shell{width:min(900px,calc(100% - 48px))}.sf14-hero-grid{grid-template-columns:1fr;gap:44px;padding-top:48px}.sf14-identity{max-width:700px}.sf14-visual{min-height:auto}.sf14-visual-frame{height:min(62vw,560px)}
+  .sf14-story-grid{grid-template-columns:1fr;gap:46px}.sf14-story-copy{max-width:720px}.sf14-story-media{max-width:760px}.sf14-section-head,.sf14-record-head{align-items:flex-start;flex-direction:column;gap:22px}.sf14-section-head>p,.sf14-record-head>p{text-align:left}
+  .sf14-collection,.sf14-collection.reverse{display:block;padding:58px 0}.sf14-collection-meta{display:grid;grid-template-columns:34px 1fr auto;gap:10px;margin-bottom:24px}.sf14-feature-media{height:min(62vw,560px)}.sf14-ledger{margin-top:28px}
+  .sf14-record-grid,.sf14-reviews-grid,.sf14-continue-grid{grid-template-columns:1fr;gap:46px}
+}
+@media(max-width:767px){
+  .sf14-shell{width:calc(100% - 32px)}.sf14-hero-grid{padding-top:38px;gap:38px}.sf14-visual-frame{aspect-ratio:4/5;height:auto}.sf14-object-float{width:56%;margin-top:-82px}
+  .sf14-story{padding:76px 0 84px}.sf14-collections{padding:78px 0 88px}.sf14-feature-media{margin-inline:-16px;aspect-ratio:4/5;height:auto}.sf14-record,.sf14-reviews,.sf14-continue{padding-top:78px;padding-bottom:86px}
+}
+@media(max-width:390px){
+  .sf14-shell{width:calc(100% - 24px)}.sf14-visual-frame,.sf14-story-media,.sf14-feature-media{margin-left:-12px;margin-right:-12px}.sf14-object-float{width:64%;margin-right:0}.sf14-identity h1{font-size:40px}.sf14-tagline{font-size:20px}
+}
 </style>

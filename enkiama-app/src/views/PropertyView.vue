@@ -10,9 +10,9 @@ import Icon from '../components/Icon.vue'
 import EmptyState from '../components/EmptyState.vue'
 import PropertyForm from '../components/PropertyForm.vue'
 import MediaFrame from '../components/MediaFrame.vue'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { loadLeaflet } from '../lib/leaflet'
 import { viewName, signalMotionReady } from '../lib/motion'
+import { formatNumber, finiteNumber } from '../lib/format'
 
 const toast = inject('toast')
 const { session } = useAuth()
@@ -33,6 +33,7 @@ const showMine = ref(false)
 const propView = ref('list')
 const selectedPin = ref(null)
 
+let Leaflet = null
 let propMap = null
 let markers = []
 
@@ -88,7 +89,7 @@ function fmtPrice(l) {
       : l.price_basis === 'per_sqm'
         ? ' / m²'
         : ''
-  return 'TZS ' + Number(l.price_tzs).toLocaleString() + basis
+  return 'TZS ' + formatNumber(l.price_tzs) + basis
 }
 
 function fmtSize(l) {
@@ -116,21 +117,22 @@ async function setMapView() {
 
 async function renderMap() {
   try {
+    Leaflet ||= await loadLeaflet()
     const { data } = await supabase.rpc('property_map', {
       p_kind: activeKind.value || null,
       p_region: null,
       p_max_price: null,
     })
-    const pins = (data || []).filter(p => p.lat && p.lng)
+    const pins = (data || []).filter(p => { const lat = finiteNumber(p?.lat), lng = finiteNumber(p?.lng); return lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 })
 
     if (!propMap) {
-      propMap = L.map('propmap', {
+      propMap = Leaflet.map('propmap', {
         zoomControl: true,
         attributionControl: false,
         scrollWheelZoom: true,
         zoomSnap: 0.5,
       }).setView([-6.4, 35.0], 6)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      Leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
       }).addTo(propMap)
     }
@@ -140,18 +142,18 @@ async function renderMap() {
 
     for (const p of pins) {
       const shortPrice = p.price_tzs ? compactPrice(p.price_tzs) : 'View'
-      const icon = L.divIcon({
+      const icon = Leaflet.divIcon({
         className: 'prop-pin',
         html: `<div class="prop-pin-badge"><span>${shortPrice}</span></div>`,
         iconSize: [1, 1],
       })
-      const m = L.marker([p.lat, p.lng], { icon }).addTo(propMap)
+      const m = Leaflet.marker([finiteNumber(p.lat), finiteNumber(p.lng)], { icon }).addTo(propMap)
       m.on('click', () => { selectedPin.value = p })
       markers.push(m)
     }
 
     if (pins.length) {
-      const group = L.featureGroup(markers)
+      const group = Leaflet.featureGroup(markers)
       propMap.fitBounds(group.getBounds().pad(0.28), { maxZoom: 11 })
     }
     setTimeout(() => propMap?.invalidateSize(), 120)
@@ -159,16 +161,16 @@ async function renderMap() {
 }
 
 function compactPrice(n) {
-  const num = Number(n)
-  if (!Number.isFinite(num)) return 'View'
+  const num = finiteNumber(n)
+  if (num === null) return 'View'
   if (num >= 1_000_000_000) return `TZS ${(num / 1_000_000_000).toFixed(num >= 10_000_000_000 ? 0 : 1)}B`
   if (num >= 1_000_000) return `TZS ${(num / 1_000_000).toFixed(num >= 10_000_000 ? 0 : 1)}M`
   if (num >= 1_000) return `TZS ${Math.round(num / 1_000)}K`
-  return `TZS ${num.toLocaleString()}`
+  return `TZS ${formatNumber(num)}`
 }
 
 function scrollToExplore() {
-  document.getElementById('property-explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  document.getElementById('property-explore')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
 }
 
 onMounted(() => {
@@ -283,8 +285,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="prop-kind-nav" aria-label="Property type">
-          <button type="button" class="prop-kind" :class="{on:!activeKind}" @click="setKind('')"><span>All</span><small>00</small></button>
-          <button v-for="(k,i) in KINDS" :key="k.k" type="button" class="prop-kind" :class="{on:activeKind===k.k}" @click="setKind(k.k)">
+          <button type="button" class="prop-kind" :class="{on:!activeKind}" :aria-pressed="!activeKind" @click="setKind('')"><span>All</span><small>00</small></button>
+          <button v-for="(k,i) in KINDS" :key="k.k" type="button" class="prop-kind" :class="{on:activeKind===k.k}" :aria-pressed="activeKind===k.k" @click="setKind(k.k)">
             <span>{{ k.label }}</span><small>0{{ i + 1 }}</small>
           </button>
         </div>
@@ -295,15 +297,15 @@ onBeforeUnmount(() => {
             <small>{{ propView === 'map' ? 'Browse by geography. Pin precision is controlled by the listing data.' : 'Browse places as an editorial collection.' }}</small>
           </div>
           <div class="prop-viewtoggle" role="group" aria-label="Property view">
-            <button type="button" class="prop-vt" :class="{on:propView==='list'}" @click="setListView"><Icon name="menu" :size="14" /> Collection</button>
-            <button type="button" class="prop-vt" :class="{on:propView==='map'}" @click="setMapView"><Icon name="pin" :size="14" /> Map</button>
+            <button type="button" class="prop-vt" :class="{on:propView==='list'}" :aria-pressed="propView==='list'" @click="setListView"><Icon name="menu" :size="14" /> Collection</button>
+            <button type="button" class="prop-vt" :class="{on:propView==='map'}" :aria-pressed="propView==='map'" @click="setMapView"><Icon name="pin" :size="14" /> Map</button>
           </div>
         </div>
 
         <!-- MAP / geography becomes an environment, not a utility box -->
         <div v-show="propView==='map'" v-reveal="{variant:'section'}" class="prop-map-shell">
           <div class="prop-map-label"><span>TANZANIA</span><small>Property geography</small></div>
-          <div id="propmap" class="prop-map"></div>
+          <div id="propmap" class="prop-map" role="region" aria-label="Property map"></div>
           <div class="prop-map-key"><span><i></i> Select a price marker to inspect a place</span></div>
 
           <transition name="prop-panel">
@@ -620,4 +622,28 @@ onBeforeUnmount(() => {
 /* PHASE 18 — governed media behavior */
 .prop-feature:hover .prop-feature-media :deep(img),.prop-object:hover .prop-object-media :deep(img){transform:scale(1.018)}
 @media(prefers-reduced-motion:reduce){.prop-feature-media :deep(img),.prop-object-media :deep(img){transform:none!important;transition:none!important}}
+
+/* ═══ PHASE 21 — PROPERTY BROWSE RESPONSIVE ART DIRECTION ═══ */
+@media(min-width:1600px){
+  .prop-stage{max-width:1500px;padding-left:56px;padding-right:56px}.prop-stage-grid{grid-template-columns:minmax(0,.86fr) minmax(620px,1.14fr);gap:96px}.prop-feature-media{height:620px}
+  .prop-wrap{max-width:1400px}.prop-object{gap:84px}.prop-map-shell{height:760px}.prop-trust{padding-inline:72px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .prop-stage{max-width:1320px;padding-left:40px;padding-right:40px}.prop-stage-grid{grid-template-columns:minmax(0,.9fr) minmax(520px,1.1fr);gap:54px}.prop-feature-media{height:520px}
+  .prop-wrap{max-width:1240px;padding-left:24px;padding-right:24px}.prop-object{gap:54px}.prop-map-shell{height:min(72vh,680px)}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .prop-stage{max-width:900px;padding-left:24px;padding-right:24px}.prop-stage-grid{grid-template-columns:1fr;gap:38px}.prop-stage-copy{max-width:680px}.prop-stage-copy h1{font-size:clamp(50px,7vw,66px)}.prop-feature-media{height:min(58vw,540px)}
+  .prop-wrap{max-width:900px;padding-left:24px;padding-right:24px}.prop-object{grid-template-columns:1fr;gap:28px}.prop-object.reverse .prop-object-media{grid-column:auto;grid-row:auto}.prop-object-media{min-height:430px}
+  .prop-map-shell{height:min(72svh,650px);min-height:520px}.prop-trust-grid{grid-template-columns:1fr;gap:42px}
+}
+@media(max-width:767px){
+  .prop-stage{padding-left:16px;padding-right:16px}.prop-stage-copy h1{font-size:clamp(42px,12vw,50px)}.prop-feature-media{margin-inline:-16px;height:min(68svh,500px)}
+  .prop-wrap{padding-left:16px;padding-right:16px}.prop-object{gap:24px}.prop-object-media{min-height:0;aspect-ratio:4/3}.prop-map-shell{height:calc(100svh - 108px);min-height:520px}
+  .prop-trust{margin-inline:-16px;padding:42px 18px}.prop-empty{margin-inline:-16px}
+}
+@media(max-width:390px){
+  .prop-stage,.prop-wrap{padding-left:12px;padding-right:12px}.prop-feature-media{margin-inline:-12px}.prop-trust,.prop-empty{margin-inline:-12px}.prop-map-shell{min-height:500px}
+  .prop-kind-nav{gap:18px}.prop-object-copy h3{font-size:30px}
+}
 </style>
