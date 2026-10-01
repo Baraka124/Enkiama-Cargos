@@ -1,3 +1,7 @@
+# Enkiama Cargos — Phase 12 Market Art Direction
+
+This cumulative project includes all work through Phase 12. The Market arrival has been recomposed around real product/storefront media, restrained typography, warm material surfaces, and a clearer Goods / Businesses / Property hierarchy. See `PHASE_12_MARKET_ART_DIRECTION.md`.
+
 # Enkiama Cargos
 
 The freight ledger every carrier runs on — a multi-tenant road-freight
@@ -7,6 +11,14 @@ loop, money included.
 
 **Stack:** Vue 3 + Vite - Supabase (Postgres, Auth, Realtime, Edge
 Functions) - Leaflet. Deploys as a static site.
+
+---
+
+## Current experience build
+
+**V11 — Brand + Global Shell**
+
+The cumulative UI build includes the V10B material foundation plus the V11 route-aware Enkiama header/navigation/footer system across desktop, laptop and mobile. See `PHASE_10_VISUAL_FOUNDATION.md` and `PHASE_11_GLOBAL_SHELL.md`.
 
 ---
 
@@ -127,3 +139,5 @@ After running it:
 - **dispatch** — runs the board for one carrier
 - **driver** — their own run only
 - senders/receivers — account-less, phone + code
+> **Current visual baseline:** V10B — Material & Movement foundation enforcement. Market, Place and Business no longer default to flat dark surfaces; Movement alone retains a nocturnal atmosphere.
+

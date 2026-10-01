@@ -1,8 +1,6 @@
 <script setup>
-// Unified app shell header — one consistent bar for every screen.
-// Auth-aware: shows a clean visitor state OR a logged-in identity chip + account menu.
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import CarrierMark from './CarrierMark.vue'
 import Avatar from './Avatar.vue'
@@ -11,16 +9,34 @@ import { useAuth } from '../composables/useAuth'
 import { supabase } from '../lib/supabase'
 
 const props = defineProps({
-  title: { type: String, default: 'Enkiama Cargos' },
+  title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
   carrier: { type: Object, default: null },
   live: { type: Boolean, default: false },
   market: { type: Boolean, default: true },
+  auth: { type: Boolean, default: true },
 })
 
 const router = useRouter()
+const route = useRoute()
 const { session, profile, signOut, isPlatformAdmin } = useAuth()
 const menuOpen = ref(false)
+const navOpen = ref(false)
+
+const WORLD_BY_ROUTE = {
+  market:'market', product:'object', property:'place', 'property-detail':'place', 'property-deal':'place',
+  shop:'business', 'my-shop':'business', track:'movement', deliveries:'movement',
+}
+const LABEL_BY_WORLD = { market:'Market', object:'Object', place:'Property', business:'Business', movement:'Movement', core:'' }
+
+const world = computed(() => WORLD_BY_ROUTE[route.name] || 'core')
+const movement = computed(() => world.value === 'movement')
+const contextTitle = computed(() => {
+  const raw = (props.title || '').trim()
+  if (raw && raw !== 'Enkiama Cargos') return raw.replace(/^Enkiama\s+/i, '')
+  return LABEL_BY_WORLD[world.value] || ''
+})
+const showContext = computed(() => !!contextTitle.value && route.name !== 'home')
 
 const isLoggedIn = computed(() => !!session?.value)
 const displayName = computed(() => profile?.value?.name || session?.value?.user?.email?.split('@')[0] || 'Account')
@@ -35,9 +51,15 @@ const homePath = computed(() => {
     : r === 'sender' ? '/send' : r === 'receiver' ? '/deliveries' : '/'
 })
 
-async function doSignOut() { menuOpen.value = false; await signOut(); router.push('/login') }
+const primaryNav = [
+  { to:'/market', label:'Market', match:['market','product','shop'] },
+  { to:'/property', label:'Property', match:['property','property-detail','property-deal'] },
+  { to:'/track', label:'Track', match:['track','deliveries'] },
+]
+function navActive(item) { return item.match.includes(route.name) }
+function closeSheets() { menuOpen.value = false; navOpen.value = false }
+async function doSignOut() { closeSheets(); await signOut(); router.push('/login') }
 
-// surface the person's OTHER space (their shop) so multi-hat identity is legible
 const myShop = ref(null)
 onMounted(async () => {
   if (!session?.value?.user?.id) return
@@ -46,142 +68,127 @@ onMounted(async () => {
     myShop.value = data || null
   } catch (e) {}
 })
-function isCurrent(path) { return router.currentRoute.value.path === path }
+function isCurrent(path) { return route.path === path }
 </script>
 
 <template>
-  <header class="ah">
+  <header class="ah" :class="[`ah--${world}`, {'ah--movement':movement}]">
     <div class="ah-inner">
-      <div class="ah-brand" @click="router.push(isLoggedIn ? homePath : '/')" role="button">
-        <CarrierMark v-if="carrier" :slug="carrier.slug" :mark="carrier.mark" :name="carrier.name" :accent="carrier.accent" :size="38" />
-        <BrandMark v-else variant="mark" :height="34" light />
-        <div class="ah-id">
-          <div class="ah-title">{{ title }}</div>
-          <div v-if="subtitle" class="ah-sub">{{ subtitle }}</div>
-        </div>
+      <button class="ah-brand" type="button" @click="router.push('/')" aria-label="Enkiama home">
+        <template v-if="carrier">
+          <CarrierMark :slug="carrier.slug" :mark="carrier.mark" :name="carrier.name" :accent="carrier.accent" :size="36" />
+        </template>
+        <BrandMark v-else variant="full" :height="27" :light="movement" />
+
+        <span v-if="showContext" class="ah-context">
+          <span class="ah-context-line" aria-hidden="true"></span>
+          <span class="ah-context-copy">
+            <strong>{{ contextTitle }}</strong>
+            <small v-if="subtitle">{{ subtitle }}</small>
+          </span>
+        </span>
         <span v-if="live" class="ah-live"><span class="ah-live-dot"></span>Live</span>
-      </div>
+      </button>
+
+      <nav class="ah-primary" aria-label="Primary navigation">
+        <RouterLink v-for="item in primaryNav" :key="item.to" :to="item.to" :class="{on:navActive(item)}">
+          {{ item.label }}
+        </RouterLink>
+      </nav>
 
       <div class="ah-actions">
-        <RouterLink v-if="market" to="/market" class="ah-navlink"><Icon name="box" :size="15" /> <span class="ah-hide-sm">Marketplace</span></RouterLink>
         <slot />
 
-        <!-- VISITOR: clear sign-in -->
-        <RouterLink v-if="!isLoggedIn" to="/login" class="btn btn-accent ah-signin">Sign in</RouterLink>
+        <button class="ah-explore" type="button" @click="navOpen = !navOpen; menuOpen = false" :aria-expanded="navOpen">
+          Explore <span aria-hidden="true">↘</span>
+        </button>
 
-        <!-- LOGGED-IN: identity chip + account menu -->
-        <div v-else class="ah-account">
-          <button class="ah-chip" :class="{'ah-chip-admin': isPlatformAdmin}" @click="menuOpen = !menuOpen" :aria-expanded="menuOpen">
-            <Avatar :name="displayName" size="sm" />
-            <span class="ah-chip-id">
-              <span class="ah-chip-name">{{ displayName }}</span>
-              <span v-if="isPlatformAdmin" class="ah-chip-role ah-admin-tag"><Icon name="shield" :size="10" /> Admin</span>
-              <span v-else-if="roleLabel" class="ah-chip-role">{{ roleLabel }}</span>
-            </span>
-            <Icon name="arrow" :size="13" class="ah-chip-caret" />
-          </button>
-          <transition name="ah-menu">
-            <div v-if="menuOpen" class="ah-menu" v-click-outside="() => menuOpen=false">
-              <div class="ah-menu-head">
-                <Avatar :name="displayName" />
-                <div><div class="ah-menu-name">{{ displayName }}<span v-if="isPlatformAdmin" class="ah-admin-tag ah-admin-tag-menu"><Icon name="shield" :size="10" /> Admin</span></div><div class="ah-menu-role">{{ session?.user?.email }}</div></div>
+        <template v-if="auth">
+          <RouterLink v-if="!isLoggedIn" to="/login" class="ah-signin">Sign in</RouterLink>
+
+          <div v-else class="ah-account">
+            <button class="ah-chip" :class="{'ah-chip-admin': isPlatformAdmin}" @click="menuOpen = !menuOpen; navOpen = false" :aria-expanded="menuOpen">
+              <Avatar :name="displayName" size="sm" />
+              <span class="ah-chip-id">
+                <span class="ah-chip-name">{{ displayName }}</span>
+                <span v-if="isPlatformAdmin" class="ah-chip-role ah-admin-tag"><Icon name="shield" :size="10" /> Admin</span>
+                <span v-else-if="roleLabel" class="ah-chip-role">{{ roleLabel }}</span>
+              </span>
+              <span class="ah-chip-caret" aria-hidden="true">↘</span>
+            </button>
+
+            <transition name="ah-menu">
+              <div v-if="menuOpen" class="ah-menu" v-click-outside="() => menuOpen=false">
+                <div class="ah-menu-handle" aria-hidden="true"></div>
+                <div class="ah-menu-head">
+                  <Avatar :name="displayName" />
+                  <div>
+                    <div class="ah-menu-name">{{ displayName }}<span v-if="isPlatformAdmin" class="ah-admin-tag ah-admin-tag-menu"><Icon name="shield" :size="10" /> Admin</span></div>
+                    <div class="ah-menu-role">{{ session?.user?.email }}</div>
+                  </div>
+                </div>
+                <div class="ah-menu-spaces-l">Workspace</div>
+                <RouterLink :to="homePath" class="ah-menu-item ah-space" :class="{cur: isCurrent(homePath)}" @click="closeSheets">
+                  <Icon name="display" :size="15" /> <span>{{ roleLabel || 'Dashboard' }}</span><span v-if="isCurrent(homePath)" class="ah-cur-dot"></span>
+                </RouterLink>
+                <RouterLink v-if="myShop" :to="`/shop/${myShop.slug}`" class="ah-menu-item ah-space" @click="closeSheets">
+                  <Icon name="building" :size="15" /> <span>My shop · {{ myShop.name }}</span>
+                </RouterLink>
+                <div class="ah-menu-sep"></div>
+                <RouterLink to="/account" class="ah-menu-item" @click="closeSheets"><Icon name="pen" :size="15" /> Account</RouterLink>
+                <RouterLink to="/market" class="ah-menu-item" @click="closeSheets"><Icon name="box" :size="15" /> Market</RouterLink>
+                <RouterLink to="/track" class="ah-menu-item" @click="closeSheets"><Icon name="pin" :size="15" /> Track a parcel</RouterLink>
+                <div class="ah-menu-sep"></div>
+                <button class="ah-menu-item danger" @click="doSignOut"><Icon name="signout" :size="15" /> Sign out</button>
               </div>
-              <div class="ah-menu-spaces-l">You're in</div>
-              <RouterLink :to="homePath" class="ah-menu-item ah-space" :class="{cur: isCurrent(homePath)}" @click="menuOpen=false">
-                <Icon name="display" :size="15" /> <span>{{ roleLabel }} dashboard</span>
-                <span v-if="isCurrent(homePath)" class="ah-cur-dot"></span>
-              </RouterLink>
-              <RouterLink v-if="myShop" :to="`/shop/${myShop.slug}`" class="ah-menu-item ah-space" @click="menuOpen=false">
-                <Icon name="building" :size="15" /> <span>My shop · {{ myShop.name }}</span>
-              </RouterLink>
-              <div class="ah-menu-sep"></div>
-              <RouterLink to="/account" class="ah-menu-item" @click="menuOpen=false"><Icon name="pen" :size="15" /> Edit profile</RouterLink>
-              <RouterLink to="/market" class="ah-menu-item" @click="menuOpen=false"><Icon name="box" :size="15" /> Marketplace</RouterLink>
-              <div class="ah-menu-sep"></div>
-              <button class="ah-menu-item danger" @click="doSignOut"><Icon name="signout" :size="15" /> Sign out</button>
-            </div>
-          </transition>
-        </div>
+            </transition>
+          </div>
+        </template>
       </div>
     </div>
+
+    <transition name="ah-menu">
+      <div v-if="navOpen" class="ah-mobile-nav" v-click-outside="() => navOpen=false">
+        <div class="ah-menu-handle" aria-hidden="true"></div>
+        <div class="ah-mobile-label">Explore Enkiama</div>
+        <RouterLink v-for="item in primaryNav" :key="item.to" :to="item.to" :class="{on:navActive(item)}" @click="navOpen=false">
+          <span>{{ item.label }}</span><span aria-hidden="true">↗</span>
+        </RouterLink>
+        <RouterLink to="/join/business" @click="navOpen=false"><span>Sell with Enkiama</span><span aria-hidden="true">↗</span></RouterLink>
+      </div>
+    </transition>
   </header>
 </template>
 
 <style scoped>
-.ah{position:sticky;top:0;z-index:60;background:var(--nav);box-shadow:0 1px 0 var(--nav-line),var(--shadow-sm)}
-.ah-inner{max-width:1180px;margin:0 auto;padding:var(--s3) var(--s6);display:flex;align-items:center;gap:var(--s4)}
-.ah-brand{display:flex;align-items:center;gap:var(--s3);min-width:0;cursor:pointer}
+.ah{position:sticky;top:0;z-index:80;color:var(--world-ink);background:color-mix(in srgb,var(--world-canvas) 88%,transparent);border-bottom:1px solid var(--world-line);backdrop-filter:blur(18px) saturate(125%);-webkit-backdrop-filter:blur(18px) saturate(125%);transition:background .35s var(--ease),border-color .35s var(--ease),color .35s var(--ease)}
+.ah--movement{color:var(--world-ink);background:color-mix(in srgb,var(--world-nav) 86%,transparent);border-bottom-color:var(--world-nav-line)}
+.ah-inner{width:min(var(--page-max),calc(100% - (var(--page-gutter) * 2)));min-height:72px;margin:0 auto;display:grid;grid-template-columns:minmax(220px,1fr) auto minmax(220px,1fr);align-items:center;gap:28px}
+.ah-brand{justify-self:start;display:flex;align-items:center;gap:14px;min-width:0;padding:0;background:none;border:0;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.ah-context{display:flex;align-items:center;gap:12px;min-width:0}.ah-context-line{width:1px;height:28px;background:var(--world-line-strong);flex:0 0 auto}.ah--movement .ah-context-line{background:var(--world-nav-line)}
+.ah-context-copy{display:flex;flex-direction:column;min-width:0;line-height:1.05}.ah-context-copy strong{font:600 12px/1.1 var(--font-display);letter-spacing:-.015em;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ah-context-copy small{margin-top:4px;font:500 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--world-ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+.ah-live{display:inline-flex;align-items:center;gap:6px;margin-left:4px;padding:4px 8px;border-radius:999px;background:var(--world-accent-soft);color:var(--world-accent-ink);font:600 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.06em}.ah-live-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:ahPulse 2.2s var(--ease) infinite}@keyframes ahPulse{50%{opacity:.42;transform:scale(.75)}}
 
-.ah-id{min-width:0}
-.ah-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:var(--t-lg);color:var(--nav-ink);line-height:1.1;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ah-sub{font-size:var(--t-xs);color:var(--nav-faint);text-transform:uppercase;letter-spacing:.03em;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ah-live{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-xs);font-weight:600;color:var(--go-ink);background:var(--go-soft);padding:4px 10px;border-radius:var(--r-full);margin-left:var(--s2)}
-.ah-live-dot{width:6px;height:6px;border-radius:50%;background:var(--go);animation:ahPulse 2s var(--ease) infinite}
-@keyframes ahPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-.ah-actions{margin-left:auto;display:flex;align-items:center;gap:var(--s2);flex-shrink:0}
+.ah-primary{display:flex;align-items:center;justify-content:center;gap:30px;height:100%}.ah-primary a{position:relative;display:flex;align-items:center;height:100%;color:var(--world-ink-faint);font:600 11px/1 var(--font-display);letter-spacing:.02em;text-decoration:none;transition:color .2s var(--ease)}.ah-primary a::after{content:"";position:absolute;left:0;right:0;bottom:17px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .25s var(--ease)}.ah-primary a:hover,.ah-primary a.on{color:var(--world-ink)}.ah-primary a.on::after{transform:scaleX(1)}
+.ah--movement .ah-primary a{color:var(--world-nav-faint)}.ah--movement .ah-primary a:hover,.ah--movement .ah-primary a.on{color:var(--world-nav-ink)}
 
-.ah-navlink{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;color:var(--nav-ink);background:var(--nav-soft);border:1px solid var(--nav-line);text-decoration:none;transition:.15s}
-.ah-navlink:hover{background:#20262F;color:#fff}
-.ah-signin{margin-left:2px}
+.ah-actions{justify-self:end;display:flex;align-items:center;gap:9px;min-width:0}.ah-signin{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 16px;border:1px solid var(--world-line-strong);border-radius:999px;color:var(--world-ink);background:color-mix(in srgb,var(--world-surface) 60%,transparent);font:600 11px/1 var(--font-display);text-decoration:none;transition:.2s}.ah-signin:hover{background:var(--world-ink);border-color:var(--world-ink);color:var(--world-canvas)}.ah--movement .ah-signin{border-color:var(--world-nav-line);color:var(--world-nav-ink);background:rgba(255,255,255,.035)}.ah--movement .ah-signin:hover{background:var(--world-nav-ink);color:var(--world-nav)}
+.ah-explore{display:none;align-items:center;gap:7px;min-height:40px;padding:0 12px;background:none;border:1px solid var(--world-line);border-radius:999px;color:inherit;font:600 11px/1 var(--font-display);cursor:pointer}.ah-explore span{font-size:12px}
 
-/* identity chip */
-.ah-account{position:relative}
-.ah-chip{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 5px;border-radius:12px;background:var(--nav-soft);border:1px solid var(--nav-line);cursor:pointer;transition:.15s;font-family:inherit}
-.ah-chip:hover{background:#20262F;border-color:#333B49}
-.ah-chip-id{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
-.ah-chip-name{font-size:13px;font-weight:650;color:#fff;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ah-chip-role{font-size:11px;color:var(--nav-faint);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
-.ah-chip-caret{color:var(--nav-faint)}
+.ah-account{position:relative}.ah-chip{display:flex;align-items:center;gap:9px;min-height:42px;padding:4px 11px 4px 4px;border-radius:999px;background:color-mix(in srgb,var(--world-surface) 56%,transparent);border:1px solid var(--world-line);cursor:pointer;color:inherit;font-family:inherit;transition:.2s}.ah-chip:hover{background:var(--world-surface)}.ah--movement .ah-chip{background:rgba(255,255,255,.035);border-color:var(--world-nav-line)}.ah--movement .ah-chip:hover{background:rgba(255,255,255,.07)}
+.ah-chip-id{display:flex;flex-direction:column;align-items:flex-start;line-height:1.08}.ah-chip-name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:650;color:inherit}.ah-chip-role{margin-top:2px;font:600 8px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--world-ink-faint)}.ah-chip-caret{color:var(--world-ink-faint);font-size:11px}
+.ah-admin-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;background:var(--en-gold);color:#fff;font-size:8px;font-weight:800}.ah-chip-admin{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--en-gold) 55%,transparent)}
 
-/* account menu */
-.ah-menu{position:absolute;top:calc(100% + 8px);right:0;width:250px;background:var(--surface);border:1px solid var(--hairline-2);border-radius:14px;box-shadow:var(--shadow-lg);padding:8px;z-index:70}
-.ah-menu-head{display:flex;align-items:center;gap:11px;padding:10px 10px 12px;border-bottom:1px solid var(--hairline);margin-bottom:6px}
-.ah-menu-name{font-weight:700;font-size:14px;color:var(--ink)}
-.ah-menu-role{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.03em;font-weight:600}
-.ah-menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 11px;border-radius:10px;font-size:13px;font-weight:550;color:var(--ink-soft);background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;text-decoration:none;transition:.12s}
-.ah-menu-item:hover{background:var(--surface-2);color:var(--ink)}
-.ah-menu-item svg{color:var(--ink-faint);flex-shrink:0}
-.ah-menu-item.danger{color:var(--owed-ink)}
-.ah-menu-item.danger svg{color:var(--owed-ink)}
-.ah-menu-item.danger:hover{background:var(--owed-soft)}
-.ah-menu-sep{height:1px;background:var(--hairline);margin:6px 4px}
-.ah-menu-enter-active,.ah-menu-leave-active{transition:opacity .16s var(--ease),transform .16s var(--ease)}
-.ah-menu-enter-from,.ah-menu-leave-to{opacity:0;transform:translateY(-6px)}
+.ah-menu,.ah-mobile-nav{background:color-mix(in srgb,var(--world-surface) 96%,transparent);border:1px solid var(--world-line-strong);box-shadow:var(--shadow-lg);backdrop-filter:blur(20px)}.ah-menu{position:absolute;top:calc(100% + 10px);right:0;width:270px;border-radius:18px;padding:10px;z-index:90}.ah-menu-handle{display:none;width:38px;height:3px;margin:0 auto 8px;border-radius:999px;background:var(--world-line-strong)}.ah-menu-head{display:flex;align-items:center;gap:11px;padding:10px 10px 13px;border-bottom:1px solid var(--world-line);margin-bottom:6px}.ah-menu-name{font-weight:700;font-size:13px;color:var(--world-ink)}.ah-menu-role{margin-top:2px;font-size:10px;color:var(--world-ink-faint);overflow:hidden;text-overflow:ellipsis;max-width:180px;white-space:nowrap}.ah-menu-spaces-l{font:600 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--world-ink-faint);padding:7px 11px}.ah-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:550;color:var(--world-ink-soft);background:none;border:0;font-family:inherit;text-align:left;cursor:pointer;text-decoration:none;position:relative}.ah-menu-item:hover{background:var(--world-surface-2);color:var(--world-ink)}.ah-menu-item.danger{color:var(--owed-ink)}.ah-menu-sep{height:1px;background:var(--world-line);margin:6px 4px}.ah-space.cur{background:var(--world-accent-soft);color:var(--world-accent-ink)}.ah-cur-dot{position:absolute;right:13px;width:6px;height:6px;border-radius:50%;background:var(--world-accent)}.ah-admin-tag-menu{margin-left:7px}
 
+.ah-mobile-nav{display:none;position:fixed;z-index:88;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:14px 10px 10px;border-radius:20px}.ah-mobile-label{padding:5px 12px 10px;font:600 9px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--world-ink-faint)}.ah-mobile-nav a{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:11px 12px;border-radius:12px;border-bottom:1px solid var(--world-line);font:600 15px/1 var(--font-display);color:var(--world-ink);text-decoration:none}.ah-mobile-nav a:last-child{border-bottom:0}.ah-mobile-nav a.on{color:var(--world-accent-ink);background:var(--world-accent-soft)}
+.ah-menu-enter-active,.ah-menu-leave-active{transition:opacity .18s var(--ease),transform .18s var(--ease)}.ah-menu-enter-from,.ah-menu-leave-to{opacity:0;transform:translateY(-5px)}
+
+@media(max-width:980px){.ah-inner{grid-template-columns:1fr auto;min-height:66px}.ah-primary{display:none}.ah-explore{display:inline-flex}.ah-context-copy small{display:none}}
 @media(max-width:640px){
-  .ah-inner{padding:var(--s3) var(--s4)}
-  .ah-sub{display:none}
-  .ah-hide-sm{display:none}
-  .ah-chip-id{display:none}
-  .ah-chip{padding:5px}
-}
-
-.ah-menu-spaces-l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint);padding:4px 11px 6px}
-.ah-space{position:relative}
-.ah-space.cur{background:var(--accent-soft)}
-.ah-space.cur span{color:var(--accent-ink);font-weight:650}
-.ah-cur-dot{position:absolute;right:12px;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:auto}
-
-.ah-admin-tag{display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#C79A3E,#946B25);color:#fff;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:6px}
-.ah-chip-admin{box-shadow:inset 0 0 0 1.5px rgba(199,154,62,.5)}
-.ah-admin-tag-menu{margin-left:8px;vertical-align:middle}
-
-/* PHASE 9 — mobile shell: compact header + reachable account sheet */
-@media(max-width:640px){
-  .ah{padding-top:env(safe-area-inset-top)}
-  .ah-inner{min-height:58px;padding:8px max(14px,env(safe-area-inset-right)) 8px max(14px,env(safe-area-inset-left));gap:9px}
-  .ah-brand{gap:8px;min-width:0;flex:1}
-  .ah-id{min-width:0;max-width:46vw}
-  .ah-title{font-size:15px;max-width:100%}
-  .ah-live{margin-left:2px;padding:4px 7px;font-size:9px}
-  .ah-actions{gap:6px}
-  .ah-navlink{width:42px;height:42px;padding:0;justify-content:center;border-radius:50%}
-  .ah-signin{min-height:42px;padding:0 14px}
-  .ah-chip{width:42px;height:42px;padding:4px;justify-content:center;border-radius:50%}
-  .ah-chip-caret{display:none}
-  .ah-menu{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));width:auto;max-height:min(72dvh,580px);overflow:auto;border-radius:20px;padding:14px 10px 10px;box-shadow:0 28px 90px rgba(0,0,0,.28);overscroll-behavior:contain}
-  .ah-menu::before{content:"";display:block;width:38px;height:4px;border-radius:999px;background:var(--hairline-2);margin:0 auto 8px}
-  .ah-menu-head{padding:10px 12px 14px}
-  .ah-menu-item{min-height:46px;padding:11px 12px;border-radius:12px}
+  .ah{padding-top:env(safe-area-inset-top)}.ah-inner{width:calc(100% - 28px);min-height:60px;gap:8px}.ah-brand{gap:9px;max-width:calc(100vw - 170px)}.ah-brand :deep(.brandmark){max-width:116px}.ah-context{gap:8px}.ah-context-line{height:22px}.ah-context-copy strong{font-size:10.5px;max-width:78px}.ah-live{display:none}
+  .ah-actions{gap:6px}.ah-explore{min-width:42px;width:42px;padding:0;justify-content:center;font-size:0}.ah-explore::before{content:"•••";font-size:11px;letter-spacing:2px;line-height:1}.ah-explore span{display:none}.ah-signin{min-height:40px;padding:0 13px}.ah-chip{width:42px;height:42px;padding:4px;justify-content:center}.ah-chip-id,.ah-chip-caret{display:none}
+  .ah-menu{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));width:auto;max-height:min(72dvh,580px);overflow:auto;border-radius:20px;padding:14px 10px 10px;overscroll-behavior:contain}.ah-menu-handle{display:block}.ah-menu-head{padding:10px 12px 14px}.ah-menu-item{min-height:48px;padding:11px 12px}
+  .ah-mobile-nav{display:block}.ah-mobile-nav .ah-menu-handle{display:block}
 }
 </style>

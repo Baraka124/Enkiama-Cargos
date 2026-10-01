@@ -5,7 +5,7 @@ import { usePublic } from '../composables/usePublic'
 import Icon from '../components/Icon.vue'
 import AppHeader from '../components/AppHeader.vue'
 import Avatar from '../components/Avatar.vue'
-import BrandMark from '../components/BrandMark.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 import { supabase } from '../lib/supabase'
@@ -314,7 +314,7 @@ watch(() => route.params.slug, (next, prev) => { if (next && next !== prev) load
       </div>
     </section>
 
-    <footer class="sf6-foot"><BrandMark variant="full" :height="32" /><p>Enkiama · Business, object and movement in one visible journey.</p></footer>
+    <SiteFooter />
   </div>
 
   <div v-else-if="loading" class="sf6-loading">

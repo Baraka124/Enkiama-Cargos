@@ -9,7 +9,7 @@ import { supabase, fmtTZS } from '../lib/supabase'
 import TrustBadge from '../components/TrustBadge.vue'
 import Icon from '../components/Icon.vue'
 import AppHeader from '../components/AppHeader.vue'
-import BrandMark from '../components/BrandMark.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import Spinner from '../components/Spinner.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
@@ -295,7 +295,7 @@ onUnmounted(() => { resetTrackingVisuals() })
 </script>
 
 <template>
-  <AppHeader title="Enkiama Movement" subtitle="A parcel journey you can verify" />
+  <AppHeader title="Movement" subtitle="A parcel journey you can verify" />
 
   <main class="movement-page">
     <!-- SEARCH / ARRIVAL -->
@@ -480,7 +480,7 @@ onUnmounted(() => { resetTrackingVisuals() })
       </div>
     </section>
 
-    <footer class="movement-footer"><BrandMark variant="full" :height="40" /><span>Movement you can verify.</span></footer>
+    <SiteFooter />
 
     <!-- DISPUTE -->
     <div v-if="showDispute" class="overlay" v-escape="() => { showDispute=false }" @click.self="showDispute=false">

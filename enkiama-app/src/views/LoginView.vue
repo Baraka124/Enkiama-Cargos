@@ -6,7 +6,7 @@ import { useAuth } from '../composables/useAuth'
 import { supabase } from '../lib/supabase'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
-import BrandMark from '../components/BrandMark.vue'
+import AppHeader from '../components/AppHeader.vue'
 
 const router = useRouter()
 const toast = inject('toast')
@@ -159,11 +159,7 @@ async function sendFleetApplication() {
 
 <template>
   <div class="lp">
-    <!-- top bar -->
-    <header class="lp-top">
-      <div class="lp-brand"><BrandMark variant="mark" :height="36" /> <span class="lp-brand-name">Enkiama Cargos</span></div>
-      <span v-if="carriersLive" class="lp-live"><span class="lp-dot"></span>{{ carriersLive }} carriers live</span>
-    </header>
+    <AppHeader title="Access" subtitle="Sign in or create an account" :auth="false" />
 
     <div class="lp-grid">
       <!-- LEFT / TOP: pitch + proof -->

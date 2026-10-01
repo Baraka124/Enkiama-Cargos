@@ -6,6 +6,7 @@ import { useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import { usePublic } from '../composables/usePublic'
 import AppHeader from '../components/AppHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import Avatar from '../components/Avatar.vue'
@@ -248,7 +249,7 @@ watch(() => route.params.id, (newId, oldId) => {
 </script>
 
 <template>
-  <AppHeader />
+  <AppHeader title="Market" subtitle="Object" />
 
   <main class="pd-page">
     <div v-if="loading" class="pd-load"><Spinner :size="26" /></div>
@@ -503,6 +504,7 @@ watch(() => route.params.id, (newId, oldId) => {
       </section>
     </template>
   </main>
+  <SiteFooter />
 
   <!-- full-screen image viewing stays entirely presentation-only -->
   <div v-if="galleryOpen && images.length" class="pd-lightbox" @click.self="galleryOpen=false">

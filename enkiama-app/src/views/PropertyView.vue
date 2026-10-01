@@ -5,6 +5,7 @@ import { ref, computed, onMounted, onBeforeUnmount, inject, nextTick } from 'vue
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../composables/useAuth'
 import AppHeader from '../components/AppHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
 import EmptyState from '../components/EmptyState.vue'
 import PropertyForm from '../components/PropertyForm.vue'
@@ -184,7 +185,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <AppHeader title="Enkiama Property" subtitle="Land & property">
+  <AppHeader title="Property" subtitle="Land · Home · Farm">
     <button v-if="session && myListings.length" class="btn btn-ghost" type="button" @click="showMine = !showMine">
       <Icon name="inbox" :size="15" /> My listings <span class="tb-count">{{ myListings.length }}</span>
     </button>
@@ -363,6 +364,7 @@ onBeforeUnmount(() => {
       </section>
     </div>
   </main>
+  <SiteFooter />
 
   <PropertyForm v-if="showForm" @close="showForm=false" @submitted="showForm=false; toast('Submitted for review — we\'ll verify it shortly','ok'); loadMine()" />
 </template>

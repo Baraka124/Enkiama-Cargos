@@ -5,6 +5,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import AppHeader from '../components/AppHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
 import Spinner from '../components/Spinner.vue'
 import L from 'leaflet'
@@ -197,7 +198,7 @@ watch(() => route.params.id, (next, prev) => {
 </script>
 
 <template>
-  <AppHeader title="Enkiama Property" subtitle="Land & property" />
+  <AppHeader title="Property" subtitle="Place" />
 
   <main class="pd-page">
     <div v-if="loading" class="pd-load"><Spinner :size="26" /></div>
@@ -390,6 +391,7 @@ watch(() => route.params.id, (next, prev) => {
       </section>
     </template>
   </main>
+  <SiteFooter />
 
   <!-- full-screen property gallery -->
   <div v-if="galleryOpen && imgs.length" class="pd-lightbox" role="dialog" aria-modal="true" aria-label="Property gallery" @click.self="galleryOpen=false">

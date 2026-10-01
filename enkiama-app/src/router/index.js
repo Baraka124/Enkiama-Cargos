@@ -39,8 +39,23 @@ const EXPERIENCE_WORLD = {
   market:'market', product:'object', property:'place', 'property-detail':'place',
   shop:'business', track:'movement', deliveries:'movement',
 }
+// V10 — each public world has its own material atmosphere. Keep browser chrome
+// in sync on mobile so the experience does not end at the viewport edge.
+const WORLD_THEME_COLOR = {
+  core:'#F2EFE8', market:'#EEE8DC', object:'#F5F2EB', place:'#EDE8DE',
+  business:'#EFE3D3', movement:'#0C1714',
+}
 router.afterEach((to) => {
-  if (typeof document !== 'undefined') document.documentElement.dataset.enWorld = EXPERIENCE_WORLD[to.name] || 'core'
+  if (typeof document === 'undefined') return
+  const world = EXPERIENCE_WORLD[to.name] || 'core'
+  document.documentElement.dataset.enWorld = world
+  let meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    document.head.appendChild(meta)
+  }
+  meta.content = WORLD_THEME_COLOR[world] || WORLD_THEME_COLOR.core
 })
 
 router.beforeEach(async (to) => {

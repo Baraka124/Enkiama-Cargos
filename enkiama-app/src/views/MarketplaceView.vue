@@ -1,14 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { usePublic } from '../composables/usePublic'
-import { useAuth } from '../composables/useAuth'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
-import BrandMark from '../components/BrandMark.vue'
 import EmptyState from '../components/EmptyState.vue'
+import AppHeader from '../components/AppHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
 
 const stores = ref([])
+const heroStores = ref([])
 const products = ref([])
 const categories = ref([])
 const view = ref('products')
@@ -19,7 +20,6 @@ const filterInStock = ref(false)
 const filterDeal = ref(false)
 const loading = ref(true)
 const pub = usePublic()
-const { session, profile, isPlatformAdmin } = useAuth()
 const corridor = ref('')
 const corridors = ['Dar es Salaam', 'Arusha', 'Mwanza', 'Dodoma', 'Mbeya', 'Tanga', 'Morogoro', 'Zanzibar Urban/West']
 const corridorNodes = [
@@ -35,16 +35,6 @@ const corridorNodes = [
 const search = ref('')
 const sort = ref('recommended')
 let searchTimer = null
-
-const mkDisplayName = computed(() => profile?.value?.name || session?.value?.user?.email?.split('@')[0] || 'Account')
-const mkRoleLabel = computed(() => {
-  const r = profile?.value?.role
-  return ({ carrier_admin:'Carrier admin', dispatch:'Dispatch', driver:'Driver', sender:'Business', receiver:'Receiver' }[r]) || (r ? r.replace('_',' ') : '')
-})
-const homePath = computed(() => {
-  const r = profile?.value?.role
-  return r === 'driver' ? '/driver' : (r === 'dispatch' || r === 'carrier_admin') ? '/dispatch' : r === 'sender' ? '/send' : r === 'receiver' ? '/deliveries' : '/'
-})
 
 const displayProducts = computed(() => {
   let list = [...products.value]
@@ -69,6 +59,7 @@ const groupedProducts = computed(() => {
 })
 
 const heroProducts = computed(() => displayProducts.value.filter(p => pImg(p)).slice(0, 2))
+const heroStore = computed(() => heroStores.value[0] || stores.value[0] || null)
 const featuredStore = computed(() => stores.value[0] || null)
 const otherStores = computed(() => stores.value.slice(1))
 const selectedCorridorLabel = computed(() => corridor.value ? corridor.value.replace(' Urban/West','') : 'All Tanzania')
@@ -109,6 +100,11 @@ async function loadCategories() {
   categories.value = data || []
 }
 
+async function loadHeroStores() {
+  const { data } = await pub.browseStorefrontsV2('', '', 'recommended')
+  heroStores.value = data || []
+}
+
 function shopTier(s) {
   const d = s.delivered_count || 0, r = s.avg_rating || 5
   if (d >= 50 && r >= 4.5) return 'trusted'
@@ -147,114 +143,105 @@ function clearFilters() {
   filterInStock.value = false
   filterDeal.value = false
 }
-function onHeroPointer(e) {
-  const el = e.currentTarget
-  const r = el.getBoundingClientRect()
-  const x = ((e.clientX - r.left) / r.width - .5) * 2
-  const y = ((e.clientY - r.top) / r.height - .5) * 2
-  el.style.setProperty('--orbit-x', `${(x * 8).toFixed(2)}px`)
-  el.style.setProperty('--orbit-y', `${(y * 8).toFixed(2)}px`)
-  el.style.setProperty('--orbit2-x', `${(x * -12).toFixed(2)}px`)
-  el.style.setProperty('--orbit2-y', `${(y * -12).toFixed(2)}px`)
-  el.style.setProperty('--goods-x', `${(x * -7).toFixed(2)}px`)
-  el.style.setProperty('--goods-y', `${(y * -6).toFixed(2)}px`)
-  el.style.setProperty('--business-x', `${(x * 10).toFixed(2)}px`)
-  el.style.setProperty('--business-y', `${(y * 7).toFixed(2)}px`)
-  el.style.setProperty('--property-x', `${(x * -5).toFixed(2)}px`)
-  el.style.setProperty('--property-y', `${(y * 10).toFixed(2)}px`)
-  el.style.setProperty('--float-a-x', `${(x * 5).toFixed(2)}px`)
-  el.style.setProperty('--float-a-y', `${(y * 8).toFixed(2)}px`)
-  el.style.setProperty('--float-b-x', `${(x * -7).toFixed(2)}px`)
-  el.style.setProperty('--float-b-y', `${(y * -5).toFixed(2)}px`)
-}
-function resetHeroPointer(e) {
-  for (const name of ['--orbit-x','--orbit-y','--orbit2-x','--orbit2-y','--goods-x','--goods-y','--business-x','--business-y','--property-x','--property-y','--float-a-x','--float-a-y','--float-b-x','--float-b-y']) {
-    e.currentTarget.style.setProperty(name, '0px')
-  }
-}
-
-onMounted(() => { load(); loadCategories() })
+onMounted(() => { load(); loadCategories(); loadHeroStores() })
 </script>
 
 <template>
   <div class="mk">
-    <!-- EXPRESSIVE LAYER: the market as a place, not a dashboard -->
-    <section class="mk-stage" @pointermove="onHeroPointer" @pointerleave="resetHeroPointer">
-      <div class="mk-stage-grid" aria-hidden="true"></div>
-      <div class="mk-stage-orbit mk-stage-orbit-a" aria-hidden="true"></div>
-      <div class="mk-stage-orbit mk-stage-orbit-b" aria-hidden="true"></div>
+    <AppHeader title="Market" subtitle="Tanzania" />
+    <!-- PHASE 12 / MARKET ART DIRECTION — media leads, typography supports -->
+    <section class="mk12-hero">
+      <div class="mk12-ambient" aria-hidden="true"></div>
+      <div class="mk12-shell">
+        <div class="mk12-intro">
+          <div class="mk12-kicker"><span>01</span><span>Market · Tanzania</span></div>
 
-      <header class="mk-nav">
-        <RouterLink to="/" class="mk-logo" aria-label="Enkiama home"><BrandMark variant="full" :height="30" light /></RouterLink>
-        <nav class="mk-nav-mid" aria-label="Market sections">
-          <button :class="{on:view==='products'}" @click="setView('products')">Goods</button>
-          <button :class="{on:view==='shops'}" @click="setView('shops')">Businesses</button>
-          <RouterLink to="/property">Property</RouterLink>
-        </nav>
-        <div class="mk-head-actions">
-          <template v-if="session">
-            <RouterLink :to="homePath" class="mk-userchip" :class="{'mk-userchip-admin': isPlatformAdmin}">
-              <Avatar :name="mkDisplayName" size="sm" />
-              <span class="mk-userchip-id">
-                <span class="mk-userchip-name">{{ mkDisplayName }}</span>
-                <span v-if="isPlatformAdmin" class="mk-userchip-role mk-admin-tag"><Icon name="shield" :size="9" /> Admin</span>
-                <span v-else-if="mkRoleLabel" class="mk-userchip-role">{{ mkRoleLabel }}</span>
-              </span>
-            </RouterLink>
-          </template>
-          <template v-else>
-            <RouterLink to="/join/business" class="mk-navlink">Sell</RouterLink>
-            <RouterLink to="/login" class="mk-signin">Sign in</RouterLink>
-          </template>
-        </div>
-      </header>
-
-      <div class="mk-stage-inner">
-        <div class="mk-kicker"><span>01</span><span>Market / Tanzania</span></div>
-        <div class="mk-hero-copy">
-          <h1>Everything<br><em>moves.</em></h1>
-          <p>Goods, businesses and places — discovered locally and connected through Enkiama's tracked delivery network.</p>
-        </div>
-
-        <button class="mk-realm mk-realm-goods" :class="{active:view==='products'}" @click="setView('products')">
-          <span class="mk-realm-no">01</span>
-          <span class="mk-realm-name">Goods</span>
-          <span class="mk-realm-note">Objects for everyday life</span>
-          <span class="mk-realm-arrow">↗</span>
-        </button>
-        <button class="mk-realm mk-realm-business" :class="{active:view==='shops'}" @click="setView('shops')">
-          <span class="mk-realm-no">02</span>
-          <span class="mk-realm-name">Businesses</span>
-          <span class="mk-realm-note">People behind the market</span>
-          <span class="mk-realm-arrow">↗</span>
-        </button>
-        <RouterLink to="/property" class="mk-realm mk-realm-property">
-          <span class="mk-realm-no">03</span>
-          <span class="mk-realm-name">Property</span>
-          <span class="mk-realm-note">Land, homes &amp; places</span>
-          <span class="mk-realm-arrow">↗</span>
-        </RouterLink>
-
-        <RouterLink v-if="heroProducts[0]" :to="`/shop/${heroProducts[0].shop_slug}/product/${heroProducts[0].id}`" class="mk-float-product mk-float-a" data-cursor="View" aria-label="Open featured product">
-          <img :src="pImg(heroProducts[0])" :alt="heroProducts[0].name" @error="brokenImg($event, heroProducts[0])" />
-          <span>{{ heroProducts[0].name }}</span>
-        </RouterLink>
-        <RouterLink v-if="heroProducts[1]" :to="`/shop/${heroProducts[1].shop_slug}/product/${heroProducts[1].id}`" class="mk-float-product mk-float-b" data-cursor="View" aria-label="Open featured product">
-          <img :src="pImg(heroProducts[1])" :alt="heroProducts[1].name" @error="brokenImg($event, heroProducts[1])" />
-          <span>{{ heroProducts[1].name }}</span>
-        </RouterLink>
-
-        <form class="mk-search" @submit.prevent="submitSearch">
-          <span class="mk-search-label">Find in Market</span>
-          <div class="mk-search-line">
-            <Icon name="search" :size="20" />
-            <input v-model="search" @input="onSearch" placeholder="Search products or businesses across Tanzania" aria-label="Search Enkiama Market" />
-            <button v-if="search" type="button" class="mk-search-clear" @click="search=''; submitSearch()" aria-label="Clear search">Clear</button>
-            <button type="submit" class="mk-search-go" aria-label="Search"><Icon name="arrow" :size="18" /></button>
+          <div class="mk12-copy">
+            <h1>A market <em>in motion.</em></h1>
+            <p>Discover useful objects, independent businesses and places across Tanzania — connected to Enkiama's tracked delivery network.</p>
           </div>
-        </form>
 
-        <a href="#market-discovery" class="mk-scrollcue"><span>Scroll to explore</span><span>↓</span></a>
+          <form class="mk12-search" @submit.prevent="submitSearch">
+            <label for="market-search">{{ view === 'shops' ? 'Find a business' : 'Find an object' }}</label>
+            <div class="mk12-search-line">
+              <Icon name="search" :size="19" />
+              <input id="market-search" v-model="search" @input="onSearch" :placeholder="view === 'shops' ? 'Search businesses across Tanzania' : 'Search products across Tanzania'" />
+              <button v-if="search" type="button" class="mk12-clear" @click="search=''; submitSearch()">Clear</button>
+              <button type="submit" class="mk12-search-action">Search <span>↗</span></button>
+            </div>
+          </form>
+
+          <div class="mk12-realms" aria-label="Market worlds">
+            <button class="mk12-realm" :class="{active:view==='products'}" @click="setView('products')">
+              <span class="mk12-realm-no">01</span>
+              <span class="mk12-realm-copy"><strong>Goods</strong><small>{{ displayProducts.length ? `${displayProducts.length} objects available` : 'Objects for everyday life' }}</small></span>
+              <span class="mk12-realm-arrow">↗</span>
+            </button>
+            <button class="mk12-realm" :class="{active:view==='shops'}" @click="setView('shops')">
+              <span class="mk12-realm-no">02</span>
+              <span class="mk12-realm-copy"><strong>Businesses</strong><small>{{ heroStore ? `Meet ${heroStore.name}` : 'People behind the market' }}</small></span>
+              <span class="mk12-realm-arrow">↗</span>
+            </button>
+            <RouterLink to="/property" class="mk12-realm">
+              <span class="mk12-realm-no">03</span>
+              <span class="mk12-realm-copy"><strong>Property</strong><small>Land, homes &amp; places</small></span>
+              <span class="mk12-realm-arrow">↗</span>
+            </RouterLink>
+          </div>
+
+          <a href="#market-discovery" class="mk12-scroll">Explore the market <span>↓</span></a>
+        </div>
+
+        <div class="mk12-gallery" aria-label="Featured market objects">
+          <RouterLink v-if="heroProducts[0]" :to="`/shop/${heroProducts[0].shop_slug}/product/${heroProducts[0].id}`" class="mk12-main-object" data-cursor="View">
+            <div class="mk12-main-media" :style="{viewTransitionName:viewName('product', heroProducts[0].id)}">
+              <img :src="pImg(heroProducts[0])" :alt="heroProducts[0].name" @error="brokenImg($event, heroProducts[0])" />
+              <span class="mk12-media-index">Object / 01</span>
+              <span class="mk12-media-open">Open ↗</span>
+            </div>
+            <div class="mk12-main-caption">
+              <span>Featured object</span>
+              <strong>{{ heroProducts[0].name }}</strong>
+              <small>{{ heroProducts[0].shop_name }} · TZS {{ Number(heroProducts[0].price_tzs).toLocaleString() }}</small>
+            </div>
+          </RouterLink>
+          <div v-else class="mk12-main-object mk12-media-fallback" aria-hidden="true">
+            <div class="mk12-fallback-mark">E</div>
+            <span>Market objects appear here as sellers publish them.</span>
+          </div>
+
+          <RouterLink v-if="heroProducts[1]" :to="`/shop/${heroProducts[1].shop_slug}/product/${heroProducts[1].id}`" class="mk12-second-object" data-cursor="View">
+            <div class="mk12-second-media" :style="{viewTransitionName:viewName('product', heroProducts[1].id)}">
+              <img :src="pImg(heroProducts[1])" :alt="heroProducts[1].name" @error="brokenImg($event, heroProducts[1])" />
+            </div>
+            <div><span>Object / 02</span><strong>{{ heroProducts[1].name }}</strong></div>
+          </RouterLink>
+
+          <button v-if="heroStore" class="mk12-business-object" @click="setView('shops')" data-cursor="Enter">
+            <div class="mk12-business-media" :class="{'has-cover':heroStore.cover_url}" :style="heroStore.cover_url ? {backgroundImage:`url(${heroStore.cover_url})`} : {'--store-accent':heroStore.accent || '#31584c'}">
+              <div class="mk12-business-shade"></div>
+              <div class="mk12-business-avatar" :style="{viewTransitionName:viewName('shop', heroStore.slug || heroStore.id)}"><Avatar :name="heroStore.name" :accent="heroStore.accent" :logo="heroStore.logo_url" :size="58" /></div>
+            </div>
+            <div class="mk12-business-copy"><span>Independent business</span><strong>{{ heroStore.name }}</strong><small>{{ heroStore.tagline || 'A storefront inside Enkiama Market.' }}</small></div>
+            <span class="mk12-card-arrow">↗</span>
+          </button>
+
+          <RouterLink to="/property" class="mk12-place-object" data-cursor="Place">
+            <div class="mk12-contours" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <span class="mk12-place-index">03 / Place</span>
+            <strong>Property &amp; land</strong>
+            <small>Explore verified places across Tanzania.</small>
+            <span class="mk12-card-arrow">↗</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <div class="mk12-status">
+        <span>Local discovery</span>
+        <span>Tracked movement</span>
+        <span>Visible provenance</span>
       </div>
     </section>
 
@@ -492,6 +479,7 @@ onMounted(() => { load(); loadCategories() })
         <RouterLink to="/join/business" class="mk-cta-link">Open a storefront <span>↗</span></RouterLink>
       </footer>
     </main>
+    <SiteFooter />
   </div>
 </template>
 
@@ -502,6 +490,54 @@ onMounted(() => { load(); loadCategories() })
    No commerce/data contracts are changed here; this is UI only.
    ═══════════════════════════════════════════════════════════════ */
 .mk{--market-paper:#f4f2ec;--market-ink:#121713;--market-muted:#687069;--market-line:rgba(18,23,19,.14);--market-green:#0b6e5d;min-height:100vh;background:var(--market-paper);color:var(--market-ink);overflow-x:hidden}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 12 — MARKET ART DIRECTION
+   Media and useful objects carry the composition. Typography is
+   architecture, not the entire experience. No decorative orbits.
+   ═══════════════════════════════════════════════════════════════ */
+.mk12-hero{--mk12-cream:#f2ede3;--mk12-paper:#faf8f2;--mk12-ink:#182019;--mk12-muted:#687067;--mk12-leaf:#31584c;--mk12-clay:#a96748;--mk12-gold:#b48a42;position:relative;overflow:hidden;background:linear-gradient(118deg,#f4efe6 0%,#f1ecdf 50%,#e9e1d3 100%);color:var(--mk12-ink);border-bottom:1px solid rgba(24,32,25,.12);isolation:isolate}
+.mk12-ambient{position:absolute;inset:0;pointer-events:none;z-index:-1;background:radial-gradient(46% 60% at 77% 23%,rgba(180,138,66,.12),transparent 72%),radial-gradient(36% 48% at 10% 88%,rgba(49,88,76,.10),transparent 72%)}
+.mk12-ambient::after{content:"";position:absolute;inset:0;opacity:.22;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.075'/%3E%3C/svg%3E");mix-blend-mode:multiply}
+.mk12-shell{width:min(1460px,calc(100% - 64px));min-height:760px;margin:0 auto;display:grid;grid-template-columns:minmax(390px,.82fr) minmax(580px,1.18fr);gap:clamp(50px,6vw,104px);align-items:stretch;padding:70px 0 52px}
+.mk12-intro{min-width:0;display:flex;flex-direction:column;justify-content:center;padding:12px 0 6px}
+.mk12-kicker{display:flex;align-items:center;gap:16px;margin-bottom:54px;font:600 9px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.14em;color:#858a82}.mk12-kicker span:first-child{color:var(--mk12-clay)}
+.mk12-copy{max-width:600px}.mk12-copy h1{max-width:580px;font:520 clamp(54px,5.8vw,86px)/.94 'Space Grotesk',sans-serif;letter-spacing:-.062em;color:var(--mk12-ink);text-wrap:balance}.mk12-copy h1 em{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.08em;font-weight:500;letter-spacing:-.045em;color:var(--mk12-clay)}.mk12-copy p{max-width:46ch;margin-top:26px;font:400 14px/1.75 'Inter',sans-serif;color:var(--mk12-muted)}
+.mk12-search{margin-top:47px;max-width:590px}.mk12-search>label{display:block;margin-bottom:11px;font:600 8px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.14em;color:#888e86}.mk12-search-line{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:13px;border-bottom:1px solid rgba(24,32,25,.38);padding:0 0 10px;color:#727970;transition:border-color .25s ease}.mk12-search:focus-within .mk12-search-line{border-color:var(--mk12-ink)}.mk12-search-line input{min-width:0!important;border:0!important;background:transparent!important;box-shadow:none!important;outline:0!important;padding:8px 0!important;color:var(--mk12-ink)!important;font:450 14px/1.4 'Inter',sans-serif!important}.mk12-search-line input::placeholder{color:#969a93}.mk12-clear{border:0;background:none;color:#8b9089;font:500 10px/1 'Inter',sans-serif;cursor:pointer}.mk12-search-action{display:inline-flex;align-items:center;gap:7px;border:0;background:none;padding:9px 0 9px 10px;color:var(--mk12-ink);font:650 10px/1 'Inter',sans-serif;cursor:pointer}.mk12-search-action span{transition:transform .28s var(--ease)}.mk12-search-action:hover span{transform:translate(3px,-3px)}
+.mk12-realms{margin-top:52px;border-top:1px solid rgba(24,32,25,.16)}.mk12-realm{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:13px;padding:17px 1px;border:0;border-bottom:1px solid rgba(24,32,25,.13);background:transparent;color:var(--mk12-ink);text-align:left;text-decoration:none;cursor:pointer;transition:padding .3s var(--ease),background .25s ease}.mk12-realm:hover,.mk12-realm.active{padding-left:10px;background:rgba(255,255,255,.28)}.mk12-realm-no{font:600 8px/1 'Spline Sans Mono',monospace;color:#9a7a46}.mk12-realm-copy{display:flex;align-items:baseline;justify-content:space-between;gap:20px;min-width:0}.mk12-realm-copy strong{font:540 19px/1.15 'Space Grotesk',sans-serif;letter-spacing:-.035em}.mk12-realm-copy small{color:#7c827a;font:400 10px/1.4 'Inter',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mk12-realm-arrow{font-size:12px;color:#5e665e;transition:transform .28s var(--ease)}.mk12-realm:hover .mk12-realm-arrow{transform:translate(3px,-3px)}
+.mk12-scroll{display:inline-flex;align-items:center;gap:12px;align-self:flex-start;margin-top:30px;color:#858a82;font:600 8px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.14em;text-decoration:none}.mk12-scroll span{color:var(--mk12-ink);font-size:12px}
+.mk12-gallery{position:relative;min-height:650px;margin:0;align-self:center}
+.mk12-main-object{position:absolute;left:1%;top:4%;width:63%;height:78%;display:flex;flex-direction:column;color:var(--mk12-ink);text-decoration:none;z-index:3}.mk12-main-media{position:relative;flex:1;min-height:0;overflow:hidden;background:#dad2c4;box-shadow:0 38px 80px rgba(46,38,26,.16)}.mk12-main-media::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,14,11,.16),transparent 32%);pointer-events:none}.mk12-main-media img{width:100%;height:100%;display:block;object-fit:cover;transition:transform .9s var(--ease),filter .45s ease;filter:saturate(.92) contrast(.98)}.mk12-main-object:hover img{transform:scale(1.018)}.mk12-media-index{position:absolute;left:16px;top:15px;z-index:2;padding:6px 8px;background:rgba(250,248,242,.82);backdrop-filter:blur(10px);color:#4f574f;font:600 7px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em}.mk12-media-open{position:absolute;right:16px;bottom:15px;z-index:2;color:#fff;font:600 9px/1 'Inter',sans-serif;text-shadow:0 1px 8px rgba(0,0,0,.4)}.mk12-main-caption{display:grid;grid-template-columns:1fr auto;gap:4px 20px;padding:13px 2px 0}.mk12-main-caption>span{grid-column:1/-1;color:#858b83;font:600 7px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em}.mk12-main-caption strong{font:560 16px/1.25 'Space Grotesk',sans-serif;letter-spacing:-.025em}.mk12-main-caption small{align-self:center;color:#777e76;font-size:9px;white-space:nowrap}
+.mk12-media-fallback{justify-content:flex-end;padding:34px;background:linear-gradient(145deg,#d7d0c2,#ebe4d8);box-shadow:0 38px 80px rgba(46,38,26,.12)}.mk12-fallback-mark{position:absolute;right:8%;top:6%;font:500 240px/.8 'Cormorant Garamond',serif;color:rgba(49,88,76,.10)}.mk12-media-fallback>span{position:relative;max-width:24ch;color:#657067;font-size:11px;line-height:1.6}
+.mk12-second-object{position:absolute;right:0;top:8%;width:35%;height:39%;z-index:4;color:var(--mk12-ink);text-decoration:none}.mk12-second-media{height:calc(100% - 58px);overflow:hidden;background:#d5cec1;box-shadow:0 24px 54px rgba(46,38,26,.14)}.mk12-second-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .8s var(--ease)}.mk12-second-object:hover img{transform:scale(1.025)}.mk12-second-object>div:last-child{padding-top:10px;display:flex;flex-direction:column;gap:3px}.mk12-second-object span{color:#8d918a;font:600 7px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.11em}.mk12-second-object strong{font:540 13px/1.25 'Space Grotesk',sans-serif;letter-spacing:-.02em}
+.mk12-business-object{position:absolute;right:1%;bottom:22%;width:42%;min-height:132px;z-index:5;display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:14px;align-items:center;padding:11px;border:1px solid rgba(24,32,25,.13);background:rgba(250,248,242,.86);box-shadow:0 22px 48px rgba(46,38,26,.10);backdrop-filter:blur(12px);color:var(--mk12-ink);text-align:left;cursor:pointer}.mk12-business-media{position:relative;width:110px;height:108px;overflow:hidden;background:linear-gradient(145deg,var(--store-accent,#31584c),#15261f);background-size:cover;background-position:center}.mk12-business-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(9,15,12,.34),transparent 68%)}.mk12-business-avatar{position:absolute;left:10px;bottom:10px;padding:2px;background:#f7f3ea}.mk12-business-avatar :deep(.avatar){border-radius:0!important}.mk12-business-copy{min-width:0;display:flex;flex-direction:column;gap:4px}.mk12-business-copy span{color:#8d918a;font:600 7px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.1em}.mk12-business-copy strong{font:560 15px/1.2 'Space Grotesk',sans-serif;letter-spacing:-.03em}.mk12-business-copy small{display:-webkit-box;overflow:hidden;color:#777e76;font-size:9px;line-height:1.45;-webkit-line-clamp:2;-webkit-box-orient:vertical}.mk12-card-arrow{align-self:start;padding:4px;color:#626a62;font-size:12px;transition:transform .28s var(--ease)}.mk12-business-object:hover .mk12-card-arrow,.mk12-place-object:hover .mk12-card-arrow{transform:translate(3px,-3px)}
+.mk12-place-object{position:absolute;right:9%;bottom:0;width:31%;height:142px;z-index:4;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;padding:17px 18px;background:#d8d0bd;color:#253229;text-decoration:none;box-shadow:0 18px 38px rgba(46,38,26,.09)}.mk12-contours{position:absolute;inset:-20%;opacity:.42;transform:rotate(-11deg)}.mk12-contours span{position:absolute;border:1px solid rgba(49,88,76,.28);border-radius:50%}.mk12-contours span:nth-child(1){width:90%;height:65%;left:6%;top:10%}.mk12-contours span:nth-child(2){width:74%;height:52%;left:16%;top:20%}.mk12-contours span:nth-child(3){width:56%;height:38%;left:27%;top:30%}.mk12-contours span:nth-child(4){width:36%;height:25%;left:38%;top:38%}.mk12-place-index,.mk12-place-object strong,.mk12-place-object small,.mk12-place-object .mk12-card-arrow{position:relative;z-index:1}.mk12-place-index{margin-bottom:auto;font:600 7px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.11em;color:#6c765f}.mk12-place-object strong{font:560 15px/1.1 'Space Grotesk',sans-serif;letter-spacing:-.03em}.mk12-place-object small{margin-top:5px;color:#667063;font-size:8.5px;line-height:1.35}.mk12-place-object .mk12-card-arrow{position:absolute;right:13px;top:12px}
+.mk12-status{width:min(1460px,calc(100% - 64px));margin:0 auto;display:flex;justify-content:flex-end;gap:34px;padding:13px 0 17px;border-top:1px solid rgba(24,32,25,.10);color:#7c837a;font:600 7px/1 'Spline Sans Mono',monospace;text-transform:uppercase;letter-spacing:.12em}.mk12-status span{display:inline-flex;align-items:center;gap:8px}.mk12-status span::before{content:"";width:4px;height:4px;border-radius:50%;background:#a96748}
+
+/* Phase 12 also quietens the discovery layer so the media-led arrival has contrast. */
+.mk-body{width:min(1400px,calc(100% - 64px))}
+.mk-utility{padding-top:27px;padding-bottom:25px}
+.mk-network{padding:78px 0 94px}
+.mk-network-copy h2{font-size:clamp(42px,5.2vw,68px);line-height:.94;letter-spacing:-.055em}.mk-network-copy h2 em{font-family:'Cormorant Garamond',Georgia,serif;color:#8e593e;letter-spacing:-.03em}
+.mk-network-map{background:radial-gradient(circle at 55% 48%,rgba(49,88,76,.095),transparent 42%),linear-gradient(135deg,rgba(169,103,72,.035),rgba(18,23,19,0))}
+.mk-sections{gap:104px}.mk-section-copy h2,.mk-focused-head h2{font-size:clamp(31px,3.6vw,49px);letter-spacing:-.047em}.mk-feature-media{box-shadow:0 26px 58px rgba(35,31,23,.08)}
+.mk-business-intro h2{font-size:clamp(40px,5.2vw,68px);line-height:.94;letter-spacing:-.055em}
+.mk-cta{margin-top:116px;padding:58px 42px 48px;background:#e7dfd1;border-top:0;grid-template-columns:.7fr 1.8fr 1fr}.mk-cta h2{font-size:clamp(36px,4.6vw,60px)}
+
+@media(max-width:1120px){
+  .mk12-shell{grid-template-columns:minmax(340px,.8fr) minmax(500px,1.2fr);gap:44px;min-height:710px}.mk12-gallery{min-height:590px}.mk12-copy h1{font-size:clamp(50px,6vw,72px)}.mk12-realm-copy small{max-width:160px}.mk12-business-object{width:45%}.mk12-place-object{width:34%}
+}
+@media(max-width:860px){
+  .mk12-shell{width:min(100% - 40px,720px);min-height:auto;grid-template-columns:1fr;padding:52px 0 42px;gap:46px}.mk12-intro{padding:0}.mk12-kicker{margin-bottom:36px}.mk12-copy{max-width:660px}.mk12-copy h1{max-width:630px;font-size:clamp(52px,9.8vw,76px)}.mk12-copy p{max-width:52ch}.mk12-search{max-width:100%;margin-top:36px}.mk12-realms{margin-top:38px}.mk12-gallery{min-height:620px;width:100%;max-width:680px;margin:0 auto}.mk12-status{width:min(100% - 40px,720px);justify-content:flex-start;overflow-x:auto;white-space:nowrap;scrollbar-width:none}.mk12-main-object{left:0;width:64%;height:78%}.mk12-second-object{width:37%}.mk12-business-object{width:45%;right:0}.mk12-place-object{right:4%;width:35%}
+}
+@media(max-width:600px){
+  .mk12-shell{width:calc(100% - 24px);padding:36px 0 28px;gap:36px}.mk12-kicker{margin-bottom:28px}.mk12-copy h1{font-size:clamp(46px,14vw,62px);line-height:.96}.mk12-copy p{margin-top:19px;font-size:12.5px;line-height:1.65}.mk12-search{margin-top:30px}.mk12-search-line{grid-template-columns:auto minmax(0,1fr) auto;gap:10px}.mk12-search-action{width:42px;height:42px;padding:0;display:grid;place-items:center;border:1px solid rgba(24,32,25,.18);border-radius:50%;font-size:0}.mk12-search-action span{font-size:13px}.mk12-realm{grid-template-columns:26px minmax(0,1fr) auto;padding:15px 0}.mk12-realm-copy{display:block}.mk12-realm-copy strong{font-size:17px}.mk12-realm-copy small{display:block;margin-top:3px;max-width:none;font-size:8.5px}.mk12-gallery{display:grid;grid-template-columns:1.15fr .85fr;grid-template-rows:auto auto auto;gap:10px;min-height:0}.mk12-main-object,.mk12-second-object,.mk12-business-object,.mk12-place-object{position:relative;inset:auto;width:auto;height:auto}.mk12-main-object{grid-column:1/-1}.mk12-main-media{height:min(62svh,500px);min-height:390px}.mk12-main-caption{grid-template-columns:1fr}.mk12-main-caption small{white-space:normal}.mk12-second-object{grid-column:1;grid-row:2}.mk12-second-media{height:210px}.mk12-business-object{grid-column:2;grid-row:2;display:flex;flex-direction:column;align-items:stretch;min-height:0;padding:9px;gap:9px}.mk12-business-media{width:100%;height:130px}.mk12-business-copy strong{font-size:13px}.mk12-business-copy small{font-size:8px}.mk12-business-object>.mk12-card-arrow{position:absolute;right:13px;top:13px;color:#fff;text-shadow:0 1px 5px #000}.mk12-place-object{grid-column:1/-1;grid-row:3;height:128px;right:auto}.mk12-status{width:calc(100% - 24px);gap:24px;padding-bottom:15px}.mk-network{padding-top:58px}.mk-cta{margin-left:-12px;margin-right:-12px;padding:45px 24px 40px}.mk-cta h2{font-size:40px}
+}
+@media(max-width:380px){
+  .mk12-gallery{grid-template-columns:1fr}.mk12-main-object,.mk12-second-object,.mk12-business-object,.mk12-place-object{grid-column:1}.mk12-second-object{grid-row:2}.mk12-business-object{grid-row:3}.mk12-place-object{grid-row:4}.mk12-second-media{height:260px}.mk12-business-object{display:grid;grid-template-columns:100px 1fr auto}.mk12-business-media{width:100px;height:100px}
+}
+@media(prefers-reduced-motion:reduce){.mk12-main-media img,.mk12-second-media img,.mk12-realm,.mk12-realm-arrow,.mk12-search-action span,.mk12-card-arrow{transition:none!important;transform:none!important}}
 
 /* ── 01 / IMMERSIVE ENTRANCE ───────────────────────────────── */
 .mk-stage{--orbit-x:0px;--orbit-y:0px;--orbit2-x:0px;--orbit2-y:0px;--goods-x:0px;--goods-y:0px;--business-x:0px;--business-y:0px;--property-x:0px;--property-y:0px;--float-a-x:0px;--float-a-y:0px;--float-b-x:0px;--float-b-y:0px;position:relative;min-height:min(860px,100svh);overflow:hidden;background:#101712;color:#f6f3ea;isolation:isolate}

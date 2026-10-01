@@ -2,24 +2,15 @@
 // The front door — for first-time visitors. Leads with trust + the promise,
 // shows what you can do, proves how trust works, routes each audience in.
 import { useRouter } from 'vue-router'
-import BrandMark from '../components/BrandMark.vue'
+import AppHeader from '../components/AppHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
 const router = useRouter()
 </script>
 
 <template>
 <div class="ld">
-  <!-- top bar: brand + demoted sign-in -->
-  <header class="ld-nav">
-    <div class="ld-nav-in">
-      <BrandMark variant="full" :height="30" light />
-      <div class="ld-nav-r">
-        <RouterLink to="/market" class="ld-nav-link">Marketplace</RouterLink>
-        <RouterLink to="/track" class="ld-nav-link">Track a parcel</RouterLink>
-        <RouterLink to="/login" class="ld-signin">Sign in</RouterLink>
-      </div>
-    </div>
-  </header>
+  <AppHeader />
 
   <!-- HERO: promise, not login -->
   <section class="ld-hero">
@@ -108,18 +99,7 @@ const router = useRouter()
     </div>
   </section>
 
-  <footer class="ld-foot">
-    <div class="ld-foot-in">
-      <BrandMark variant="full" :height="26" />
-      <div class="ld-foot-tag">One parcel, one truth · Tanzania</div>
-      <div class="ld-foot-links">
-        <RouterLink to="/market">Marketplace</RouterLink>
-        <RouterLink to="/property">Property</RouterLink>
-        <RouterLink to="/track">Track</RouterLink>
-        <RouterLink to="/login">Sign in</RouterLink>
-      </div>
-    </div>
-  </footer>
+  <SiteFooter />
 </div>
 </template>
 
