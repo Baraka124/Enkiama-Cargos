@@ -237,7 +237,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
             </div>
             <span class="mk12-place-index">03 / Place</span>
             <strong>Property &amp; land</strong>
-            <small>Explore verified places across Tanzania.</small>
+            <small>Explore reviewed places across Tanzania.</small>
             <span class="mk12-card-arrow">↗</span>
           </RouterLink>
         </div>
@@ -268,9 +268,10 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
           </div>
         </div>
 
-        <div v-if="view==='shops' || search || activeCategory" class="mk-locationbar">
+        <div class="mk-locationbar">
           <span class="mk-util-label">Deliver to</span>
           <div class="mk-corridors">
+            <button type="button" class="mk-corr" :class="{on:!corridor}" :aria-pressed="!corridor" @click="filterCorridor('')">All Tanzania</button>
             <button type="button" v-for="c in corridors" :key="c" class="mk-corr" :class="{on:corridor===c}" :aria-pressed="corridor===c" @click="filterCorridor(c)">{{ c.replace(' Urban/West','') }}</button>
           </div>
         </div>
@@ -304,7 +305,7 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
 
       <section v-if="view==='products' && !search && !activeCategory" v-reveal class="mk-network" aria-label="Delivery network">
         <div class="mk-network-copy">
-          <span class="mk-network-index">02 / Delivery network</span>
+          <span class="mk-network-index">Movement / Delivery network</span>
           <h2>Shop by where
             <em>it needs to go.</em>
           </h2>
@@ -752,6 +753,44 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
 }
 @media(max-width:767px){
   .mk-network{padding-top:44px;padding-bottom:58px}
+}
+
+
+
+/* PHASE 26 — market usability: discovery first, context second */
+.mk-body{display:flex;flex-direction:column}
+.mk-utility{order:1}
+.mk-content{order:2}
+.mk-network{order:3}
+.mk-cta{order:4}
+.mk-locationbar{
+  display:grid;
+  grid-template-columns:90px minmax(0,1fr);
+  gap:18px;
+  align-items:start;
+  padding-top:18px;
+  margin-top:16px;
+  border-top:1px solid var(--market-line);
+}
+.mk-locationbar .mk-util-label{padding-top:4px}
+.mk-corridors{display:flex;gap:8px 18px;flex-wrap:wrap}
+.mk-corr{
+  position:relative;
+  border:0;background:transparent;padding:3px 0 7px;
+  color:#777f78;font:550 11px/1.25 var(--font-body);cursor:pointer
+}
+.mk-corr::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:var(--market-ink);transition:right .22s var(--ease)}
+.mk-corr:hover,.mk-corr.on{color:var(--market-ink)}
+.mk-corr.on::after{right:0}
+.mk-content{padding-top:42px}
+.mk-network{margin-top:76px;border-top:1px solid var(--market-line)}
+@media(max-width:767px){
+  .mk-locationbar{grid-template-columns:1fr;gap:10px}
+  .mk-corridors{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+  .mk-corridors::-webkit-scrollbar{display:none}
+  .mk-corr{flex:0 0 auto;min-height:34px}
+  .mk-content{padding-top:32px}
+  .mk-network{margin-top:56px}
 }
 
 </style>
