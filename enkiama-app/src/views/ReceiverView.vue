@@ -72,7 +72,7 @@ onMounted(load)
 <template>
   <AppHeader title="My Movement" :subtitle="'Receiver · ' + (profile?.name || 'Enkiama')" />
 
-  <main class="receiver-page">
+  <main class="receiver-page op25-receiver">
     <section v-if="!claimedPhone" class="receiver-claim">
       <div class="receiver-claim-inner receiver-claim-layout">
         <div class="receiver-claim-copy">
@@ -229,4 +229,14 @@ onMounted(load)
 
 @media(max-width:900px){.receiver-claim-layout{grid-template-columns:1fr;gap:42px}.receiver-claim-route{min-height:300px}.receiver-hero-grid{grid-template-columns:1fr;gap:34px}.receiver-network-card{max-width:620px}}
 @media(max-width:620px){.receiver-claim-inner{width:calc(100% - 28px);padding:48px 0 42px}.receiver-claim-copy h1{font-size:48px}.receiver-claim-route{min-height:250px}.claim-route-head{left:14px;right:14px;top:14px}.claim-route-head small{display:none}.claim-route-canvas{inset:48px 12px 43px}.claim-route-node b{display:none}.claim-route-ledger{left:14px;right:14px;bottom:12px}.receiver-hero{padding:52px 0 46px}.receiver-hero h1{font-size:46px}.receiver-metrics{width:100%;overflow:visible}.receiver-metrics>div{min-width:0}.receiver-content{padding-top:58px}}
+
+
+/* PHASE 25 — authenticated movement alignment */
+.op25-receiver .receiver-hero{border-bottom:1px solid rgba(255,255,255,.1)}
+.op25-receiver .receiver-network-card{border-radius:0;box-shadow:none}
+.op25-receiver .movement-group{border-top:1px solid var(--hairline);padding-top:24px}
+.op25-receiver .delivery-row{border-radius:0;box-shadow:none}
+.op25-receiver .delivery-row:hover{transform:none}
+.op25-receiver .claim-field{border-radius:6px}
+
 </style>
