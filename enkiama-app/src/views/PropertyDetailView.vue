@@ -139,7 +139,7 @@ async function renderContextMap() {
     zoomSnap: 0.5,
   }).setView([lat, lng], p.exact ? 13 : 11)
 
-  Leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(detailMap)
+  Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(detailMap)
 
   const icon = Leaflet.divIcon({
     className: 'pd-map-pin',
@@ -177,6 +177,9 @@ function nextImage(dir = 1) {
 
 function scrollToContext() {
   document.getElementById('pd-context')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+}
+function scrollToTerms() {
+  document.getElementById('pd-terms')?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
 }
 
 async function startDeal() {
@@ -263,6 +266,10 @@ watch(() => route.params.id, (next, prev) => {
                 <div><span>Region</span><b>{{ listing.region || 'Tanzania' }}</b></div>
               </div>
 
+              <div class="pd-early-actions">
+                <button type="button" class="pd-early-primary" @click="scrollToTerms">Enquire <Icon name="arrow" :size="14" /></button>
+                <button type="button" class="pd-early-secondary" @click="startDeal"><Icon name="shield" :size="14" /> Start protected purchase</button>
+              </div>
               <button type="button" class="pd-scroll-cue" @click="scrollToContext">Understand the place <Icon name="arrow" :size="14" style="transform:rotate(90deg)" /></button>
             </aside>
           </div>
@@ -355,7 +362,7 @@ watch(() => route.params.id, (next, prev) => {
       </section>
 
       <!-- 04 / TERMS — transaction becomes the quietest chapter -->
-      <section v-reveal="{variant:'section'}" class="pd-section pd-terms">
+      <section id="pd-terms" v-reveal="{variant:'section'}" class="pd-section pd-terms">
         <div class="pd-shell">
           <div class="pd-section-head"><div class="pd-index dark"><span>04</span><span>Terms</span></div><p>Move forward only when the place and verification context make sense to you.</p></div>
 
@@ -571,4 +578,28 @@ watch(() => route.params.id, (next, prev) => {
 @media(max-width:390px){
   .pd-shell{width:calc(100% - 24px)}.pd-main-image,.pd-context-map-wrap{margin-inline:-12px}.pd-thumbs{margin-right:-12px}.pd-identity h1{font-size:36px}.pd-context-intro h2{font-size:31px}.pd-ver-title h2{font-size:35px}
 }
+
+
+/* PHASE 26 — buyer decisions stay reachable */
+.pd-early-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:26px}
+.pd-early-primary,.pd-early-secondary{
+  min-height:46px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 14px;border:1px solid rgba(29,41,34,.22);font:650 11px/1 var(--font-body);cursor:pointer
+}
+.pd-early-primary{background:#263c30;color:#f8f3ea;border-color:#263c30}
+.pd-early-secondary{background:transparent;color:#263c30}
+#pd-terms{scroll-margin-top:72px}
+@media(max-width:960px){
+  .pd-early-actions{grid-template-columns:1fr 1fr;max-width:620px}
+}
+@media(max-width:680px){
+  .pd-early-actions{
+    position:sticky;bottom:0;z-index:30;grid-template-columns:1fr;
+    margin:24px -16px 0;padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb,#e8e0d2 95%,transparent);backdrop-filter:blur(14px);
+    border-top:1px solid rgba(44,58,48,.14)
+  }
+  .pd-early-primary,.pd-early-secondary{min-height:50px}
+}
+
 </style>
