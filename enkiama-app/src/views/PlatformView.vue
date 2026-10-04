@@ -415,7 +415,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
 </script>
 
 <template>
-  <div class="topbar"><div class="inner">
+  <div class="topbar op25-topbar"><div class="inner">
     <BrandMark variant="mark" :height="34" style="margin-right:2px" />
     <div class="tb-idblock"><div class="tb-name">Enkiama Cargos</div><div class="tb-role">Platform console · {{ profile?.name || 'Admin' }}</div></div>
     <div class="tb-spacer"></div>
@@ -423,7 +423,15 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
   </div></div>
 
-  <div class="wrap">
+  <div class="wrap op25-workspace op25-platform">
+    <section class="op25-console-head">
+      <div>
+        <span class="op25-console-kicker">Enkiama control plane</span>
+        <h1>Platform operations</h1>
+        <p>Carriers, movement, cash, exceptions and governance in one working surface.</p>
+      </div>
+      <div class="op25-console-status"><i></i><span>Live system</span></div>
+    </section>
     <!-- rich stat strip -->
     <div class="pstat-grid">
       <div class="pstat accent">
@@ -1091,5 +1099,63 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
 .cf-section:first-of-type{margin-top:12px}
 .cf-check{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft);margin-top:14px;cursor:pointer}
 .cf-check input{width:16px;height:16px;accent-color:var(--accent)}
+
+
+/* PHASE 25 — platform control plane */
+.op25-topbar{
+  background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--ink);
+  border-bottom:1px solid var(--hairline);box-shadow:none;backdrop-filter:blur(18px)
+}
+.op25-topbar .tb-name{font:650 14px/1.2 var(--font-display);letter-spacing:-.02em}
+.op25-topbar .tb-role{font:500 10px/1.25 var(--font-mono);letter-spacing:.04em;color:var(--ink-faint)}
+.op25-workspace.op25-platform{max-width:1440px;padding-top:34px;padding-bottom:80px}
+.op25-console-head{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:40px;align-items:end;
+  padding:8px 0 30px;border-bottom:1px solid var(--hairline);margin-bottom:0;
+}
+.op25-console-kicker{display:block;margin-bottom:12px;font:600 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-console-head h1{font:500 clamp(34px,4vw,58px)/.95 var(--font-display);letter-spacing:-.055em;color:var(--ink)}
+.op25-console-head p{max-width:650px;margin-top:14px;font-size:14px;line-height:1.65;color:var(--ink-soft)}
+.op25-console-status{display:flex;align-items:center;gap:8px;padding-bottom:3px;font:600 10px/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-console-status i{width:7px;height:7px;border-radius:50%;background:var(--go)}
+.op25-platform .pstat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0 0 26px;border-bottom:1px solid var(--hairline)}
+.op25-platform .pstat{
+  min-height:108px;border:0;border-right:1px solid var(--hairline);border-radius:0;background:transparent;padding:22px 18px;box-shadow:none
+}
+.op25-platform .pstat:last-child{border-right:0}
+.op25-platform .pstat-ic{width:28px;height:28px;border-radius:50%}
+.op25-platform .pstat-v{font:600 25px/1 var(--font-display);letter-spacing:-.04em}
+.op25-platform .pstat-l{font:500 10px/1.25 var(--font-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-platform .ptabs{
+  gap:22px;padding:0;margin:0 0 34px;border:0;border-bottom:1px solid var(--hairline);
+  border-radius:0;background:transparent;overflow-x:auto;scrollbar-width:none
+}
+.op25-platform .ptabs::-webkit-scrollbar{display:none}
+.op25-platform .ptab{
+  flex:0 0 auto;min-height:50px;padding:0 0 1px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;
+  color:var(--ink-faint);font-size:11px;font-weight:650;box-shadow:none
+}
+.op25-platform .ptab.on{color:var(--ink);border-bottom-color:var(--ink);background:transparent}
+.op25-platform .psec-head{padding:0 0 20px;border-bottom:1px solid var(--hairline);margin-bottom:0}
+.op25-platform .psec-title{font:500 30px/1 var(--font-display);letter-spacing:-.045em}
+.op25-platform .psec-sub{font-size:12px;color:var(--ink-faint)}
+.op25-platform .pcarrier-grid{gap:0;border-top:0}
+.op25-platform .pcarrier{
+  border-radius:0;border:0;border-bottom:1px solid var(--hairline);box-shadow:none;background:transparent;padding:24px 0
+}
+.op25-platform .pcarrier:hover{transform:none;box-shadow:none;background:color-mix(in srgb,var(--surface-2) 48%,transparent)}
+.op25-platform .pcarrier-stats{border-block:1px solid var(--hairline);border-radius:0;background:transparent}
+.op25-platform .panel{border-radius:0;box-shadow:none;border-color:var(--hairline)}
+@media(max-width:900px){
+  .op25-platform .pstat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .op25-platform .pstat:nth-child(2){border-right:0}
+  .op25-platform .pstat:nth-child(-n+2){border-bottom:1px solid var(--hairline)}
+}
+@media(max-width:640px){
+  .op25-console-head{grid-template-columns:1fr;gap:16px}
+  .op25-console-status{padding-bottom:0}
+  .op25-platform .pstat{min-height:94px;padding:18px 12px}
+}
+
 </style>
 
