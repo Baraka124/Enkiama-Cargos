@@ -1,6 +1,6 @@
 <script setup>
 import RegionSelect from './RegionSelect.vue'
-import { ref, inject, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, inject, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { supabase } from '../lib/supabase'
 import Icon from './Icon.vue'
 import Spinner from './Spinner.vue'
@@ -23,6 +23,17 @@ const f = ref({
 })
 const busy = ref(false)
 const isLand = () => f.value.kind === 'plot' || f.value.kind === 'farm'
+const readyChecks = computed(() => {
+  const representativeReady = f.value.lister_role !== 'representative' || (!!f.value.owner_name && !!f.value.owner_contact)
+  return [
+    { label: 'Place', done: !!f.value.title && !!f.value.region },
+    { label: 'Photo', done: !!f.value.images.length },
+    { label: 'Lister', done: representativeReady },
+    { label: 'Declaration', done: !!f.value.ownership_declared },
+  ]
+})
+const readyCount = computed(() => readyChecks.value.filter(x => x.done).length)
+const canSubmit = computed(() => readyCount.value === readyChecks.value.length)
 
 // region centres for centring the pin map (mirror of DB region_center)
 const REGION_CENTERS = {
@@ -41,7 +52,7 @@ onMounted(async () => {
   await nextTick()
   try {
     pinMap = L.map('pinmap', { zoomControl: true, attributionControl: false }).setView([-6.4, 35.0], 5)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(pinMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(pinMap)
     pinMap.on('click', (e) => dropPin(e.latlng.lat, e.latlng.lng))
     setTimeout(() => pinMap && pinMap.invalidateSize(), 200)
   } catch (e) {}
@@ -101,12 +112,19 @@ async function submit() {
 
 <template>
   <div class="pf-overlay" @click.self="emit('close')">
-    <div class="pf-modal">
+    <div v-focus-trap v-escape="() => emit('close')" class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="property-form-title" tabindex="-1">
       <div class="pf-head">
-        <h2>List a property</h2>
+        <h2 id="property-form-title">List a property</h2>
         <button class="pf-x" @click="emit('close')"><Icon name="plus" :size="18" style="transform:rotate(45deg)" /></button>
       </div>
       <p class="pf-intro">Our team reviews every listing before it goes live. Be accurate — false listings are removed.</p>
+      <div class="pf-readiness" aria-live="polite">
+        <div><span>Listing readiness</span><strong>{{ readyCount }}/{{ readyChecks.length }}</strong></div>
+        <div class="pf-readiness-track"><i :style="{width: (readyCount / readyChecks.length * 100) + '%'}"></i></div>
+        <div class="pf-readiness-items">
+          <span v-for="item in readyChecks" :key="item.label" :class="{done:item.done}"><Icon :name="item.done ? 'check' : 'clock'" :size="11" /> {{ item.label }}</span>
+        </div>
+      </div>
 
       <div class="pf-section">Type</div>
       <div class="pf-kinds">
@@ -199,7 +217,7 @@ async function submit() {
 
       <div class="pf-actions">
         <button class="btn btn-ghost" @click="emit('close')">Cancel</button>
-        <button class="btn btn-accent" style="flex:1" :disabled="busy" @click="submit">
+        <button class="btn btn-accent" style="flex:1" :disabled="busy || !canSubmit" @click="submit">
           <Spinner v-if="busy" :size="15" /><span v-else>Submit for review</span></button>
       </div>
     </div>
@@ -249,6 +267,32 @@ async function submit() {
   .pf-overlay{padding:0;align-items:stretch}
   .pf-modal{max-width:none;max-height:100dvh;min-height:100dvh;border-radius:0;padding:0 18px 28px}
   .pf-head{padding-top:18px}
+}
+
+
+
+/* PHASE 26 — listing readiness + transaction-grade form ergonomics */
+.pf-readiness{margin:16px 0 6px;padding:14px 0;border-block:1px solid var(--hairline)}
+.pf-readiness>div:first-child{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.pf-readiness>div:first-child span{font:600 10px/1 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint)}
+.pf-readiness>div:first-child strong{font:600 11px/1 var(--font-mono);color:var(--ink)}
+.pf-readiness-track{height:2px;margin:10px 0 11px;background:var(--surface-3);overflow:hidden}
+.pf-readiness-track i{display:block;height:100%;background:var(--accent);transition:width .24s var(--ease)}
+.pf-readiness-items{display:flex;gap:8px 14px;flex-wrap:wrap}
+.pf-readiness-items span{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-faint)}
+.pf-readiness-items span.done{color:var(--go-ink)}
+.pf-actions{
+  position:sticky;bottom:-28px;z-index:7;
+  margin:24px -28px -28px;padding:16px 28px calc(16px + env(safe-area-inset-bottom));
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  backdrop-filter:blur(12px);border-top:1px solid var(--hairline)
+}
+.pf-actions .btn:disabled{opacity:.45}
+.pinmap{min-height:250px}
+.pinmap-wrap{overflow:hidden;border:1px solid var(--hairline-2);border-radius:12px}
+@media(max-width:720px){
+  .pf-actions{bottom:-28px;margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px}
+  .pinmap{min-height:280px}
 }
 
 </style>
