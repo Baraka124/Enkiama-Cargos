@@ -18,8 +18,8 @@ const { signInEmail, signUpSender, signUpDriver, signUpReceiver } = useAuth()
 const AUDIENCES = {
   business: {
     role: 'sender', eyebrow: 'For businesses', accent: '#0B6E5D',
-    headline: 'Sell across Tanzania,', headlineAccent: 'delivery built in.',
-    sub: 'Open your storefront, list products, and every order ships tracked door-to-door — cash on delivery handled.',
+    headline: 'Business account', headlineAccent: 'with movement built in.',
+    sub: 'Create the business identity used for storefront orders, direct shipments and delivery records.',
     benefits: [
       ['box', 'Your own online storefront', 'List products with photos, share one link.'],
       ['route', 'Tracked delivery on every order', 'Through the Enkiama carrier network.'],
@@ -29,8 +29,8 @@ const AUDIENCES = {
   },
   driver: {
     role: 'driver', eyebrow: 'For drivers', accent: '#0B6E5D',
-    headline: 'Every trip,', headlineAccent: 'one clear record.',
-    sub: 'Get assigned parcels, follow your run, and have every delivery and cash collection tracked and reconciled for you.',
+    headline: 'Driver account', headlineAccent: 'for one clear run record.',
+    sub: 'Join a carrier, receive assignments and keep proof, cash and delivery status attached to the same run.',
     benefits: [
       ['route', 'Your run, mapped', 'See every stop in order, live.'],
       ['shield', 'Proof on every delivery', 'Photo + timestamp protects you.'],
@@ -40,8 +40,8 @@ const AUDIENCES = {
   },
   carrier: {
     role: 'carrier', eyebrow: 'For carriers', accent: '#2E6E8E',
-    headline: 'Run your fleet on', headlineAccent: 'one source of truth.',
-    sub: 'Manage drivers, dispatch parcels, reconcile cash, and give every sender and receiver live tracking — all in one operating system.',
+    headline: 'Carrier access', headlineAccent: 'to the operating system.',
+    sub: 'Set up the carrier record used for dispatch, drivers, cash reconciliation and public tracking.',
     benefits: [
       ['display', 'Command-center dispatch', 'Every parcel, driver and shilling in one view.'],
       ['bike', 'Your drivers, connected', 'Assign, invite, and track your whole team.'],
@@ -51,8 +51,8 @@ const AUDIENCES = {
   },
   receiver: {
     role: 'receiver', eyebrow: 'For frequent buyers', accent: '#0B6E5D',
-    headline: 'All your deliveries,', headlineAccent: 'in one place.',
-    sub: 'Save your deliveries, reorder from shops you love, and follow every parcel coming to you — across all carriers, live.',
+    headline: 'Receiver account', headlineAccent: 'for incoming movement.',
+    sub: 'Link incoming deliveries to one signed-in receiver identity and follow each movement record.',
     benefits: [
       ['inbox', 'Every incoming parcel', 'One place for all your deliveries.'],
       ['star', 'Reorder in a tap', 'From the shops you already trust.'],
@@ -95,7 +95,7 @@ async function submit() {
 
 <template>
   <div class="jn" :style="{ '--jn-accent': a.accent }">
-    <!-- LEFT: branded sell -->
+    <!-- LEFT: role context -->
     <div class="jn-left">
       <div class="jn-left-top">
         <RouterLink to="/" class="jn-brand"><BrandMark variant="full" :height="30" /></RouterLink>
@@ -111,7 +111,7 @@ async function submit() {
           </div>
         </div>
       </div>
-      <div class="jn-left-foot">One parcel, one truth · Enkiama Cargos</div>
+      <div class="jn-left-foot">Identity · role · access</div>
     </div>
 
     <!-- RIGHT: the form -->
@@ -182,4 +182,54 @@ async function submit() {
   .jn{grid-template-columns:1fr}
   .jn-left{display:none}
 }
+
+
+/* PHASE 25 — unified role entry */
+.jn{
+  min-height:100svh;display:grid;grid-template-columns:minmax(360px,.88fr) minmax(480px,1.12fr);
+  background:var(--world-canvas)
+}
+.jn-left{
+  background:#e9e4da;color:var(--ink);padding:44px 48px;border-right:1px solid var(--hairline);
+  position:relative;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden
+}
+.jn-left::before{display:none}
+.jn-brand :deep(img){filter:none}
+.jn-left-body{max-width:520px;margin:auto 0}
+.jn-eyebrow{
+  display:flex;align-items:center;gap:8px;margin-bottom:22px;
+  font:600 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)
+}
+.jn-dot{width:7px;height:7px;border-radius:50%;background:var(--jn-accent);box-shadow:none}
+.jn-h1{font:500 clamp(42px,5vw,68px)/.94 var(--font-display);letter-spacing:-.06em;color:var(--ink);margin-bottom:20px}
+.jn-grad{display:block;background:none;-webkit-text-fill-color:initial;color:var(--ink);font-family:var(--font-editorial);font-weight:500;letter-spacing:-.04em}
+.jn-sub{max-width:480px;font-size:14px;line-height:1.7;color:var(--ink-soft)}
+.jn-benefits{margin-top:34px;border-top:1px solid var(--hairline);display:block}
+.jn-benefit{
+  display:grid;grid-template-columns:34px 160px minmax(0,1fr);gap:14px;padding:16px 0;border-bottom:1px solid var(--hairline);align-items:start
+}
+.jn-benefit-ic{width:28px;height:28px;border-radius:50%;background:transparent;color:var(--ink-soft);border:1px solid var(--hairline)}
+.jn-benefit b{display:block;font:600 13px/1.25 var(--font-display);color:var(--ink)}
+.jn-benefit span{display:block;font-size:12px;line-height:1.5;color:var(--ink-faint)}
+.jn-left-foot{font:500 9px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-ghost)}
+.jn-right{display:flex;align-items:center;justify-content:center;padding:48px;background:var(--surface)}
+.jn-form{width:min(440px,100%)}
+.jn-switch{
+  display:grid;grid-template-columns:1fr 1fr;margin-bottom:30px;border-bottom:1px solid var(--hairline);border-radius:0;background:transparent;padding:0
+}
+.jn-switch button{min-height:44px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--ink-faint);font-weight:650}
+.jn-switch button.on{background:transparent;color:var(--ink);border-bottom-color:var(--ink)}
+.jn-submit{margin-top:8px}
+.jn-alt{margin-top:28px;padding-top:18px;border-top:1px solid var(--hairline);display:flex;gap:8px;flex-wrap:wrap}
+.jn-alt a{border-radius:999px;background:transparent}
+.jn-alt a.cur{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+@media(max-width:860px){
+  .jn{grid-template-columns:1fr}
+  .jn-left{display:block;padding:28px 24px 24px;border-right:0;border-bottom:1px solid var(--hairline)}
+  .jn-left-top{margin-bottom:34px}
+  .jn-benefits{display:none}
+  .jn-left-foot{display:none}
+  .jn-right{padding:34px 24px 48px}
+}
+
 </style>
