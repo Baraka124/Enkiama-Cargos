@@ -225,4 +225,30 @@ async function submit() {
 .pf-declare .pf-check{color:var(--accent-ink);font-weight:500;margin:0}
 .pf-actions{display:flex;gap:10px;margin-top:20px}
 .pf-rep{background:var(--surface-2);border:1px solid var(--hairline);border-radius:12px;padding:14px;margin-top:4px}
+
+
+/* SCREENSHOT QA — long-form listing dialog behaves like a working form, not a page-sized card */
+.pf-overlay{align-items:center;padding:16px;overflow:hidden}
+.pf-modal{
+  max-width:680px;
+  max-height:calc(100dvh - 32px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:0 28px 28px;
+  scrollbar-gutter:stable;
+}
+.pf-head{
+  position:sticky;top:0;z-index:8;
+  margin:0 -1px 18px;
+  padding:24px 0 17px;
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--hairline);
+}
+@media(max-width:720px){
+  .pf-overlay{padding:0;align-items:stretch}
+  .pf-modal{max-width:none;max-height:100dvh;min-height:100dvh;border-radius:0;padding:0 18px 28px}
+  .pf-head{padding-top:18px}
+}
+
 </style>
