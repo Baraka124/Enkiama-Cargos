@@ -10,7 +10,7 @@ const { carrier } = useAuth()
 const router = useRouter()
 const routeName = computed(() => router.currentRoute.value?.name || 'page')
 const routeAnnouncement = computed(() => ({
-  home:'Enkiama home', login:'Sign in', market:'Market', product:'Product', shop:'Business', property:'Property', 'property-detail':'Property detail', track:'Track a parcel', deliveries:'My movement', account:'Account', dispatch:'Dispatch', driver:'Driver workspace', send:'Sender workspace', platform:'Platform', 'not-found':'Page not found'
+  home:'Enkiama home', login:'Sign in', market:'Market', product:'Product', shop:'Business', property:'Property', 'property-detail':'Property detail', 'property-deal':'Property purchase', track:'Track a parcel', deliveries:'My movement', account:'Account', dispatch:'Dispatch', driver:'Driver workspace', send:'Business workspace', platform:'Platform', 'my-shop':'Storefront operations', join:'Create account', 'join-driver':'Driver invitation', 'driver-apply':'Driver application', reset:'Reset password', 'no-profile':'Access pending', 'not-found':'Page not found'
 }[routeName.value] || 'Enkiama') + ' loaded')
 function focusMain() {
   requestAnimationFrame(() => {
