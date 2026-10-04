@@ -6,8 +6,7 @@ import Icon from './Icon.vue'
 import Spinner from './Spinner.vue'
 import MultiPhotoUpload from './MultiPhotoUpload.vue'
 import { humanError } from '../lib/humanError'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { loadLeaflet } from '../lib/leaflet'
 
 const emit = defineEmits(['close', 'submitted'])
 const toast = inject('toast')
@@ -47,12 +46,13 @@ const REGION_CENTERS = {
   'Simiyu':[-2.8333,34.0000],'Singida':[-4.8161,34.7439],'Songwe':[-8.8000,32.8000],
   'Tabora':[-5.0167,32.8000],'Tanga':[-5.0689,39.0988],'Zanzibar Urban/West':[-6.1650,39.2000],
 }
-let pinMap = null, pinMarker = null
+let Leaflet = null, pinMap = null, pinMarker = null
 onMounted(async () => {
   await nextTick()
   try {
-    pinMap = L.map('pinmap', { zoomControl: true, attributionControl: false }).setView([-6.4, 35.0], 5)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(pinMap)
+    Leaflet ||= await loadLeaflet()
+    pinMap = Leaflet.map('pinmap', { zoomControl: true, attributionControl: false }).setView([-6.4, 35.0], 5)
+    Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(pinMap)
     pinMap.on('click', (e) => dropPin(e.latlng.lat, e.latlng.lng))
     setTimeout(() => pinMap && pinMap.invalidateSize(), 200)
   } catch (e) {}
@@ -61,7 +61,7 @@ onBeforeUnmount(() => { if (pinMap) { pinMap.remove(); pinMap = null } })
 function dropPin(lat, lng) {
   f.value.lat = lat; f.value.lng = lng
   if (pinMarker) pinMarker.setLatLng([lat, lng])
-  else pinMarker = L.marker([lat, lng]).addTo(pinMap)
+  else pinMarker = Leaflet.marker([lat, lng]).addTo(pinMap)
 }
 function clearPin() {
   f.value.lat = null; f.value.lng = null
