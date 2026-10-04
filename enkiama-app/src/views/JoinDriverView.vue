@@ -58,19 +58,19 @@ async function register() {
 <template>
   <div class="join2">
     <!-- LEFT: the pitch — why join, what you get -->
-    <aside class="join2-pitch">
+    <aside class="join2-pitch op25-join-context">
       <div class="join2-pitch-top">
         <BrandMark variant="full" :height="30" class="join2-logo" />
         <div class="join2-eyebrow">Driver onboarding</div>
-        <h1 class="join2-hero">Drive with <span>{{ info?.valid ? info.carrier : 'Enkiama' }}</span>.<br>Get paid, tracked, on time.</h1>
-        <p class="join2-sub">Every delivery logged end to end. You always see your assigned parcels, your earnings, and the cash you're holding — nothing hidden, nothing disputed.</p>
+        <h1 class="join2-hero">Drive with <span>{{ info?.valid ? info.carrier : 'Enkiama' }}</span>.<br>Join the carrier run record.</h1>
+        <p class="join2-sub">Your carrier invitation links this account to assignments, proof of delivery and cash records.</p>
       </div>
       <ul class="join2-benefits">
         <li><span class="join2-bic"><Icon name="box" :size="16" /></span><div><b>Your run, clearly laid out</b><span>See every parcel, pickup, and drop the moment it's assigned.</span></div></li>
         <li><span class="join2-bic"><Icon name="cash" :size="16" /></span><div><b>Cash tracked to the shilling</b><span>Every collection and remittance recorded — your record protects you.</span></div></li>
         <li><span class="join2-bic"><Icon name="pin" :size="16" /></span><div><b>Proof at every step</b><span>Photo proof of delivery, timestamps, one verified truth.</span></div></li>
       </ul>
-      <div class="join2-trust"><Icon name="check" :size="14" /> Trusted road-freight platform · one parcel, one truth</div>
+      <div class="join2-trust"><Icon name="check" :size="14" /> Carrier invitation · driver identity · access</div>
     </aside>
 
     <!-- RIGHT: the action -->
@@ -88,8 +88,8 @@ async function register() {
 
       <div v-else class="join2-form-wrap">
         <div class="join2-form-head">
-          <h2>Create your driver account</h2>
-          <p>Joining <strong>{{ info.carrier }}</strong> — takes a minute.</p>
+          <h2>Create driver access</h2>
+          <p>Joining <strong>{{ info.carrier }}</strong> — this account will be linked to that carrier.</p>
         </div>
         <label class="fld">Full name<input v-model="form.name" placeholder="e.g. Juma Hassan" /></label>
         <div class="join2-row">
@@ -101,7 +101,7 @@ async function register() {
         <label class="fld">Email<input v-model="form.email" type="email" autocomplete="email" placeholder="you@example.com" /></label>
         <label class="fld">Create a password<input v-model="form.password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /></label>
         <button class="auth-btn" :disabled="busy" @click="register">
-          <Spinner v-if="busy" :size="16" /><span v-else>Create my driver account</span>
+          <Spinner v-if="busy" :size="16" /><span v-else>Create driver account</span>
         </button>
         <p class="join2-foot"><Icon name="check" :size="13" /> Your carrier manages your assignments. You control your profile.</p>
       </div>
@@ -154,4 +154,39 @@ async function register() {
   .join2-benefits{margin:24px 0;gap:14px}
   .join2-action{padding:32px 24px}
 }
+
+
+/* PHASE 25 — invited driver entry */
+.join2{min-height:100svh;grid-template-columns:minmax(360px,.88fr) minmax(480px,1.12fr);background:var(--surface)}
+.join2-pitch{
+  background:#e9e4da;color:var(--ink);padding:44px 48px;border-right:1px solid var(--hairline)
+}
+.join2-pitch::before,.join2-pitch::after{display:none}
+.join2-logo{margin-bottom:42px;opacity:1}
+.join2-eyebrow{font:600 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:18px}
+.join2-hero{font:500 clamp(40px,5vw,62px)/.95 var(--font-display);letter-spacing:-.06em;color:var(--ink)}
+.join2-hero span{color:var(--ink);font-family:var(--font-editorial);font-weight:500}
+.join2-sub{font-size:14px;line-height:1.7;color:var(--ink-soft);max-width:470px}
+.join2-benefits{border-top:1px solid var(--hairline);gap:0;margin:34px 0}
+.join2-benefits li{display:grid;grid-template-columns:32px 150px minmax(0,1fr);gap:12px;padding:15px 0;border-bottom:1px solid var(--hairline)}
+.join2-bic{width:28px;height:28px;border-radius:50%;background:transparent;color:var(--ink-soft);border:1px solid var(--hairline)}
+.join2-benefits b{color:var(--ink);font:600 13px/1.25 var(--font-display)}
+.join2-benefits span{color:var(--ink-faint);font-size:12px;line-height:1.5}
+.join2-trust{font:500 9px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost)}
+.join2-trust :deep(svg){color:var(--ink-soft)}
+.join2-action{background:var(--surface);padding:48px}
+.join2-form-wrap{max-width:440px}
+.join2-form-head{padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid var(--hairline)}
+.join2-form-head h2{font:500 30px/1 var(--font-display);letter-spacing:-.045em}
+.join2-sep{font:600 9px/1 var(--font-mono);letter-spacing:.12em;color:var(--ink-ghost)}
+.join2-foot{justify-content:flex-start;font-size:11px;color:var(--ink-faint)}
+.join2-bad{text-align:left}
+.join2-bad-ic{margin:0 0 16px;border-radius:50%}
+@media(max-width:860px){
+  .join2{grid-template-columns:1fr}
+  .join2-pitch{padding:28px 24px;border-right:0;border-bottom:1px solid var(--hairline)}
+  .join2-benefits{display:none}
+  .join2-action{padding:34px 24px 48px}
+}
+
 </style>
