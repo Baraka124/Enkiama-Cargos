@@ -9,7 +9,7 @@ import AppHeader from '../components/AppHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import MediaFrame from '../components/MediaFrame.vue'
 import { viewName, signalMotionReady } from '../lib/motion'
-import { firstMedia } from '../lib/media'
+import { firstMedia, validMediaUrl } from '../lib/media'
 import { formatNumber } from '../lib/format'
 
 const stores = ref([])
@@ -219,10 +219,14 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
           </RouterLink>
 
           <button type="button" v-if="heroStore" class="mk12-business-object" v-reveal="{variant:'media',delay:190}" @click="setView('shops')" data-cursor="Enter">
-            <MediaFrame class="mk12-business-media" v-depth="{pointer:3.2,scroll:7,rotate:.22,scale:1.006}" :src="heroStore.cover_url" :alt="`${heroStore.name} storefront`" tone="business" fallback-title="Business image not supplied" fallback-note="Store identity remains visible through its logo and products.">
+            <MediaFrame v-if="validMediaUrl(heroStore.cover_url)" class="mk12-business-media" v-depth="{pointer:3.2,scroll:7,rotate:.22,scale:1.006}" :src="heroStore.cover_url" :alt="`${heroStore.name} storefront`" tone="business" fallback-title="Storefront media">
               <div class="mk12-business-shade"></div>
               <div class="mk12-business-avatar" :style="{viewTransitionName:viewName('shop', heroStore.slug || heroStore.id)}"><Avatar :name="heroStore.name" :accent="heroStore.accent" :logo="heroStore.logo_url" :size="58" /></div>
             </MediaFrame>
+            <div v-else class="mk12-business-media mk12-business-media-fallback" aria-hidden="true">
+              <div class="mk12-business-fallback-lines"><i></i><i></i><i></i></div>
+              <div class="mk12-business-avatar" :style="{viewTransitionName:viewName('shop', heroStore.slug || heroStore.id)}"><Avatar :name="heroStore.name" :accent="heroStore.accent" :logo="heroStore.logo_url" :size="58" /></div>
+            </div>
             <div class="mk12-business-copy"><span>Independent business</span><strong>{{ heroStore.name }}</strong><small>{{ heroStore.tagline || 'A storefront inside Enkiama Market.' }}</small></div>
             <span class="mk12-card-arrow">↗</span>
           </button>
@@ -726,4 +730,28 @@ onMounted(() => { load(); loadCategories(); loadHeroStores() })
   .mk12-second-media{height:auto;aspect-ratio:4/3}.mk12-business-object{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center}.mk12-business-media{width:92px;height:92px}.mk12-place-object{height:124px}
   .mk12-main-media{height:clamp(330px,55svh,450px)}.mk-prow,.mk-pgrid{grid-template-columns:1fr 1fr;gap:28px 10px}.mk-shopgrid{grid-template-columns:1fr}
 }
+
+
+/* SCREENSHOT QA — quiet media fallback and tighter discovery transition */
+.mk12-business-media-fallback{
+  position:relative;
+  background:
+    radial-gradient(circle at 72% 28%,rgba(255,255,255,.32),transparent 24%),
+    linear-gradient(145deg,#dfd0bd,#c6ae90);
+}
+.mk12-business-fallback-lines{position:absolute;inset:14px;opacity:.32}
+.mk12-business-fallback-lines i{
+  position:absolute;inset:auto 0;border-top:1px solid rgba(62,47,35,.34);transform-origin:left center
+}
+.mk12-business-fallback-lines i:nth-child(1){top:27%;transform:rotate(-8deg)}
+.mk12-business-fallback-lines i:nth-child(2){top:51%;transform:rotate(5deg)}
+.mk12-business-fallback-lines i:nth-child(3){top:73%;transform:rotate(-3deg)}
+.mk-network{padding-top:52px;padding-bottom:76px}
+@media(min-width:1180px) and (max-width:1599px){
+  .mk-network{padding-top:44px;padding-bottom:68px}
+}
+@media(max-width:767px){
+  .mk-network{padding-top:44px;padding-bottom:58px}
+}
+
 </style>
