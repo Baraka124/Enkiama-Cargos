@@ -32,6 +32,7 @@ const myListings = ref([])
 const showMine = ref(false)
 const propView = ref('list')
 const selectedPin = ref(null)
+const kindCounts = ref({ plot:0, farm:0, house:0, rental:0 })
 
 let Leaflet = null
 let propMap = null
@@ -67,6 +68,11 @@ async function load() {
       p_region: null,
     })
     listings.value = data || []
+    if (!activeKind.value) {
+      const counts = { plot:0, farm:0, house:0, rental:0 }
+      for (const item of listings.value) if (Object.prototype.hasOwnProperty.call(counts, item.kind)) counts[item.kind] += 1
+      kindCounts.value = counts
+    }
   } catch (e) {
     listings.value = []
   }
@@ -286,9 +292,9 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="prop-kind-nav" aria-label="Property type">
-          <button type="button" class="prop-kind" :class="{on:!activeKind}" :aria-pressed="!activeKind" @click="setKind('')"><span>All</span><small>00</small></button>
-          <button v-for="(k,i) in KINDS" :key="k.k" type="button" class="prop-kind" :class="{on:activeKind===k.k}" :aria-pressed="activeKind===k.k" @click="setKind(k.k)">
-            <span>{{ k.label }}</span><small>0{{ i + 1 }}</small>
+          <button type="button" class="prop-kind" :class="{on:!activeKind}" :aria-pressed="!activeKind" @click="setKind('')"><span>All</span><small>{{ Object.values(kindCounts).reduce((a,b) => a+b, 0) }}</small></button>
+          <button v-for="k in KINDS" :key="k.k" type="button" class="prop-kind" :class="{on:activeKind===k.k}" :aria-pressed="activeKind===k.k" @click="setKind(k.k)">
+            <span>{{ k.label }}</span><small>{{ kindCounts[k.k] || 0 }}</small>
           </button>
         </div>
 
@@ -647,4 +653,17 @@ onBeforeUnmount(() => {
   .prop-stage,.prop-wrap{padding-left:12px;padding-right:12px}.prop-feature-media{margin-inline:-12px}.prop-trust,.prop-empty{margin-inline:-12px}.prop-map-shell{min-height:500px}
   .prop-kind-nav{gap:18px}.prop-object-copy h3{font-size:30px}
 }
+
+
+/* PHASE 26 — property browse controls communicate inventory, not decoration */
+.prop-kind small{font-variant-numeric:tabular-nums;color:rgba(29,41,34,.45)}
+.prop-kind.on small{color:inherit}
+.prop-viewbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,#f5f1e8 94%,transparent);backdrop-filter:blur(14px)}
+@media(max-width:767px){
+  .prop-kind-nav{overflow-x:auto;scrollbar-width:none;overscroll-behavior-inline:contain}
+  .prop-kind-nav::-webkit-scrollbar{display:none}
+  .prop-kind{min-width:150px;flex:0 0 auto}
+  .prop-viewbar{top:0}
+}
+
 </style>
