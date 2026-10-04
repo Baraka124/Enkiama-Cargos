@@ -236,7 +236,6 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:scale(var(--ta
   font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#fff;background:var(--accent);box-shadow:var(--shadow-sm)}
 .tb-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;line-height:1.1;letter-spacing:-.01em;color:var(--nav-ink)}
 .tb-role{font-size:11px;color:var(--nav-faint);letter-spacing:.02em;text-transform:uppercase;font-weight:500;margin-top:1px}
-.tb-role{font-size:11px;color:var(--ink-faint);letter-spacing:.02em;text-transform:uppercase;font-weight:500;margin-top:1px}
 .tb-spacer{flex:1}
 .tb-enk{font-size:11px;color:var(--ink-ghost);text-align:right;line-height:1.35}
 .tb-enk b{color:var(--ink-faint);font-weight:600}
@@ -2177,4 +2176,15 @@ img,video,canvas,svg{max-width:100%}
 @media(min-width:2200px){
   :root{--page-max:1600px;--page-gutter:96px}
   .en-shell{width:min(1600px,calc(100% - 192px))}
+}
+
+
+/* PHASE 25 QA — operational overflow and compact-width safeguards */
+.op25-workspace,.op25-workspace *{min-width:0}
+.op25-workspace input,.op25-workspace select,.op25-workspace textarea{max-width:100%}
+.op25-workspace .mono,.op25-workspace [class*="code"],.op25-workspace [class*="name"]{overflow-wrap:anywhere}
+@media(max-width:390px){
+  .op25-workspace{padding-left:12px!important;padding-right:12px!important}
+  .op25-workspace .btn{max-width:100%}
+  .op25-workspace .modal{width:calc(100vw - 24px);max-width:none}
 }
