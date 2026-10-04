@@ -1106,7 +1106,7 @@ function initials(n){ return (n||'?').split(' ').map(w=>w[0]).slice(0,2).join(''
   background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--ink);
   border-bottom:1px solid var(--hairline);box-shadow:none;backdrop-filter:blur(18px)
 }
-.op25-topbar .tb-name{font:650 14px/1.2 var(--font-display);letter-spacing:-.02em}
+.op25-topbar .tb-name{font:650 14px/1.2 var(--font-display);letter-spacing:-.02em;color:var(--ink)}
 .op25-topbar .tb-role{font:500 10px/1.25 var(--font-mono);letter-spacing:.04em;color:var(--ink-faint)}
 .op25-workspace.op25-platform{max-width:1440px;padding-top:34px;padding-bottom:80px}
 .op25-console-head{
