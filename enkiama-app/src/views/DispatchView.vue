@@ -1199,7 +1199,7 @@ function fmtWhen(ts) {
   color:var(--ink);border-bottom:1px solid var(--hairline);
   box-shadow:none;backdrop-filter:blur(18px);
 }
-.op25-topbar .tb-name{font:650 14px/1.2 var(--font-display);letter-spacing:-.02em}
+.op25-topbar .tb-name{font:650 14px/1.2 var(--font-display);letter-spacing:-.02em;color:var(--ink)}
 .op25-topbar .tb-role{color:var(--ink-faint);font:500 10px/1.25 var(--font-mono);letter-spacing:.04em}
 .op25-topbar .live-badge{border-color:var(--hairline);background:var(--surface-2);color:var(--ink-soft)}
 .op25-topbar .tb-ico{background:transparent;border-color:var(--hairline);color:var(--ink-soft)}
