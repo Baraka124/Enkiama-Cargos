@@ -252,18 +252,18 @@ async function logout(){ await signOut(); router.push('/login') }
 </script>
 
 <template>
-  <AppHeader :title="carrier?.name || 'Enkiama Cargos'" :subtitle="'Driver · ' + (profile?.name || '')" :carrier="carrier" live>
+  <AppHeader :title="carrier?.name || 'Enkiama Cargos'" :subtitle="'Driver operations · ' + (profile?.name || '')" :carrier="carrier" live>
     <button class="btn btn-accent" @click="scanOpen=true"><Icon name="camera" :size="15" /> Scan code</button>
   </AppHeader>
 
-  <div class="wrap">
+  <div class="wrap op25-workspace op25-driver">
     <!-- pending / rejected / no-carrier gate -->
     <div v-if="!spaceLoading && appStatus && appStatus.status !== 'active'" class="drv-gate">
       <div v-if="appStatus.status === 'pending'" class="drv-gate-card">
         <div class="drv-gate-ic pending"><Icon name="clock" :size="30" /></div>
         <h2>Application under review</h2>
         <p>Your application to <b>{{ appStatus.requested_carrier || 'the carrier' }}</b> is being reviewed. Once they verify your documents and approve you, you'll see parcels here and can start driving.</p>
-        <div class="drv-gate-hint"><Icon name="shield" :size="14" /> This usually takes a short while. You'll be able to work as soon as you're approved.</div>
+        <div class="drv-gate-hint"><Icon name="shield" :size="14" /> Access becomes available as soon as the carrier approves the application.</div>
       </div>
       <div v-else-if="appStatus.status === 'rejected'" class="drv-gate-card">
         <div class="drv-gate-ic rejected"><Icon name="alert" :size="30" /></div>
@@ -284,6 +284,10 @@ async function logout(){ await signOut(); router.push('/login') }
 
     <!-- normal driver dashboard (only when approved) -->
     <template v-else>
+    <div class="op25-driver-head">
+      <span>Driver run</span>
+      <div><strong>{{ pending.length }} {{ pending.length===1 ? 'active stop' : 'active stops' }}</strong><small>Assignments, collection and proof stay in one run record.</small></div>
+    </div>
     <!-- skeleton while loading -->
     <div v-if="spaceLoading" class="statrow">
       <div v-for="n in 4" :key="n" class="statcard card"><div class="skel skel-num"></div></div>
@@ -458,4 +462,42 @@ async function logout(){ await signOut(); router.push('/login') }
   .dv-actions{flex-direction:column}
   .dv-actions > *{width:100%}
 }
+
+
+/* PHASE 25 — driver task surface */
+.op25-workspace.op25-driver{max-width:980px;padding-top:24px;padding-bottom:84px}
+.op25-driver-head{
+  display:grid;grid-template-columns:150px minmax(0,1fr);gap:26px;align-items:start;
+  padding:6px 0 24px;border-bottom:1px solid var(--hairline);margin-bottom:0
+}
+.op25-driver-head>span{padding-top:4px;font:600 10px/1 var(--font-mono);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-driver-head strong{display:block;font:500 30px/1 var(--font-display);letter-spacing:-.045em}
+.op25-driver-head small{display:block;margin-top:7px;font-size:12px;line-height:1.5;color:var(--ink-faint)}
+.op25-driver .statrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-bottom:22px;border-bottom:1px solid var(--hairline)}
+.op25-driver :deep(.statcard){border:0;border-right:1px solid var(--hairline);border-radius:0;background:transparent;box-shadow:none;min-height:92px}
+.op25-driver :deep(.statcard:last-child){border-right:0}
+.op25-driver .map{border-radius:0;border:1px solid var(--hairline);box-shadow:none;min-height:300px}
+.op25-driver .nextstop{
+  margin-top:0;border-radius:0;border:1px solid var(--hairline);border-top:3px solid var(--ink);
+  background:var(--surface);box-shadow:none;padding:26px
+}
+.op25-driver .ns-lab{font:600 10px/1 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-driver .ns-who{font:500 clamp(26px,4vw,38px)/1 var(--font-display);letter-spacing:-.045em;margin-top:16px}
+.op25-driver .ns-addr{font-size:15px;line-height:1.5;color:var(--ink-soft)}
+.op25-driver .money-bar,.op25-driver .drv-fee{border-radius:0;box-shadow:none}
+.op25-driver .ns-actions{padding-top:18px;border-top:1px solid var(--hairline)}
+.op25-driver .ns-primary{min-height:52px}
+.op25-driver .sec{margin-top:38px;border-bottom:1px solid var(--hairline);padding-bottom:10px}
+.op25-driver .sec h2{font:600 16px/1.2 var(--font-display);letter-spacing:-.025em}
+.op25-driver .sec .ln{display:none}
+.op25-driver .avail-card,.op25-driver .drv-hrow{border-radius:0;border-width:0 0 1px;background:transparent;box-shadow:none}
+.op25-driver .drv-gate-card{border-radius:0;box-shadow:none;border-color:var(--hairline);max-width:640px}
+@media(max-width:720px){
+  .op25-driver-head{grid-template-columns:1fr;gap:8px}
+  .op25-driver .statrow{grid-template-columns:repeat(2,1fr)}
+  .op25-driver :deep(.statcard:nth-child(2)){border-right:0}
+  .op25-driver :deep(.statcard:nth-child(-n+2)){border-bottom:1px solid var(--hairline)}
+  .op25-driver .nextstop{padding:20px 16px}
+}
+
 </style>
