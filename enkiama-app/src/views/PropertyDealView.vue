@@ -1,5 +1,5 @@
 <script setup>
-// A land purchase as a tracked, protected journey — the custody timeline applied to buying property.
+// A land purchase as a tracked journey — a recorded timeline applied to buying property.
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '../lib/supabase'
@@ -22,9 +22,9 @@ const STAGES = [
   { key: 'enquired',    label: 'Enquiry started',    icon: 'inbox',   desc: 'Buyer expressed serious interest' },
   { key: 'viewing',     label: 'Site viewing',       icon: 'pin',     desc: 'Buyer visits and inspects the land' },
   { key: 'offer',       label: 'Offer made',         icon: 'star',    desc: 'Buyer makes a formal offer' },
-  { key: 'deposit',     label: 'Deposit in escrow',  icon: 'shield',  desc: 'Deposit held safely by Enkiama' },
-  { key: 'title_check', label: 'Title verification', icon: 'check',   desc: 'Ownership & title confirmed' },
-  { key: 'completed',   label: 'Sale completed',     icon: 'check',   desc: 'Title transferred — deal done' },
+  { key: 'deposit',     label: 'Deposit in escrow',  icon: 'shield',  desc: 'Deposit stage recorded' },
+  { key: 'title_check', label: 'Title verification', icon: 'check',   desc: 'Title-check stage recorded' },
+  { key: 'completed',   label: 'Sale completed',     icon: 'check',   desc: 'Completion recorded' },
 ]
 const STAGE_ORDER = STAGES.map(s => s.key)
 
@@ -95,7 +95,7 @@ onMounted(load)
       <div class="deal-grid">
         <!-- the signature journey timeline -->
         <div class="deal-journey">
-          <div class="deal-journey-h"><Icon name="shield" :size="15" /> Your protected purchase journey</div>
+          <div class="deal-journey-h"><Icon name="shield" :size="15" /> Your purchase record</div>
           <div v-if="cancelled" class="deal-cancelled">This purchase journey was cancelled.</div>
           <div v-else class="tl deal-tl">
             <div v-for="(st,i) in STAGES" :key="st.key" class="tl-row" :class="{done:stageDone(i), current:stageCurrent(i)}">
@@ -115,8 +115,8 @@ onMounted(load)
         <div class="deal-side">
           <div class="deal-protect">
             <div class="deal-protect-ic"><Icon name="shield" :size="20" /></div>
-            <b>Protected by Enkiama</b>
-            <p>Every step is recorded. Your deposit is held in escrow and only released when title is verified — never pay the full amount before completion.</p>
+            <b>Recorded in Enkiama</b>
+            <p>Each stage is recorded in one place. Payment handling, title checks and legal verification remain subject to the actual parties and services involved — do not treat this record as a substitute for independent due diligence.</p>
           </div>
 
           <div v-if="!cancelled && nextStage" class="deal-advance">
@@ -128,7 +128,7 @@ onMounted(load)
             </button>
           </div>
           <div v-else-if="deal.stage==='completed'" class="deal-complete">
-            <Icon name="check" :size="22" /> <b>Sale completed</b><span>Congratulations — this purchase is done.</span>
+            <Icon name="check" :size="22" /> <b>Sale completed</b><span>The purchase journey is marked complete.</span>
           </div>
 
           <button v-if="!cancelled && deal.stage!=='completed'" class="deal-cancel-btn" @click="cancelDeal">Cancel journey</button>
@@ -142,4 +142,12 @@ onMounted(load)
 .deal-wrap{max-width:1020px;padding-top:24px}.deal-load{display:flex;justify-content:center;padding:80px}.deal-back{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--world-ink-faint);text-decoration:none;margin-bottom:24px;border-bottom:1px solid transparent}.deal-back:hover{color:var(--world-ink);border-color:var(--world-line-strong)}.deal-head{display:grid;grid-template-columns:1fr auto;align-items:end;gap:30px;margin-bottom:34px;padding-bottom:24px;border-bottom:1px solid var(--world-line)}.deal-code{font:500 9.5px var(--font-mono);color:var(--world-ink-faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}.deal-title{font:600 clamp(28px,4vw,44px)/1 var(--font-display);letter-spacing:-.045em;color:var(--world-ink)}.deal-loc{font-size:12px;color:var(--world-ink-soft);display:flex;align-items:center;gap:5px;margin-top:8px}.deal-price{font:600 18px var(--font-display);color:var(--world-ink);white-space:nowrap}.deal-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:52px;align-items:start}@media(max-width:780px){.deal-grid{grid-template-columns:1fr;gap:34px}.deal-head{grid-template-columns:1fr}.deal-price{font-size:16px}}
 .deal-journey-h,.deal-advance-h{display:flex;align-items:center;gap:8px;font:600 9.5px var(--font-mono);color:var(--world-ink-faint);margin-bottom:22px;text-transform:uppercase;letter-spacing:.07em}.deal-cancelled{padding:14px 0;border-block:1px solid color-mix(in srgb,var(--util-danger) 40%,var(--world-line));color:var(--util-danger);font-weight:600;text-align:left}.deal-tl .tl-content{padding-bottom:10px}.tl-when{font-size:11.5px;color:var(--world-ink-faint);margin-top:3px}
 .deal-side{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--world-line)}.deal-protect{background:transparent;border:0;border-bottom:1px solid var(--world-line);border-radius:0;padding:20px 0;text-align:left;display:grid;grid-template-columns:34px 1fr;column-gap:12px}.deal-protect-ic{width:32px;height:32px;border-radius:6px;border:1px solid var(--world-line-strong);background:transparent;color:var(--world-accent);display:grid;place-items:center;margin:0}.deal-protect b{display:block;font-size:12px;color:var(--world-ink);margin:1px 0 4px}.deal-protect p{grid-column:2;font-size:11.5px;line-height:1.55;color:var(--world-ink-soft)}.deal-advance{background:transparent;border:0;border-bottom:1px solid var(--world-line);border-radius:0;padding:20px 0;box-shadow:none}.deal-advance-stage{display:flex;align-items:center;gap:8px;font:600 15px var(--font-display);color:var(--world-ink);margin-bottom:5px}.deal-advance-desc{font-size:11.5px;color:var(--world-ink-soft);margin-bottom:16px}.deal-complete{background:transparent;color:var(--world-accent);border-bottom:1px solid var(--world-line);border-radius:0;padding:20px 0;text-align:left;display:grid;grid-template-columns:26px 1fr;gap:4px 8px}.deal-complete b{font-size:14px}.deal-complete span{grid-column:2;font-size:11.5px}.deal-cancel-btn{background:none;border:0;color:var(--world-ink-faint);font-size:11px;font-weight:600;cursor:pointer;padding:16px 0;text-align:left}.deal-cancel-btn:hover{color:var(--util-danger)}
+
+
+/* PHASE 26 — transaction record clarity */
+.deal-protect b::after{content:" · process record";font-weight:500;color:var(--world-ink-faint)}
+.deal-protect p{max-width:34ch}
+.deal-advance{position:sticky;top:92px}
+@media(max-width:780px){.deal-advance{position:static}}
+
 </style>
