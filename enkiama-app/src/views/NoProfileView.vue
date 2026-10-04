@@ -34,16 +34,16 @@ async function logout() { await signOut(); router.push('/login') }
     <div class="np-card">
       <BrandMark variant="full" :height="42" class="np-logo" />
       <div class="np-ic"><Icon name="clock" :size="28" /></div>
-      <h1 class="np-h">You're almost in</h1>
-      <p class="np-p">You're signed in as <b>{{ email }}</b>, but your account hasn't been linked to a carrier or role yet.</p>
+      <h1 class="np-h">Access is not assigned yet.</h1>
+      <p class="np-p">Signed in as <b>{{ email }}</b>. This identity exists, but no operational role has been attached to it yet.</p>
       <div class="np-steps">
-        <div class="np-step"><span class="np-num">1</span><span>Ask your carrier admin to add you to their team.</span></div>
-        <div class="np-step"><span class="np-num">2</span><span>Once they do, tap the button below to come in.</span></div>
+        <div class="np-step"><span class="np-num">1</span><span>Ask the relevant carrier or platform administrator to assign your role.</span></div>
+        <div class="np-step"><span class="np-num">2</span><span>After the role is assigned, recheck access below.</span></div>
       </div>
-      <button class="btn btn-accent btn-block btn-lg" :disabled="checking" @click="recheck"><Spinner v-if="checking" :size="16" /><span v-else>I've been added — take me in</span></button>
+      <button class="btn btn-accent btn-block btn-lg" :disabled="checking" @click="recheck"><Spinner v-if="checking" :size="16" /><span v-else>Recheck access</span></button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px" @click="logout">Sign out</button>
     </div>
-    <p class="np-foot">Enkiama Cargos · One parcel, one truth.</p>
+    <p class="np-foot">Enkiama access control</p>
   </div>
 </template>
 
@@ -58,4 +58,21 @@ async function logout() { await signOut(); router.push('/login') }
 .np-step{display:flex;align-items:center;gap:var(--s3);font-size:var(--t-base);color:var(--ink-soft)}
 .np-num{width:26px;height:26px;border-radius:var(--r-full);background:var(--accent-soft);color:var(--accent-ink);font-weight:700;font-size:var(--t-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .np-foot{font-size:var(--t-sm);color:var(--ink-faint);margin-top:var(--s6)}
+
+
+/* PHASE 25 — unassigned identity state */
+.np-wrap{min-height:100svh;background:#e9e4da;padding:32px}
+.np-card{
+  max-width:620px;border:0;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);
+  border-radius:0;box-shadow:none;background:transparent;padding:44px 0;text-align:left
+}
+.np-logo{margin-bottom:44px}
+.np-ic{width:36px;height:36px;border-radius:50%;margin:0 0 20px}
+.np-h{font:500 clamp(34px,5vw,52px)/.96 var(--font-display);letter-spacing:-.055em;color:var(--ink)}
+.np-p{max-width:560px;font-size:14px;line-height:1.7;color:var(--ink-soft);margin:16px 0 28px}
+.np-steps{border-top:1px solid var(--hairline);gap:0;margin-bottom:28px}
+.np-step{display:grid;grid-template-columns:36px 1fr;gap:12px;padding:15px 0;border-bottom:1px solid var(--hairline);font-size:13px}
+.np-num{width:auto;height:auto;border-radius:0;background:none;font:500 10px/1 var(--font-mono);color:var(--ink-faint)}
+.np-foot{font:500 9px/1 var(--font-mono);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-ghost)}
+
 </style>
