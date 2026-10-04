@@ -39,7 +39,7 @@ let markers = []
 
 const featured = computed(() => listings.value[0] || null)
 const listingCount = computed(() => listings.value.length)
-const collectionLabel = computed(() => activeKind.value ? kindLabel(activeKind.value) : 'All verified property')
+const collectionLabel = computed(() => activeKind.value ? kindLabel(activeKind.value) : 'All reviewed listings')
 
 async function loadMine() {
   if (!session.value) return
@@ -132,8 +132,9 @@ async function renderMap() {
         scrollWheelZoom: true,
         zoomSnap: 0.5,
       }).setView([-6.4, 35.0], 6)
-      Leaflet.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
       }).addTo(propMap)
     }
 
