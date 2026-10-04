@@ -16,9 +16,9 @@ Functions) - Leaflet. Deploys as a static site.
 
 ## Current experience build
 
-**V23 — Final Visual QA + Production Hardening**
+**V24 — Public Entry + Narrative**
 
-The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement, governed media, spatial motion, resilient states, responsive art direction, and accessibility/performance hardening. See the phase notes through `PHASE_23_FINAL_PRODUCTION_HARDENING.md`.
+The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement, governed media, spatial motion, resilient states, responsive art direction, and accessibility/performance hardening. See the phase notes through `PHASE_24_PUBLIC_ENTRY_NARRATIVE.md`.
 
 ---
 
@@ -184,3 +184,8 @@ Keyboard focus, route announcements, modal focus management, contrast, reduced-m
 ## Phase 23 — Final Production Hardening
 
 The cumulative release now includes a designed 404 route, defensive number/date formatting, map-coordinate guards, governed proof media, auth-header hydration hardening, long-content overflow protection, compact/wide-screen stress protection and final release QA. Backend/data contracts remain unchanged. See `PHASE_23_FINAL_PRODUCTION_HARDENING.md`.
+
+
+## Phase 24 — Public Entry + Narrative
+
+The homepage is now an editorial index into Market, Property and Movement rather than a legacy SaaS-style marketing page. The entry experience uses the same material worlds, typography, restrained motion and trust language as the redesigned public product. No backend contracts changed. See `PHASE_24_PUBLIC_ENTRY_NARRATIVE.md`.
