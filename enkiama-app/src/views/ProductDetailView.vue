@@ -667,7 +667,7 @@ watch(() => route.params.id, (newId, oldId) => {
           <div v-if="checkoutError" class="pd-checkout-error" role="alert"><span>!</span>{{ checkoutError }}</div>
 
           <footer class="pd-checkout-actions">
-            <button type="button" v-if="checkoutStep > 1" class="pd-checkout-back" type="button" :disabled="ordering" @click="checkoutBack">← Back</button>
+            <button type="button" v-if="checkoutStep > 1" class="pd-checkout-back" :disabled="ordering" @click="checkoutBack">← Back</button>
             <span v-else class="pd-checkout-security"><Icon name="shield" :size="13" /> Tracked by Enkiama</span>
 
             <button v-if="checkoutStep < 4" class="pd-checkout-next" type="button" @click="checkoutNext">
