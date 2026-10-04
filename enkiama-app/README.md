@@ -16,7 +16,7 @@ Functions) - Leaflet. Deploys as a static site.
 
 ## Current experience build
 
-**V24 — Public Entry + Narrative**
+**V25 — Operational System Consolidation**
 
 The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement, governed media, spatial motion, resilient states, responsive art direction, and accessibility/performance hardening. See the phase notes through `PHASE_24_PUBLIC_ENTRY_NARRATIVE.md`.
 
@@ -189,3 +189,8 @@ The cumulative release now includes a designed 404 route, defensive number/date 
 ## Phase 24 — Public Entry + Narrative
 
 The homepage is now an editorial index into Market, Property and Movement rather than a legacy SaaS-style marketing page. The entry experience uses the same material worlds, typography, restrained motion and trust language as the redesigned public product. No backend contracts changed. See `PHASE_24_PUBLIC_ENTRY_NARRATIVE.md`.
+
+
+## Phase 25 — Operational System Consolidation
+
+Authenticated workspaces now follow the same visual discipline as the public system: denser operational hierarchy, line-based tabs and ledgers, task-first driver surfaces, calmer seller management, and unified role onboarding. Backend contracts remain unchanged. See `PHASE_25_OPERATIONAL_SYSTEM_CONSOLIDATION.md`.
