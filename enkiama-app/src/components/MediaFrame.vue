@@ -46,7 +46,7 @@ function onError() { loaded.value = false; failed.value = true; emit('error') }
     <div v-if="source && !loaded && !failed" class="en-media-skeleton" aria-hidden="true"></div>
     <div v-if="!source || failed" class="en-media-fallback" role="img" :aria-label="alt || fallbackTitle">
       <div class="en-media-fallback-mark" aria-hidden="true"><span></span><span></span><span></span></div>
-      <strong>{{ failed ? 'Image unavailable' : fallbackTitle }}</strong>
+      <strong>{{ failed ? (fallbackTitle || 'Image unavailable') : fallbackTitle }}</strong>
       <small v-if="fallbackNote">{{ fallbackNote }}</small>
     </div>
     <slot />
