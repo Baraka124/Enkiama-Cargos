@@ -253,19 +253,19 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
 </script>
 
 <template>
-  <AppHeader title="My storefront" :subtitle="'Business · ' + (profile?.name || '')">
+  <AppHeader title="Storefront operations" :subtitle="'Business · ' + (profile?.name || '')">
     <RouterLink v-if="store" :to="`/shop/${store.slug}`" class="btn btn-ghost">View public page</RouterLink>
     <button class="btn btn-ghost" style="margin-left:8px" @click="logout">Sign out</button>
   </AppHeader>
 
-  <div class="wrap" style="max-width:760px">
+  <div class="wrap op25-workspace op25-storefront" style="max-width:980px">
     <Skeleton v-if="loading" variant="line" :count="6" />
     <template v-else>
       <!-- FIRST-RUN WELCOME — only for a brand-new business with no shop yet -->
       <div v-if="!store" class="biz-welcome">
         <div class="biz-welcome-badge"><Icon name="box" :size="22" /></div>
-        <h1>Welcome to Enkiama Cargos</h1>
-        <p>Let's get your shop live. In three steps you'll be selling with tracked delivery built in — every order ships through a real carrier and both you and your buyer follow it end to end.</p>
+        <h1>Set up your storefront</h1>
+        <p>Create the public business record, add products, and select the carrier responsible for storefront orders.</p>
         <div class="biz-steps">
           <div class="biz-step"><span class="biz-step-n">1</span><div><b>Open your shop</b><span>Name, handle, and what you sell — just below.</span></div></div>
           <div class="biz-step"><span class="biz-step-n">2</span><div><b>Add products &amp; a carrier</b><span>List items with photos, pick who delivers.</span></div></div>
@@ -303,7 +303,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         </div>
       </div>
       <div v-else-if="store && setupComplete" class="setup-done-banner">
-        <Icon name="check" :size="16" /> Your shop is fully set up — nicely done.
+        <Icon name="check" :size="16" /> Storefront setup complete.
       </div>
 
       <!-- #10 verified shop -->
@@ -311,7 +311,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
         <div class="verif-ic"><Icon :name="verifState==='verified' ? 'shield' : verifState==='pending' ? 'clock' : 'shield'" :size="20" /></div>
         <div class="verif-body">
           <template v-if="verifState==='verified'">
-            <b>Verified shop</b><span>Buyers see the Verified badge on your storefront — a strong trust signal.</span>
+            <b>Verified shop</b><span>Verified status is visible on your public storefront.</span>
           </template>
           <template v-else-if="verifState==='pending'">
             <b>Verification under review</b><span>We're reviewing your business details. You'll get the Verified badge once approved.</span>
@@ -321,7 +321,7 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
             <button class="btn btn-accent verif-btn" @click="showVerify=true">Apply again</button>
           </template>
           <template v-else>
-            <b>Become a verified shop</b><span>Verified shops earn a trust badge that makes buyers far more likely to order. Apply with your business details.</span>
+            <b>Become a verified shop</b><span>Verified status appears on the public storefront after the platform reviews your business details.</span>
             <button class="btn btn-accent verif-btn" @click="showVerify=true"><Icon name="shield" :size="14" /> Apply for verification</button>
           </template>
         </div>
@@ -547,4 +547,33 @@ onMounted(async () => { await load(); await loadCarriers(); await loadSections()
   .mgr-opt-btn{font-size:11px;padding:5px 9px}
   .setup-ring-wrap{flex-direction:column;text-align:center;gap:12px}
 }
+
+
+/* PHASE 25 — storefront operations */
+.op25-workspace.op25-storefront{padding-top:30px;padding-bottom:84px}
+.op25-storefront .biz-welcome{
+  padding:8px 0 34px;margin-bottom:0;border:0;border-bottom:1px solid var(--hairline);border-radius:0;background:transparent;box-shadow:none;text-align:left
+}
+.op25-storefront .biz-welcome-badge{width:34px;height:34px;border-radius:50%;margin:0 0 18px}
+.op25-storefront .biz-welcome h1{font:500 clamp(34px,5vw,52px)/.96 var(--font-display);letter-spacing:-.055em}
+.op25-storefront .biz-welcome>p{max-width:680px;margin:14px 0 0;font-size:14px;line-height:1.68;color:var(--ink-soft)}
+.op25-storefront .biz-steps{margin-top:32px;border-top:1px solid var(--hairline);gap:0}
+.op25-storefront .biz-step{display:grid;grid-template-columns:42px 170px minmax(0,1fr);gap:18px;padding:16px 0;border-bottom:1px solid var(--hairline)}
+.op25-storefront .biz-step-n{width:auto;height:auto;border:0;border-radius:0;background:none;font:500 10px/1 var(--font-mono);color:var(--ink-faint)}
+.op25-storefront .biz-step b{font:600 13px/1.3 var(--font-display)}
+.op25-storefront .biz-step span{font-size:12px;line-height:1.5;color:var(--ink-faint)}
+.op25-storefront .biz-progress,.op25-storefront .setup-card,.op25-storefront .verif-card,.op25-storefront .mgr-card{
+  border-radius:0;box-shadow:none;border-color:var(--hairline);background:var(--surface)
+}
+.op25-storefront .mgr-card{padding:28px 0;border-width:1px 0 0;margin-top:28px}
+.op25-storefront .form-section-h{font:600 10px/1.2 var(--font-mono);letter-spacing:.1em;padding-bottom:12px}
+.op25-storefront .mgr-prods{border-top:1px solid var(--hairline)}
+.op25-storefront .mgr-prod{border-radius:0;border-width:0 0 1px;background:transparent;padding:16px 0}
+.op25-storefront .carrier-opt{border-radius:0;box-shadow:none}
+.op25-storefront .setup-done-banner{border-radius:0;box-shadow:none}
+@media(max-width:700px){
+  .op25-storefront .biz-step{grid-template-columns:32px 1fr;gap:8px 14px}
+  .op25-storefront .biz-step>div{grid-column:2}
+}
+
 </style>
