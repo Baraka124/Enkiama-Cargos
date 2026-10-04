@@ -119,11 +119,15 @@ async function logout() { await signOut(); router.push('/login') }
 </script>
 
 <template>
-  <AppHeader title="My business" :subtitle="profile?.name || ''">
+  <AppHeader title="Business workspace" :subtitle="profile?.name || ''">
     <RouterLink to="/my-shop" class="btn btn-accent">{{ shopData?.has_shop ? 'My storefront' : 'Open storefront' }}</RouterLink>
   </AppHeader>
 
-  <div class="wrap" :style="{maxWidth: (tab==='overview' && !shopData?.has_shop) ? '1080px' : '820px'}">
+  <div class="wrap op25-workspace op25-sender" :style="{maxWidth: (tab==='overview' && !shopData?.has_shop) ? '1180px' : '980px'}">
+    <section class="op25-workspace-head">
+      <span>Business operations</span>
+      <div><h1>Orders, movement and storefront.</h1><p>Manage selling activity and direct shipments without leaving the same operating record.</p></div>
+    </section>
     <div class="dtabs">
       <button class="dtab" :class="{on:tab==='overview'}" @click="tab='overview'">Overview</button>
       <button class="dtab" :class="{on:tab==='orders'}" @click="tab='orders'">Orders <span v-if="shopData?.orders?.length" class="tb-count">{{ shopData.orders.length }}</span></button>
@@ -148,63 +152,18 @@ async function logout() { await signOut(); router.push('/login') }
         </div>
       </template>
       <template v-else>
-        <div class="biz2">
-          <!-- editorial hero: asymmetric, bold, with a live storefront preview -->
-          <div class="biz2-hero">
-            <div class="biz2-hero-l">
-              <div class="biz2-eyebrow"><span class="biz2-dot"></span> Sell on Enkiama</div>
-              <h1 class="biz2-h1">Your shop.<br>Delivered across<br><span class="biz2-grad">Tanzania.</span></h1>
-              <p class="biz2-sub">List products once. Every order ships door-to-door with live tracking and cash-on-delivery handled — you sell, we move the cargo.</p>
-              <div class="biz2-cta">
-                <RouterLink to="/my-shop" class="btn btn-accent btn-lg"><Icon name="box" :size="16" /> Open your storefront</RouterLink>
-                <button class="btn btn-ghost btn-lg" @click="tab='send'">Just send a parcel →</button>
-              </div>
-              <div class="biz2-proof">
-                <div class="biz2-proof-i"><b>Free</b><span>to list</span></div>
-                <div class="biz2-proof-sep"></div>
-                <div class="biz2-proof-i"><b>Tracked</b><span>every order</span></div>
-                <div class="biz2-proof-sep"></div>
-                <div class="biz2-proof-i"><b>COD</b><span>handled</span></div>
-              </div>
-            </div>
-            <!-- storefront preview mockup -->
-            <div class="biz2-hero-r">
-              <div class="biz2-preview">
-                <div class="biz2-pv-top"><span class="biz2-pv-dot"></span><span class="biz2-pv-dot"></span><span class="biz2-pv-dot"></span><span class="biz2-pv-url">enkiama.com/shop/you</span></div>
-                <div class="biz2-pv-body">
-                  <div class="biz2-pv-shop">
-                    <div class="biz2-pv-logo">{{ (profile?.name||'S').slice(0,1) }}</div>
-                    <div><div class="biz2-pv-name">{{ profile?.name || 'Your shop' }}</div><div class="biz2-pv-tag"><span class="biz2-pv-verified"><Icon name="check" :size="9" /> Verified delivery</span></div></div>
-                  </div>
-                  <div class="biz2-pv-grid">
-                    <div class="biz2-pv-card"><div class="biz2-pv-img a"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 25,000</div></div>
-                    <div class="biz2-pv-card"><div class="biz2-pv-img b"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 45,000</div></div>
-                    <div class="biz2-pv-card"><div class="biz2-pv-img c"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 12,000</div></div>
-                    <div class="biz2-pv-card"><div class="biz2-pv-img d"></div><div class="biz2-pv-pn">Product</div><div class="biz2-pv-pp">TZS 80,000</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="biz2-float biz2-float-1"><Icon name="truck" :size="15" /> On the road</div>
-              <div class="biz2-float biz2-float-2"><Icon name="check" :size="15" /> Delivered · Mbeya</div>
-            </div>
+        <div class="op25-business-start">
+          <div class="op25-start-kicker">Storefront setup</div>
+          <h1>Open a storefront when you are ready to sell.</h1>
+          <p>Your business account can also send parcels directly. A storefront adds products, incoming orders and a public business page to the same movement system.</p>
+          <div class="op25-start-ledger">
+            <div><span>01</span><strong>Storefront</strong><p>Add the business identity, products and public information buyers need.</p></div>
+            <div><span>02</span><strong>Carrier</strong><p>Select who moves storefront orders and keep delivery attached to each transaction.</p></div>
+            <div><span>03</span><strong>Orders</strong><p>Prepare, release and track orders from this workspace.</p></div>
           </div>
-
-          <!-- operational how-it-works strip -->
-          <div class="biz2-how">
-            <div class="biz2-how-step">
-              <div class="biz2-how-n">01</div>
-              <div class="biz2-how-txt"><b>Set up your storefront</b><span>Add products, photos, and sections in minutes.</span></div>
-            </div>
-            <div class="biz2-how-arrow"><Icon name="arrowRight" :size="16" /></div>
-            <div class="biz2-how-step">
-              <div class="biz2-how-n">02</div>
-              <div class="biz2-how-txt"><b>Share your link</b><span>Customers browse and order from the marketplace.</span></div>
-            </div>
-            <div class="biz2-how-arrow"><Icon name="arrowRight" :size="16" /></div>
-            <div class="biz2-how-step">
-              <div class="biz2-how-n">03</div>
-              <div class="biz2-how-txt"><b>Orders ship &amp; track</b><span>Every order lands here, tracked door to door.</span></div>
-            </div>
+          <div class="op25-start-actions">
+            <RouterLink to="/my-shop" class="btn btn-accent btn-lg"><Icon name="box" :size="16" /> Set up storefront</RouterLink>
+            <button class="btn btn-ghost btn-lg" @click="tab='send'">Send a parcel</button>
           </div>
         </div>
       </template>
@@ -535,6 +494,53 @@ button.biz-stat:hover{box-shadow:var(--shadow-sm)}
   .biz2-how{flex-direction:column}
   .biz2-how-arrow{transform:rotate(90deg);padding:0 18px}
 }
+
+
+/* PHASE 25 — business operations */
+.op25-workspace.op25-sender{padding-top:30px;padding-bottom:78px}
+.op25-workspace-head{
+  display:grid;grid-template-columns:200px minmax(0,1fr);gap:40px;align-items:start;
+  padding:4px 0 28px;border-bottom:1px solid var(--hairline)
+}
+.op25-workspace-head>span{padding-top:8px;font:600 10px/1 var(--font-mono);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-workspace-head h1{font:500 clamp(31px,4vw,48px)/.96 var(--font-display);letter-spacing:-.05em;color:var(--ink)}
+.op25-workspace-head p{max-width:600px;margin-top:12px;font-size:13px;line-height:1.65;color:var(--ink-soft)}
+.op25-sender .dtabs{
+  gap:22px;padding:0;margin:0 0 30px;border:0;border-bottom:1px solid var(--hairline);border-radius:0;background:transparent;overflow-x:auto;scrollbar-width:none
+}
+.op25-sender .dtabs::-webkit-scrollbar{display:none}
+.op25-sender .dtab{flex:0 0 auto;min-height:50px;padding:0;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--ink-faint);box-shadow:none}
+.op25-sender .dtab.on{background:transparent;color:var(--ink);border-bottom-color:var(--ink)}
+.op25-sender .biz-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-bottom:1px solid var(--hairline)}
+.op25-sender .biz-stat{border:0;border-right:1px solid var(--hairline);border-radius:0;background:transparent;box-shadow:none;padding:22px 16px;text-align:left}
+.op25-sender .biz-stat:last-child{border-right:0}
+.op25-sender .biz-stat-v{font:600 25px/1 var(--font-display);letter-spacing:-.04em}
+.op25-sender .biz-stat-l{font:500 10px/1.3 var(--font-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-sender .biz-quick{gap:0;border-bottom:1px solid var(--hairline)}
+.op25-sender .biz-quick-card{border:0;border-right:1px solid var(--hairline);border-radius:0;background:transparent;box-shadow:none;padding:20px}
+.op25-sender .biz-quick-card:last-child{border-right:0}
+.op25-sender .biz-quick-card:hover{transform:none;background:var(--surface-2);box-shadow:none}
+.op25-sender .panel{border-radius:0;box-shadow:none;border-color:var(--hairline)}
+.op25-business-start{padding:48px 0 30px;max-width:960px}
+.op25-start-kicker{font:600 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:18px}
+.op25-business-start h1{max-width:720px;font:500 clamp(38px,5vw,62px)/.95 var(--font-display);letter-spacing:-.06em}
+.op25-business-start>p{max-width:700px;margin-top:22px;font-size:15px;line-height:1.72;color:var(--ink-soft)}
+.op25-start-ledger{margin-top:44px;border-top:1px solid var(--hairline)}
+.op25-start-ledger>div{display:grid;grid-template-columns:52px 180px minmax(0,1fr);gap:24px;padding:20px 0;border-bottom:1px solid var(--hairline)}
+.op25-start-ledger span{font:500 10px/1 var(--font-mono);color:var(--ink-faint);padding-top:3px}
+.op25-start-ledger strong{font:600 15px/1.2 var(--font-display)}
+.op25-start-ledger p{font-size:13px;line-height:1.55;color:var(--ink-soft)}
+.op25-start-actions{display:flex;gap:10px;margin-top:28px;flex-wrap:wrap}
+@media(max-width:760px){
+  .op25-workspace-head{grid-template-columns:1fr;gap:14px}
+  .op25-workspace-head>span{padding-top:0}
+  .op25-sender .biz-stats{grid-template-columns:repeat(2,1fr)}
+  .op25-sender .biz-stat:nth-child(2){border-right:0}
+  .op25-sender .biz-stat:nth-child(-n+2){border-bottom:1px solid var(--hairline)}
+  .op25-start-ledger>div{grid-template-columns:36px 1fr;gap:10px 16px}
+  .op25-start-ledger p{grid-column:2}
+}
+
 </style>
 
 <style scoped>
