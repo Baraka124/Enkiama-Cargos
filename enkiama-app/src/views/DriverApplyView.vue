@@ -43,16 +43,16 @@ async function submit() {
 <template>
   <AppHeader title="Become a driver" subtitle="Join a carrier" />
 
-  <div class="da-hero">
+  <div class="da-hero op25-da-hero">
     <div class="da-hero-inner">
       <div class="da-eyebrow"><Icon name="bike" :size="14" /> Driver application</div>
-      <h1 class="da-h1">Join a carrier, <span class="da-grad">start earning.</span></h1>
-      <p class="da-sub">Choose the carrier you want to drive for and verify your identity. Once they approve you, you'll see parcels and can start running.</p>
+      <h1 class="da-h1">Choose a carrier.<br><span class="da-grad">Verify the driver record.</span></h1>
+      <p class="da-sub">Submit the identity and vehicle information the carrier needs before assigning delivery work.</p>
     </div>
   </div>
 
   <div class="wrap da-wrap">
-    <div class="da-card">
+    <div class="da-card op25-da-card">
       <div class="da-sec">1 · Choose your carrier</div>
       <div v-if="loadingCarriers" class="da-loading"><Spinner :size="20" /></div>
       <div v-else class="da-carriers">
@@ -115,4 +115,25 @@ async function submit() {
 .da-doc-l{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:7px}
 .da-submit{margin-top:20px}
 @media(max-width:560px){.da-carriers{grid-template-columns:1fr}}
+
+
+/* PHASE 25 — driver application utility */
+.op25-da-hero{background:#e9e4da;color:var(--ink);padding:54px 24px 46px;border-bottom:1px solid var(--hairline)}
+.op25-da-hero .da-hero-inner{max-width:860px}
+.op25-da-hero .da-eyebrow{font:600 10px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-da-hero .da-h1{font:500 clamp(38px,5vw,58px)/.96 var(--font-display);letter-spacing:-.055em;color:var(--ink)}
+.op25-da-hero .da-grad{background:none;-webkit-text-fill-color:initial;color:var(--ink);font-family:var(--font-editorial);font-weight:500}
+.op25-da-hero .da-sub{max-width:620px;color:var(--ink-soft);font-size:14px;line-height:1.7}
+.da-wrap{max-width:860px;padding-top:30px;padding-bottom:72px}
+.op25-da-card{border:0;border-radius:0;box-shadow:none;background:transparent;padding:0}
+.op25-da-card .da-sec{margin:34px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--hairline);font:600 10px/1 var(--font-mono);letter-spacing:.11em;color:var(--ink-faint)}
+.op25-da-card .da-sec:first-child{margin-top:0}
+.op25-da-card .da-carriers{gap:0;border-top:1px solid var(--hairline)}
+.op25-da-card .da-carrier{border-radius:0;border-width:0 0 1px;padding:14px 0;background:transparent}
+.op25-da-card .da-carrier:hover{background:var(--surface-2)}
+.op25-da-card .da-carrier.on{background:color-mix(in srgb,var(--accent-soft) 42%,transparent);border-color:var(--hairline)}
+.op25-da-card .da-carrier-mark{border-radius:50%;width:34px;height:34px}
+.op25-da-card .da-privacy{border-radius:0;background:transparent;border-block:1px solid var(--hairline);padding:12px 0}
+@media(max-width:560px){.op25-da-card .da-carriers{grid-template-columns:1fr}}
+
 </style>
