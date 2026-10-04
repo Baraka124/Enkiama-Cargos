@@ -164,26 +164,27 @@ async function sendFleetApplication() {
     <div class="lp-grid">
       <!-- LEFT / TOP: pitch + proof -->
       <section class="lp-pitch">
-        <h1 class="lp-h1">One parcel,<br><span class="grad">one truth.</span></h1>
-        <p class="lp-sub">The ledger every road-freight carrier runs on — movement and money, tracked end to end, for every hand that touches the cargo.</p>
+        <h1 class="lp-h1">One system,<br><span class="grad">clear records.</span></h1>
+        <p class="lp-sub">Commerce, property and movement in one operating system — with identity, context and custody kept close to every decision.</p>
 
         <div class="lp-quick">
           <router-link to="/track" class="lp-quick-link"><Icon name="pin" :size="16" /> Track a parcel</router-link>
-          <router-link to="/market" class="lp-quick-link"><Icon name="box" :size="16" /> Browse the marketplace</router-link>
+          <router-link to="/market" class="lp-quick-link"><Icon name="box" :size="16" /> Browse the market</router-link>
+          <router-link to="/property" class="lp-quick-link"><Icon name="pin" :size="16" /> Explore property</router-link>
           <span class="lp-quick-note">No account needed</span>
         </div>
 
         <div class="lp-stats" v-if="stats">
-          <div class="lp-stat"><div class="lp-sv mono">{{ (stats.total_parcels||0).toLocaleString() }}</div><div class="lp-sl">parcels moved</div></div>
+          <div class="lp-stat"><div class="lp-sv mono">{{ (stats.total_parcels||0).toLocaleString() }}</div><div class="lp-sl">movements recorded</div></div>
           <div class="lp-stat"><div class="lp-sv mono">{{ stats.active_carriers||0 }}</div><div class="lp-sl">active carriers</div></div>
-          <div class="lp-stat"><div class="lp-sv mono">{{ stats.regions||0 }}</div><div class="lp-sl">destinations served</div></div>
+          <div class="lp-stat"><div class="lp-sv mono">{{ stats.regions||0 }}</div><div class="lp-sl">regions served</div></div>
         </div>
 
         <!-- real value proof, not fake activity -->
         <div class="lp-proof" v-if="stats">
-          <div class="lp-proof-row"><Icon name="check" :size="15" /><div><b>{{ (stats.delivered||0).toLocaleString() }} parcels delivered</b><span>Every one tracked end to end, cash reconciled</span></div></div>
-          <div class="lp-proof-row"><Icon name="truck" :size="15" /><div><b>{{ stats.active_carriers||0 }} carriers on the platform</b><span>Independent fleets, one shared standard</span></div></div>
-          <div class="lp-proof-row"><Icon name="box" :size="15" /><div><b>{{ stats.shops||0 }} shops selling with delivery built in</b><span>Order on the marketplace, shipped tracked</span></div></div>
+          <div class="lp-proof-row"><Icon name="check" :size="15" /><div><b>{{ (stats.delivered||0).toLocaleString() }} deliveries completed</b><span>Movement recorded end to end, including reconciliation where applicable</span></div></div>
+          <div class="lp-proof-row"><Icon name="truck" :size="15" /><div><b>{{ stats.active_carriers||0 }} carriers active</b><span>Independent operators working through one movement standard</span></div></div>
+          <div class="lp-proof-row"><Icon name="box" :size="15" /><div><b>{{ stats.shops||0 }} shops in the market</b><span>Products and delivery remain connected to the same transaction record</span></div></div>
         </div>
 
       </section>
