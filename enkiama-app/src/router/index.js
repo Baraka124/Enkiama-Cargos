@@ -37,8 +37,9 @@ const router = createRouter({
 })
 
 const EXPERIENCE_WORLD = {
-  market:'market', product:'object', property:'place', 'property-detail':'place',
-  shop:'business', track:'movement', deliveries:'movement',
+  market:'market', product:'object', property:'place', 'property-detail':'place', 'property-deal':'place',
+  shop:'business', 'my-shop':'business', send:'business',
+  track:'movement', deliveries:'movement',
 }
 // V10 — each public world has its own material atmosphere. Keep browser chrome
 // in sync on mobile so the experience does not end at the viewport edge.
