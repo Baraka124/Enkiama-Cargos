@@ -525,7 +525,7 @@ function fmtWhen(ts) {
     @done="finishOnboard"
     @add-driver="finishOnboard(); tab='team'"
     @book="finishOnboard(); bookModal=true" />
-  <div class="topbar"><div class="inner">
+  <div class="topbar op25-topbar"><div class="inner">
     <CarrierMark :slug="carrier?.slug" :mark="carrier?.mark" :name="carrier?.name" :accent="carrier?.accent" :size="38" />
     <div class="tb-idblock"><div class="tb-name">{{ carrier?.name || 'Enkiama Cargos' }}</div><div class="tb-role">{{ isAdmin ? 'Admin' : 'Dispatch' }} · {{ profile?.name }}</div></div>
     <span class="live-badge tb-live-desktop" style="margin-left:14px"><span class="dot"></span>Live</span>
@@ -557,7 +557,7 @@ function fmtWhen(ts) {
     </div>
   </div></div>
 
-  <div class="wrap">
+  <div class="wrap op25-workspace op25-dispatch">
     <div class="cmd-hero">
       <div class="cmd-greet">{{ greeting }}, {{ firstName }}</div>
       <div class="cmd-focus">
@@ -565,10 +565,10 @@ function fmtWhen(ts) {
           <span class="cmd-focus-dot"></span>{{ actionList.length }} {{ actionList.length===1?'parcel needs':'parcels need' }} your attention
         </template>
         <template v-else-if="owedTotal>0">
-          <span class="cmd-focus-dot go"></span>All moving smoothly · <Money :amount="owedTotal" /> in cash to collect
+          <span class="cmd-focus-dot go"></span>No movement exceptions · <Money :amount="owedTotal" /> in cash to collect
         </template>
         <template v-else>
-          <span class="cmd-focus-dot go"></span>Everything's on track — nothing needs you right now
+          <span class="cmd-focus-dot go"></span>No operational exceptions require attention
         </template>
       </div>
     </div>
@@ -1191,4 +1191,71 @@ function fmtWhen(ts) {
   .disp-toolbar{flex-direction:column;align-items:stretch;gap:8px}
   .disp-filters{flex-wrap:wrap}
 }
+
+
+/* PHASE 25 — operational system consolidation */
+.op25-topbar{
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  color:var(--ink);border-bottom:1px solid var(--hairline);
+  box-shadow:none;backdrop-filter:blur(18px);
+}
+.op25-topbar .tb-name{font:650 14px/1.2 var(--font-display);letter-spacing:-.02em}
+.op25-topbar .tb-role{color:var(--ink-faint);font:500 10px/1.25 var(--font-mono);letter-spacing:.04em}
+.op25-topbar .live-badge{border-color:var(--hairline);background:var(--surface-2);color:var(--ink-soft)}
+.op25-topbar .tb-ico{background:transparent;border-color:var(--hairline);color:var(--ink-soft)}
+.op25-topbar .tb-ico:hover{background:var(--surface-2);color:var(--ink)}
+.op25-workspace.op25-dispatch{max-width:1380px;padding-top:30px;padding-bottom:72px}
+.op25-dispatch .cmd-hero{
+  display:grid;grid-template-columns:minmax(180px,.55fr) minmax(0,1.45fr);gap:40px;align-items:end;
+  padding:8px 0 28px;margin-bottom:0;border-bottom:1px solid var(--hairline);background:none;box-shadow:none;border-radius:0;
+}
+.op25-dispatch .cmd-greet{font:600 10px/1.2 var(--font-mono);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-dispatch .cmd-focus{justify-self:end;max-width:760px;text-align:right;font:500 clamp(20px,2vw,28px)/1.15 var(--font-display);letter-spacing:-.035em;color:var(--ink)}
+.op25-dispatch .cmd-focus-dot{width:8px;height:8px;box-shadow:none}
+.op25-dispatch .statrow{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0 0 24px;
+  border-bottom:1px solid var(--hairline);
+}
+.op25-dispatch .statcard{
+  min-height:104px;border:0;border-right:1px solid var(--hairline);border-radius:0;background:transparent;
+  padding:22px 18px;box-shadow:none;text-align:left;
+}
+.op25-dispatch .statcard:last-child{border-right:0}
+.op25-dispatch .statcard:hover{background:color-mix(in srgb,var(--surface-2) 70%,transparent);transform:none;box-shadow:none}
+.op25-dispatch .statcard-ic{width:28px;height:28px;border-radius:50%;margin-bottom:12px}
+.op25-dispatch .statcard-v{font:600 24px/1 var(--font-display);letter-spacing:-.04em}
+.op25-dispatch .statcard-l{font:500 10px/1.3 var(--font-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint)}
+.op25-dispatch .dtabs{
+  gap:22px;padding:0;margin:0 0 28px;border-bottom:1px solid var(--hairline);background:transparent;border-radius:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.op25-dispatch .dtabs::-webkit-scrollbar{display:none}
+.op25-dispatch .dtab{
+  flex:0 0 auto;min-height:48px;padding:0 0 1px;border:0;border-bottom:2px solid transparent;border-radius:0;
+  background:transparent;color:var(--ink-faint);font:600 11px/1 var(--font-body);box-shadow:none;
+}
+.op25-dispatch .dtab.on{color:var(--ink);border-bottom-color:var(--ink);background:transparent;box-shadow:none}
+.op25-dispatch .panel,.op25-dispatch .strip{border-radius:0;box-shadow:none;border-color:var(--hairline);background:var(--surface)}
+.op25-dispatch .strip{gap:0}
+.op25-dispatch .strip .cell{border-right:1px solid var(--hairline);border-radius:0;background:transparent}
+.op25-dispatch .strip .cell:last-child{border-right:0}
+.op25-dispatch .ledger-toolbar{padding:0 0 18px;border-bottom:1px solid var(--hairline);margin-bottom:4px}
+.op25-dispatch :deep(.ship-card){border-radius:0;border-width:0 0 1px;background:transparent}
+.op25-dispatch :deep(.ship-card:hover){background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+.op25-dispatch .allclear{border-radius:0;border:1px solid var(--hairline);background:var(--surface)}
+.op25-dispatch .allclear-title{font-family:var(--font-display);letter-spacing:-.025em}
+@media(max-width:900px){
+  .op25-dispatch .cmd-hero{grid-template-columns:1fr;gap:10px}
+  .op25-dispatch .cmd-focus{justify-self:start;text-align:left}
+  .op25-dispatch .statrow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .op25-dispatch .statcard:nth-child(2){border-right:0}
+  .op25-dispatch .statcard:nth-child(-n+2){border-bottom:1px solid var(--hairline)}
+}
+@media(max-width:560px){
+  .op25-workspace.op25-dispatch{padding-top:20px}
+  .op25-dispatch .statrow{grid-template-columns:1fr 1fr}
+  .op25-dispatch .statcard{min-height:94px;padding:18px 12px}
+  .op25-dispatch .cmd-focus{font-size:20px}
+}
+
 </style>
