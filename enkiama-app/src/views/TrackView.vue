@@ -326,7 +326,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <AppHeader title="Movement" subtitle="A parcel journey you can verify" />
+  <AppHeader title="Movement" subtitle="Parcel · custody · proof" />
 
   <main class="movement-page">
     <!-- SEARCH / ARRIVAL -->
