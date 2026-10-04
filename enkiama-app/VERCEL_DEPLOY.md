@@ -38,3 +38,8 @@ git add enkiama-app
 git commit -m "Update Enkiama Market to V23"
 git push origin main
 ```
+
+
+## Deployment retry
+
+V23 deployment retriggered from the connected ChatGPT GitHub workflow after repository write access was enabled.
