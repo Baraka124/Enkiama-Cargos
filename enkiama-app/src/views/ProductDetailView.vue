@@ -528,9 +528,9 @@ watch(() => route.params.id, (newId, oldId) => {
   <!-- full-screen image viewing stays entirely presentation-only -->
   <div v-if="galleryOpen && images.length" v-focus-trap v-escape="() => galleryOpen=false" class="pd-lightbox" role="dialog" aria-modal="true" aria-label="Product image gallery" tabindex="-1" @click.self="galleryOpen=false">
     <button class="pd-lightbox-close" type="button" aria-label="Close image" @click="galleryOpen=false"><Icon name="plus" :size="20" style="transform:rotate(45deg)" /></button>
-    <button type="button" v-if="images.length > 1" class="pd-lightbox-nav prev" type="button" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
+    <button type="button" v-if="images.length > 1" class="pd-lightbox-nav prev" aria-label="Previous image" @click="nextImage(-1)"><Icon name="arrow" :size="20" style="transform:rotate(180deg)" /></button>
     <MediaFrame class="pd-lightbox-media" :src="images[activeImg]" :alt="p.name" tone="night" fit="contain" :eager="true" />
-    <button type="button" v-if="images.length > 1" class="pd-lightbox-nav next" type="button" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
+    <button type="button" v-if="images.length > 1" class="pd-lightbox-nav next" aria-label="Next image" @click="nextImage(1)"><Icon name="arrow" :size="20" /></button>
     <span class="pd-lightbox-count">{{ String(activeImg + 1).padStart(2,'0') }} / {{ String(images.length).padStart(2,'0') }}</span>
   </div>
 
