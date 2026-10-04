@@ -16,7 +16,7 @@ Functions) - Leaflet. Deploys as a static site.
 
 ## Current experience build
 
-**V25 — Operational System Consolidation**
+**V26 — Decision-First UX Refinement**
 
 The cumulative experience includes the visual foundation, global shell, Market, Object, Business, Property, Movement, utility/conversion refinement, governed media, spatial motion, resilient states, responsive art direction, and accessibility/performance hardening. See the phase notes through `PHASE_24_PUBLIC_ENTRY_NARRATIVE.md`.
 
@@ -194,3 +194,8 @@ The homepage is now an editorial index into Market, Property and Movement rather
 ## Phase 25 — Operational System Consolidation
 
 Authenticated workspaces now follow the same visual discipline as the public system: denser operational hierarchy, line-based tabs and ledgers, task-first driver surfaces, calmer seller management, and unified role onboarding. Backend contracts remain unchanged. See `PHASE_25_OPERATIONAL_SYSTEM_CONSOLIDATION.md`.
+
+
+## Phase 26 — Decision-First UX Refinement
+
+Screenshot-driven refinement now prioritizes useful inventory and decisions: Market results appear before logistics storytelling, destination filtering stays available, Property uses real category counts, listing readiness is explicit, buyer actions are reachable earlier, map behavior is consistent, and transaction language avoids overstating platform guarantees. See `PHASE_26_DECISION_FIRST_UX.md`.
