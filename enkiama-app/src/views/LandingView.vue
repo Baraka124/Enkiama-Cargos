@@ -1,205 +1,549 @@
 <script setup>
-// The front door — for first-time visitors. Leads with trust + the promise,
-// shows what you can do, proves how trust works, routes each audience in.
-import { useRouter } from 'vue-router'
 import AppHeader from '../components/AppHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 import Icon from '../components/Icon.vue'
-const router = useRouter()
 </script>
 
 <template>
-<div class="ld">
-  <AppHeader />
+  <div class="home24">
+    <AppHeader />
 
-  <!-- HERO: promise, not login -->
-  <section class="ld-hero">
-    <div class="ld-hero-in">
-      <div class="ld-eyebrow"><span class="ld-dot"></span> Tanzania's trusted delivery &amp; commerce network</div>
-      <h1 class="ld-h1">Buy, sell, and send across Tanzania —<br><span class="ld-grad">and actually trust it arrives.</span></h1>
-      <p class="ld-lede">Every parcel tracked end to end. Every shop delivered. Every plot verified. One platform where movement, money, and ownership are all accounted for — so you never have to just hope.</p>
-      <div class="ld-cta">
-        <RouterLink to="/market" class="ld-btn ld-btn-primary"><Icon name="box" :size="17" /> Explore the marketplace</RouterLink>
-        <RouterLink to="/track" class="ld-btn ld-btn-ghost"><Icon name="pin" :size="16" /> Track a parcel</RouterLink>
-      </div>
-      <div class="ld-trustline"><Icon name="shield" :size="15" /> No account needed to track or browse · Cash on delivery · Every step recorded</div>
-    </div>
-    <div class="ld-hero-visual">
-      <div class="ld-track-card">
-        <div class="ld-tc-head"><span class="ld-tc-code">ENK-2918</span><span class="ld-tc-live"><span class="ld-tc-dot"></span> On the road</span></div>
-        <div class="ld-tc-steps">
-          <div class="ld-tc-step done"><span class="ld-tc-ic"><Icon name="check" :size="12" /></span> Booked · Amina's shop</div>
-          <div class="ld-tc-step done"><span class="ld-tc-ic"><Icon name="check" :size="12" /></span> Collected · carrier verified</div>
-          <div class="ld-tc-step done"><span class="ld-tc-ic"><Icon name="check" :size="12" /></span> On road · Dar → Mbeya</div>
-          <div class="ld-tc-step now"><span class="ld-tc-ic"><Icon name="bike" :size="12" /></span> With driver · Charles</div>
-          <div class="ld-tc-step"><span class="ld-tc-ic"></span> Delivered · proof + signature</div>
+    <main>
+      <!-- ARRIVAL -->
+      <section class="home24-hero">
+        <div class="home24-shell home24-hero-grid">
+          <div class="home24-hero-copy" v-reveal="'copy'">
+            <div class="home24-kicker">Enkiama · Tanzania</div>
+            <h1>One system for<br><em>things that move</em><br>and things that stay.</h1>
+            <p>
+              Discover objects and businesses. Understand land before you act.
+              Follow movement from hand to hand. Enkiama brings commerce,
+              place and custody into one accountable experience.
+            </p>
+
+            <div class="home24-entry-actions">
+              <RouterLink to="/market" class="home24-action home24-action-primary">
+                Enter the Market <Icon name="arrow" :size="16" aria-hidden="true" />
+              </RouterLink>
+              <RouterLink to="/track" class="home24-action">
+                Track a movement <Icon name="pin" :size="15" aria-hidden="true" />
+              </RouterLink>
+            </div>
+
+            <div class="home24-hero-note">
+              <span>Browse without an account</span>
+              <span>Tracking stays public</span>
+              <span>Transactions remain governed</span>
+            </div>
+          </div>
+
+          <div class="home24-index" aria-label="Enkiama experience index" v-reveal="'media'">
+            <RouterLink to="/market" class="home24-index-row home24-index-market">
+              <span class="home24-index-no">01</span>
+              <div>
+                <small>Commerce</small>
+                <strong>Market</strong>
+                <p>Objects and Tanzanian businesses, with movement designed into the purchase.</p>
+              </div>
+              <Icon name="arrow" :size="18" aria-hidden="true" />
+            </RouterLink>
+
+            <RouterLink to="/property" class="home24-index-row home24-index-place">
+              <span class="home24-index-no">02</span>
+              <div>
+                <small>Geography</small>
+                <strong>Property</strong>
+                <p>Places presented through location, ground, context, verification and terms.</p>
+              </div>
+              <Icon name="arrow" :size="18" aria-hidden="true" />
+            </RouterLink>
+
+            <RouterLink to="/track" class="home24-index-row home24-index-movement">
+              <span class="home24-index-no">03</span>
+              <div>
+                <small>Custody</small>
+                <strong>Movement</strong>
+                <p>A recorded journey from sender to carrier to receiver, with proof where it matters.</p>
+              </div>
+              <Icon name="arrow" :size="18" aria-hidden="true" />
+            </RouterLink>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <!-- WHAT YOU CAN DO: three concrete doors -->
-  <section class="ld-section">
-    <div class="ld-sec-head"><h2>Everything in one trusted place</h2><p>Three things you can do today — each one tracked, verified, and accounted for.</p></div>
-    <div class="ld-cards">
-      <RouterLink to="/track" class="ld-card">
-        <div class="ld-card-ic"><Icon name="route" :size="22" /></div>
-        <h3>Send &amp; receive, tracked</h3>
-        <p>Book a delivery or follow one coming to you — see every step live, with proof at handover and cash reconciled.</p>
-        <span class="ld-card-go">Track a parcel <Icon name="arrow" :size="14" /></span>
-      </RouterLink>
-      <RouterLink to="/market" class="ld-card">
-        <div class="ld-card-ic"><Icon name="box" :size="22" /></div>
-        <h3>Shop, delivered</h3>
-        <p>Buy from Tanzanian businesses with delivery built in — order, pay on delivery, and track it the whole way.</p>
-        <span class="ld-card-go">Browse the marketplace <Icon name="arrow" :size="14" /></span>
-      </RouterLink>
-      <RouterLink to="/property" class="ld-card">
-        <div class="ld-card-ic"><Icon name="pin" :size="22" /></div>
-        <h3>Buy verified land</h3>
-        <p>Browse plots, farms and houses that our team reviews before they're listed — no ghost listings, no guesswork.</p>
-        <span class="ld-card-go">See verified property <Icon name="arrow" :size="14" /></span>
-      </RouterLink>
-    </div>
-  </section>
+      <!-- THREE WORLDS -->
+      <section class="home24-world home24-world-market">
+        <div class="home24-shell home24-world-grid">
+          <div class="home24-world-copy" v-reveal="'copy'">
+            <span class="home24-world-number">01 / Market</span>
+            <h2>Objects first.<br>Commerce second.</h2>
+            <p>
+              The Market is designed around what is actually being offered:
+              the object, the business behind it, its price, and how it can reach you.
+            </p>
+            <RouterLink to="/market" class="home24-text-link">
+              Explore the Market <Icon name="arrow" :size="15" aria-hidden="true" />
+            </RouterLink>
+          </div>
 
-  <!-- WHY ENKIAMA: the trust proof -->
-  <section class="ld-why">
-    <div class="ld-why-in">
-      <div class="ld-sec-head light"><h2>Why people trust Enkiama</h2><p>Trust isn't a slogan here — it's built into how everything works.</p></div>
-      <div class="ld-proof">
-        <div class="ld-proof-item"><span class="ld-proof-ic"><Icon name="shield" :size="18" /></span><div><b>A custody ledger, not a promise</b><span>Every hand that touches a parcel is recorded — booked, collected, on road, delivered.</span></div></div>
-        <div class="ld-proof-item"><span class="ld-proof-ic"><Icon name="camera" :size="18" /></span><div><b>Proof on delivery</b><span>Photo and timestamp at handover, so "it was delivered" is a fact, not a claim.</span></div></div>
-        <div class="ld-proof-item"><span class="ld-proof-ic"><Icon name="cash" :size="18" /></span><div><b>Cash reconciled</b><span>Cash-on-delivery is collected and remitted through the platform — no disputes over money.</span></div></div>
-        <div class="ld-proof-item"><span class="ld-proof-ic"><Icon name="check" :size="18" /></span><div><b>Verified sellers &amp; listings</b><span>Drivers are ID-checked by their carrier; property is reviewed before it's shown.</span></div></div>
-      </div>
-    </div>
-  </section>
+          <div class="home24-object-stage" aria-hidden="true" v-reveal="'media'">
+            <div class="home24-object-plane home24-object-plane-a">
+              <span>Object</span>
+              <i></i>
+            </div>
+            <div class="home24-object-plane home24-object-plane-b">
+              <span>Business</span>
+              <i></i>
+            </div>
+            <div class="home24-object-ledger">
+              <span>Offer</span><b>Clear</b>
+              <span>Seller</span><b>Visible</b>
+              <span>Movement</span><b>Connected</b>
+            </div>
+          </div>
+        </div>
+      </section>
 
-  <!-- HOW IT WORKS -->
-  <section class="ld-section">
-    <div class="ld-sec-head"><h2>How it works</h2></div>
-    <div class="ld-steps">
-      <div class="ld-step"><span class="ld-step-n">1</span><b>Order or send</b><p>Buy from a shop, or book a parcel with a tracked carrier.</p></div>
-      <div class="ld-step"><span class="ld-step-n">2</span><b>Follow every step</b><p>Watch it move — booked, collected, on the road, with your driver.</p></div>
-      <div class="ld-step"><span class="ld-step-n">3</span><b>Delivered with proof</b><p>Photo, signature, and cash reconciled. One parcel, one truth.</p></div>
-    </div>
-  </section>
+      <section class="home24-world home24-world-place">
+        <div class="home24-shell home24-world-grid home24-world-grid-reverse">
+          <div class="home24-place-stage" aria-hidden="true" v-reveal="'media'">
+            <div class="home24-place-gridlines"></div>
+            <div class="home24-contours">
+              <i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <span class="home24-place-pin"></span>
+            <div class="home24-place-caption">
+              <span>Ground</span>
+              <strong>Location before claim.</strong>
+            </div>
+          </div>
 
-  <!-- PER-AUDIENCE CTAs -->
-  <section class="ld-join">
-    <div class="ld-join-in">
-      <h2>Ready to build with us?</h2>
-      <div class="ld-join-grid">
-        <RouterLink to="/join/business" class="ld-join-card"><Icon name="building" :size="20" /><b>Run a business</b><span>Sell with delivery built in</span></RouterLink>
-        <RouterLink to="/driver/apply" class="ld-join-card"><Icon name="bike" :size="20" /><b>Drive</b><span>Join a carrier, start earning</span></RouterLink>
-        <RouterLink to="/join/carrier" class="ld-join-card"><Icon name="route" :size="20" /><b>Operate a fleet</b><span>Run your carrier on one system</span></RouterLink>
-        <RouterLink to="/property" class="ld-join-card"><Icon name="pin" :size="20" /><b>List property</b><span>Reach verified buyers</span></RouterLink>
-      </div>
-    </div>
-  </section>
+          <div class="home24-world-copy" v-reveal="'copy'">
+            <span class="home24-world-number">02 / Property</span>
+            <h2>See the place.<br>Understand the ground.</h2>
+            <p>
+              Property is treated as geography rather than a catalogue card:
+              location, surroundings, verification and terms stay visible before commitment.
+            </p>
+            <RouterLink to="/property" class="home24-text-link">
+              Explore Property <Icon name="arrow" :size="15" aria-hidden="true" />
+            </RouterLink>
+          </div>
+        </div>
+      </section>
 
-  <SiteFooter />
-</div>
+      <section class="home24-world home24-world-movement">
+        <div class="home24-shell home24-world-grid">
+          <div class="home24-world-copy home24-world-copy-light" v-reveal="'copy'">
+            <span class="home24-world-number">03 / Movement</span>
+            <h2>Every handoff<br>changes the record.</h2>
+            <p>
+              Movement is not a decorative map. It is the custody story:
+              who had it, what changed, where the journey stands, and what proof exists.
+            </p>
+            <RouterLink to="/track" class="home24-text-link home24-text-link-light">
+              Track a parcel <Icon name="arrow" :size="15" aria-hidden="true" />
+            </RouterLink>
+          </div>
+
+          <div class="home24-route-stage" aria-hidden="true" v-reveal="'media'">
+            <div class="home24-route-head">
+              <span>Sender</span><span>Carrier</span><span>You</span>
+            </div>
+            <div class="home24-route-line">
+              <i class="home24-route-fill"></i>
+              <b class="home24-route-node home24-route-node-a"></b>
+              <b class="home24-route-node home24-route-node-b"></b>
+              <b class="home24-route-node home24-route-node-c"></b>
+            </div>
+            <div class="home24-route-record">
+              <span>Custody</span><strong>Recorded</strong>
+              <span>Proof</span><strong>Attached</strong>
+              <span>Status</span><strong>Current</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRUST ARCHITECTURE -->
+      <section class="home24-trust">
+        <div class="home24-shell">
+          <div class="home24-trust-head" v-reveal="'copy'">
+            <span class="home24-kicker">The common layer</span>
+            <h2>Trust is a structure,<br>not a badge.</h2>
+            <p>
+              Across commerce, property and logistics, Enkiama keeps the critical
+              information attached to the decision instead of hiding it behind a promise.
+            </p>
+          </div>
+
+          <div class="home24-trust-ledger" v-reveal="'line'">
+            <div>
+              <span>01</span>
+              <strong>Identity</strong>
+              <p>Know which business, carrier or party is attached to the record.</p>
+            </div>
+            <div>
+              <span>02</span>
+              <strong>Context</strong>
+              <p>Price, place, route and terms remain visible before action.</p>
+            </div>
+            <div>
+              <span>03</span>
+              <strong>Custody</strong>
+              <p>Movement is recorded as responsibility changes hands.</p>
+            </div>
+            <div>
+              <span>04</span>
+              <strong>Proof</strong>
+              <p>Verification belongs close to the claim it supports.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PARTICIPATE -->
+      <section class="home24-participate">
+        <div class="home24-shell">
+          <div class="home24-participate-head" v-reveal="'copy'">
+            <span class="home24-kicker">Participate</span>
+            <h2>Enter from where you are.</h2>
+          </div>
+
+          <div class="home24-participate-grid">
+            <RouterLink to="/join/business" class="home24-participate-row">
+              <span><Icon name="building" :size="18" aria-hidden="true" /> Business</span>
+              <p>Sell through a storefront with movement built into the transaction.</p>
+              <Icon name="arrow" :size="16" aria-hidden="true" />
+            </RouterLink>
+
+            <RouterLink to="/join/carrier" class="home24-participate-row">
+              <span><Icon name="route" :size="18" aria-hidden="true" /> Carrier</span>
+              <p>Operate a fleet through one custody and operations system.</p>
+              <Icon name="arrow" :size="16" aria-hidden="true" />
+            </RouterLink>
+
+            <RouterLink to="/driver/apply" class="home24-participate-row">
+              <span><Icon name="bike" :size="18" aria-hidden="true" /> Driver</span>
+              <p>Join the movement network through a carrier-led workflow.</p>
+              <Icon name="arrow" :size="16" aria-hidden="true" />
+            </RouterLink>
+
+            <RouterLink to="/property" class="home24-participate-row">
+              <span><Icon name="pin" :size="18" aria-hidden="true" /> Property</span>
+              <p>Explore the place system and the path to a governed listing.</p>
+              <Icon name="arrow" :size="16" aria-hidden="true" />
+            </RouterLink>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <SiteFooter />
+  </div>
 </template>
 
 <style scoped>
-.ld{background:var(--paper)}
-.ld-nav{position:sticky;top:0;z-index:50;background:rgba(20,24,31,.9);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
-.ld-nav-in{max-width:1140px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
-.ld-nav-in :deep(svg){filter:brightness(0) invert(1)}
-.ld-nav-r{display:flex;align-items:center;gap:8px}
-.ld-nav-link{color:rgba(255,255,255,.8);font-size:14px;font-weight:600;padding:8px 14px;border-radius:9px;text-decoration:none;transition:.15s}
-.ld-nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.ld-signin{color:#fff;font-size:14px;font-weight:600;padding:8px 18px;border-radius:9px;border:1px solid rgba(255,255,255,.2);text-decoration:none;transition:.15s}
-.ld-signin:hover{background:#fff;color:var(--ink)}
+.home24{
+  --h24-ink:#171a18;
+  --h24-soft:#5f665f;
+  --h24-line:rgba(23,26,24,.16);
+  --h24-paper:#f2efe8;
+  --h24-market:#eee8dc;
+  --h24-object:#f7f4ed;
+  --h24-place:#e8e1d4;
+  --h24-movement:#0c1714;
+  min-height:100svh;
+  background:var(--h24-paper);
+  color:var(--h24-ink);
+}
+.home24-shell{width:min(1380px,calc(100% - 96px));margin-inline:auto}
+.home24-kicker,.home24-world-number{
+  font:600 10px/1 var(--font-mono);
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+.home24-kicker{color:#737a73}
 
-/* HERO */
-.ld-hero{background:linear-gradient(165deg,var(--ink),#141C24 55%,#0B3A32);color:#fff;position:relative;overflow:hidden}
-.ld-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(700px 400px at 78% 8%,rgba(79,209,181,.16),transparent 60%);pointer-events:none}
-.ld-hero-in{max-width:1140px;margin:0 auto;padding:70px 24px 60px;position:relative;z-index:1;max-width:640px;margin-left:max(24px,calc((100vw - 1140px)/2 + 24px))}
-.ld-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.82);margin-bottom:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:7px 14px;border-radius:10px}
-.ld-dot{width:7px;height:7px;border-radius:50%;background:#4FD1B5;box-shadow:0 0 0 4px rgba(79,209,181,.2)}
-.ld-h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(32px,5vw,54px);font-weight:700;letter-spacing:-.035em;line-height:1.05;margin-bottom:20px;color:#fff}
-.ld-grad{background:linear-gradient(110deg,#4FD1B5,#7EE8CF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.ld-lede{font-size:17px;line-height:1.6;color:rgba(255,255,255,.75);max-width:540px;margin-bottom:30px}
-.ld-cta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
-.ld-btn{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:12px;font-size:15px;font-weight:650;text-decoration:none;transition:.18s}
-.ld-btn-primary{background:linear-gradient(135deg,#12B886,#0B6E5D);color:#fff;box-shadow:0 8px 24px rgba(11,110,93,.4)}
-.ld-btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(11,110,93,.5)}
-.ld-btn-ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.16)}
-.ld-btn-ghost:hover{background:rgba(255,255,255,.14)}
-.ld-trustline{display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.6)}
-.ld-trustline svg{color:#4FD1B5}
-/* hero visual */
-.ld-hero-visual{position:absolute;right:calc((100vw - 1140px)/2 + 24px);top:50%;transform:translateY(-50%);z-index:1;width:340px}
-.ld-track-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:22px;backdrop-filter:blur(12px);box-shadow:0 24px 60px rgba(0,0,0,.4)}
-.ld-tc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.ld-tc-code{font-family:'Spline Sans Mono',monospace;font-size:15px;font-weight:600;color:#fff;letter-spacing:.02em}
-.ld-tc-live{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#4FD1B5}
-.ld-tc-dot{width:7px;height:7px;border-radius:50%;background:#4FD1B5;animation:ldpulse 2s infinite}
-@keyframes ldpulse{0%,100%{opacity:1}50%{opacity:.4}}
-.ld-tc-steps{display:flex;flex-direction:column;gap:14px}
-.ld-tc-step{display:flex;align-items:center;gap:11px;font-size:13.5px;color:rgba(255,255,255,.4)}
-.ld-tc-step.done{color:rgba(255,255,255,.75)}
-.ld-tc-step.now{color:#fff;font-weight:600}
-.ld-tc-ic{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ld-tc-step.done .ld-tc-ic{background:#12B886;border-color:#12B886;color:#fff}
-.ld-tc-step.now .ld-tc-ic{background:#4FD1B5;border-color:#4FD1B5;color:var(--ink)}
-@media(max-width:1000px){.ld-hero-visual{display:none}.ld-hero-in{max-width:640px;margin:0 auto}}
+/* ARRIVAL */
+.home24-hero{padding:84px 0 96px;background:var(--h24-paper);border-bottom:1px solid var(--h24-line)}
+.home24-hero-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(500px,1.08fr);gap:9vw;align-items:end}
+.home24-hero-copy{max-width:690px}
+.home24-hero-copy h1{
+  margin:22px 0 28px;
+  font:500 clamp(56px,6.5vw,108px)/.88 var(--font-display);
+  letter-spacing:-.07em;
+  color:var(--h24-ink);
+}
+.home24-hero-copy h1 em{font-family:var(--font-editorial);font-weight:500;letter-spacing:-.045em}
+.home24-hero-copy>p{max-width:590px;font-size:16px;line-height:1.75;color:var(--h24-soft)}
+.home24-entry-actions{display:flex;align-items:center;gap:10px;margin-top:34px;flex-wrap:wrap}
+.home24-action{
+  min-height:48px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:0 18px;
+  border:1px solid var(--h24-line);
+  border-radius:6px;
+  color:var(--h24-ink);
+  text-decoration:none;
+  font-size:13px;
+  font-weight:650;
+}
+.home24-action-primary{background:var(--h24-ink);border-color:var(--h24-ink);color:#f6f3ec}
+.home24-action:hover{border-color:rgba(23,26,24,.42)}
+.home24-action-primary:hover{background:#252a26}
+.home24-hero-note{display:flex;gap:20px 28px;flex-wrap:wrap;margin-top:24px;padding-top:18px;border-top:1px solid var(--h24-line)}
+.home24-hero-note span{font:500 10px/1.4 var(--font-mono);letter-spacing:.025em;color:#777d77}
 
-/* SECTIONS */
-.ld-section{max-width:1140px;margin:0 auto;padding:72px 24px}
-.ld-sec-head{text-align:center;margin-bottom:42px}
-.ld-sec-head h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(26px,3.4vw,36px);font-weight:700;letter-spacing:-.03em;color:var(--ink);margin-bottom:10px}
-.ld-sec-head p{font-size:16px;color:var(--ink-soft);max-width:520px;margin:0 auto}
-.ld-sec-head.light h2{color:#fff}
-.ld-sec-head.light p{color:rgba(255,255,255,.65)}
-.ld-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.ld-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:26px;text-decoration:none;box-shadow:var(--shadow-sm);transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease)}
-.ld-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
-.ld-card-ic{width:52px;height:52px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.ld-card h3{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:8px}
-.ld-card p{font-size:14px;line-height:1.6;color:var(--ink-soft);flex:1;margin-bottom:16px}
-.ld-card-go{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:650;color:var(--accent-ink)}
+.home24-index{border-top:1px solid var(--h24-line)}
+.home24-index-row{
+  min-height:158px;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) 24px;
+  gap:24px;
+  align-items:start;
+  padding:28px 0;
+  border-bottom:1px solid var(--h24-line);
+  color:var(--h24-ink);
+  text-decoration:none;
+  transition:padding .35s var(--ease),background .35s ease;
+}
+.home24-index-row:hover{padding-left:16px;padding-right:12px}
+.home24-index-no{font:500 10px/1 var(--font-mono);color:#8b8f89;padding-top:7px}
+.home24-index-row small{display:block;margin-bottom:8px;font:600 9px/1 var(--font-mono);letter-spacing:.13em;text-transform:uppercase;color:#7d827c}
+.home24-index-row strong{display:block;font:500 30px/1 var(--font-display);letter-spacing:-.045em}
+.home24-index-row p{max-width:520px;margin-top:10px;font-size:13px;line-height:1.6;color:#697069}
+.home24-index-row>svg{margin-top:7px}
+.home24-index-market:hover{background:color-mix(in srgb,var(--h24-market) 60%,transparent)}
+.home24-index-place:hover{background:color-mix(in srgb,var(--h24-place) 54%,transparent)}
+.home24-index-movement:hover{background:rgba(21,38,31,.055)}
 
-/* WHY */
-.ld-why{background:linear-gradient(165deg,#141C24,var(--ink));color:#fff}
-.ld-why-in{max-width:1140px;margin:0 auto;padding:72px 24px}
-.ld-proof{display:grid;grid-template-columns:1fr 1fr;gap:22px;max-width:860px;margin:0 auto}
-.ld-proof-item{display:flex;gap:14px;align-items:flex-start}
-.ld-proof-ic{width:44px;height:44px;border-radius:12px;background:rgba(79,209,181,.14);color:#4FD1B5;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ld-proof-item b{display:block;font-size:16px;font-weight:650;margin-bottom:4px}
-.ld-proof-item span{font-size:14px;line-height:1.55;color:rgba(255,255,255,.65)}
+/* WORLD CHAPTERS */
+.home24-world{padding:126px 0}
+.home24-world-grid{display:grid;grid-template-columns:minmax(0,.78fr) minmax(520px,1.22fr);gap:9vw;align-items:center}
+.home24-world-grid-reverse{grid-template-columns:minmax(520px,1.22fr) minmax(0,.78fr)}
+.home24-world-copy{max-width:520px}
+.home24-world-number{display:block;margin-bottom:30px;color:#7a8079}
+.home24-world-copy h2,.home24-trust-head h2,.home24-participate-head h2{
+  margin:0;
+  font:500 clamp(46px,5.1vw,78px)/.94 var(--font-display);
+  letter-spacing:-.06em;
+}
+.home24-world-copy p{margin:26px 0 30px;max-width:500px;font-size:15px;line-height:1.76;color:#626961}
+.home24-text-link{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid currentColor;
+  color:var(--h24-ink);
+  text-decoration:none;
+  font-size:13px;
+  font-weight:650;
+}
 
-/* STEPS */
-.ld-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:900px;margin:0 auto}
-.ld-step{text-align:center}
-.ld-step-n{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;margin-bottom:14px}
-.ld-step b{display:block;font-size:17px;font-weight:700;color:var(--ink);margin-bottom:6px;font-family:'Space Grotesk',sans-serif}
-.ld-step p{font-size:14px;color:var(--ink-soft);line-height:1.55}
+.home24-world-market{background:var(--h24-market)}
+.home24-object-stage{
+  position:relative;
+  min-height:570px;
+  background:var(--h24-object);
+  overflow:hidden;
+  border:1px solid rgba(39,37,31,.1);
+}
+.home24-object-stage::before{
+  content:"";
+  position:absolute;
+  left:13%;
+  right:13%;
+  bottom:17%;
+  height:18px;
+  border-radius:50%;
+  background:rgba(61,55,44,.12);
+  filter:blur(12px);
+}
+.home24-object-plane{
+  position:absolute;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:22px;
+  border:1px solid rgba(30,31,27,.13);
+  background:#f8f5ef;
+}
+.home24-object-plane span{font:600 9px/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:#7b7e78}
+.home24-object-plane i{display:block;border-radius:50% 50% 45% 55%;background:linear-gradient(145deg,#d7d0c3,#f3eee5 52%,#bbb1a3);box-shadow:0 34px 60px rgba(54,48,39,.16)}
+.home24-object-plane-a{left:10%;top:9%;width:44%;height:66%}
+.home24-object-plane-a i{width:68%;aspect-ratio:1;margin:auto}
+.home24-object-plane-b{right:8%;top:18%;width:31%;height:43%;background:#e3d6c2}
+.home24-object-plane-b i{width:55%;aspect-ratio:.82;margin:auto;background:linear-gradient(155deg,#8f7355,#d4b58c)}
+.home24-object-ledger{
+  position:absolute;
+  right:8%;
+  bottom:7%;
+  width:45%;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:0;
+  border-top:1px solid rgba(23,26,24,.2);
+}
+.home24-object-ledger span,.home24-object-ledger b{padding:10px 0;border-bottom:1px solid rgba(23,26,24,.14);font-size:11px}
+.home24-object-ledger span{color:#747a73}
+.home24-object-ledger b{text-align:right;font-weight:650}
 
-/* JOIN */
-.ld-join{background:var(--surface-2);border-top:1px solid var(--hairline)}
-.ld-join-in{max-width:1140px;margin:0 auto;padding:64px 24px;text-align:center}
-.ld-join-in h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,3vw,32px);font-weight:700;letter-spacing:-.03em;color:var(--ink);margin-bottom:32px}
-.ld-join-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.ld-join-card{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:24px 16px;text-decoration:none;transition:.18s;color:var(--accent-ink)}
-.ld-join-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--accent)}
-.ld-join-card b{font-size:15px;color:var(--ink);margin-top:6px}
-.ld-join-card span{font-size:12.5px;color:var(--ink-faint)}
+.home24-world-place{background:#f1ede4}
+.home24-place-stage{position:relative;min-height:590px;background:#dcd4c5;overflow:hidden}
+.home24-place-gridlines{
+  position:absolute;inset:0;opacity:.34;
+  background-image:linear-gradient(rgba(50,56,48,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(50,56,48,.13) 1px,transparent 1px);
+  background-size:70px 70px;
+}
+.home24-contours{position:absolute;inset:12% 8% 13%}
+.home24-contours i{position:absolute;border:1px solid rgba(59,71,57,.34);border-radius:48% 52% 44% 56% / 58% 40% 60% 42%;transform:rotate(-8deg)}
+.home24-contours i:nth-child(1){inset:3% 4%}
+.home24-contours i:nth-child(2){inset:11% 13%;transform:rotate(5deg)}
+.home24-contours i:nth-child(3){inset:22% 24%;transform:rotate(-13deg)}
+.home24-contours i:nth-child(4){inset:34% 35%;transform:rotate(9deg)}
+.home24-contours i:nth-child(5){inset:44% 43%;transform:rotate(-5deg)}
+.home24-place-pin{position:absolute;left:56%;top:43%;width:16px;height:16px;border-radius:50%;background:#254b38;box-shadow:0 0 0 8px rgba(37,75,56,.14)}
+.home24-place-caption{position:absolute;left:28px;bottom:26px;display:flex;flex-direction:column;gap:5px}
+.home24-place-caption span{font:600 9px/1 var(--font-mono);letter-spacing:.13em;text-transform:uppercase;color:#657064}
+.home24-place-caption strong{font:500 26px/1 var(--font-display);letter-spacing:-.04em}
 
-/* FOOTER */
-.ld-foot{background:var(--ink);color:#fff}
-.ld-foot-in{max-width:1140px;margin:0 auto;padding:36px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.ld-foot-in :deep(svg){filter:brightness(0) invert(1)}
-.ld-foot-tag{font-size:13px;color:rgba(255,255,255,.5)}
-.ld-foot-links{margin-left:auto;display:flex;gap:20px}
-.ld-foot-links a{font-size:13.5px;color:rgba(255,255,255,.7);text-decoration:none}
-.ld-foot-links a:hover{color:#fff}
+.home24-world-movement{background:var(--h24-movement);color:#f4f1e9}
+.home24-world-copy-light .home24-world-number{color:rgba(244,241,233,.45)}
+.home24-world-copy-light p{color:rgba(244,241,233,.58)}
+.home24-text-link-light{color:#f4f1e9}
+.home24-route-stage{min-height:510px;padding:44px 42px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.025)}
+.home24-route-head{display:flex;justify-content:space-between;font:600 9px/1 var(--font-mono);letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.46)}
+.home24-route-line{position:relative;height:2px;margin:118px 18px 96px;background:rgba(255,255,255,.14)}
+.home24-route-fill{position:absolute;left:0;top:0;height:100%;width:66%;background:#a9cdb9}
+.home24-route-node{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;border:2px solid #0c1714;background:#a9cdb9;box-shadow:0 0 0 6px rgba(169,205,185,.12);transform:translate(-50%,-50%)}
+.home24-route-node-a{left:0}
+.home24-route-node-b{left:50%}
+.home24-route-node-c{left:100%;background:#0c1714;border-color:rgba(255,255,255,.38);box-shadow:0 0 0 6px rgba(255,255,255,.05)}
+.home24-route-record{display:grid;grid-template-columns:1fr auto;border-top:1px solid rgba(255,255,255,.16)}
+.home24-route-record span,.home24-route-record strong{padding:13px 0;border-bottom:1px solid rgba(255,255,255,.11);font-size:11px}
+.home24-route-record span{color:rgba(255,255,255,.4)}
+.home24-route-record strong{font-weight:600;color:#d9e7df}
 
-@media(max-width:820px){
-  .ld-cards,.ld-proof,.ld-steps,.ld-join-grid{grid-template-columns:1fr}
-  .ld-nav-link{display:none}
+/* TRUST */
+.home24-trust{padding:130px 0;background:#f6f3ec}
+.home24-trust-head{display:grid;grid-template-columns:.52fr 1fr;column-gap:80px;align-items:start}
+.home24-trust-head .home24-kicker{grid-column:1;margin-top:11px}
+.home24-trust-head h2{grid-column:2}
+.home24-trust-head p{grid-column:2;max-width:600px;margin-top:28px;font-size:15px;line-height:1.76;color:#656b65}
+.home24-trust-ledger{margin-top:86px;border-top:1px solid var(--h24-line)}
+.home24-trust-ledger>div{
+  display:grid;
+  grid-template-columns:80px 220px minmax(0,1fr);
+  gap:30px;
+  align-items:start;
+  padding:26px 0;
+  border-bottom:1px solid var(--h24-line);
+}
+.home24-trust-ledger span{font:500 10px/1 var(--font-mono);color:#8a8f89;padding-top:4px}
+.home24-trust-ledger strong{font:500 22px/1 var(--font-display);letter-spacing:-.035em}
+.home24-trust-ledger p{max-width:620px;font-size:13px;line-height:1.6;color:#6b716b}
+
+/* PARTICIPATE */
+.home24-participate{padding:116px 0 128px;background:#e8e3d9}
+.home24-participate-head{display:grid;grid-template-columns:.52fr 1fr;gap:80px;align-items:start;margin-bottom:70px}
+.home24-participate-head h2{font-size:clamp(44px,4.5vw,68px)}
+.home24-participate-head .home24-kicker{padding-top:11px}
+.home24-participate-grid{border-top:1px solid var(--h24-line)}
+.home24-participate-row{
+  display:grid;
+  grid-template-columns:240px minmax(0,1fr) 24px;
+  gap:28px;
+  align-items:center;
+  min-height:92px;
+  padding:18px 0;
+  border-bottom:1px solid var(--h24-line);
+  color:var(--h24-ink);
+  text-decoration:none;
+}
+.home24-participate-row>span{display:flex;align-items:center;gap:12px;font:600 14px/1 var(--font-display)}
+.home24-participate-row p{max-width:620px;font-size:13px;line-height:1.55;color:#6a7069}
+.home24-participate-row>svg{transition:transform .25s var(--ease)}
+.home24-participate-row:hover>svg{transform:translateX(4px)}
+
+/* RESPONSIVE ART DIRECTION */
+@media(min-width:1600px){
+  .home24-shell{width:min(1500px,calc(100% - 144px))}
+  .home24-hero{padding-top:110px;padding-bottom:120px}
+  .home24-hero-grid,.home24-world-grid{gap:150px}
+  .home24-object-stage,.home24-place-stage{min-height:650px}
+}
+@media(min-width:1180px) and (max-width:1599px){
+  .home24-shell{width:min(1280px,calc(100% - 72px))}
+  .home24-hero-grid,.home24-world-grid{gap:70px}
+}
+@media(min-width:768px) and (max-width:1179px){
+  .home24-shell{width:min(900px,calc(100% - 48px))}
+  .home24-hero{padding:68px 0 80px}
+  .home24-hero-grid{grid-template-columns:1fr;gap:62px}
+  .home24-hero-copy{max-width:780px}
+  .home24-hero-copy h1{font-size:clamp(64px,10vw,92px)}
+  .home24-index-row{min-height:132px}
+  .home24-world{padding:94px 0}
+  .home24-world-grid,.home24-world-grid-reverse{grid-template-columns:1fr;gap:62px}
+  .home24-world-copy{max-width:650px}
+  .home24-world-grid-reverse .home24-world-copy{order:-1}
+  .home24-object-stage,.home24-place-stage{min-height:540px}
+  .home24-trust,.home24-participate{padding:96px 0}
+  .home24-trust-head,.home24-participate-head{grid-template-columns:1fr;gap:24px}
+  .home24-trust-head .home24-kicker,.home24-trust-head h2,.home24-trust-head p{grid-column:1}
+}
+@media(max-width:767px){
+  .home24-shell{width:calc(100% - 32px)}
+  .home24-hero{padding:48px 0 58px}
+  .home24-hero-grid{grid-template-columns:1fr;gap:48px}
+  .home24-hero-copy h1{font-size:clamp(50px,15vw,68px);margin-top:18px}
+  .home24-hero-copy>p{font-size:15px}
+  .home24-entry-actions{align-items:stretch;flex-direction:column}
+  .home24-action{width:100%}
+  .home24-hero-note{display:grid;gap:8px}
+  .home24-index-row{grid-template-columns:30px minmax(0,1fr) 18px;gap:14px;min-height:auto;padding:24px 0}
+  .home24-index-row:hover{padding-left:0;padding-right:0}
+  .home24-index-row strong{font-size:27px}
+  .home24-world{padding:72px 0}
+  .home24-world-grid,.home24-world-grid-reverse{grid-template-columns:1fr;gap:44px}
+  .home24-world-grid-reverse .home24-world-copy{order:-1}
+  .home24-world-copy h2,.home24-trust-head h2{font-size:clamp(42px,12vw,56px)}
+  .home24-object-stage{min-height:430px}
+  .home24-object-plane-a{left:6%;top:7%;width:55%;height:60%}
+  .home24-object-plane-b{right:5%;top:20%;width:35%;height:37%}
+  .home24-object-ledger{left:6%;right:6%;bottom:5%;width:auto}
+  .home24-place-stage{min-height:440px}
+  .home24-route-stage{min-height:400px;padding:30px 22px}
+  .home24-route-line{margin:94px 8px 72px}
+  .home24-trust{padding:78px 0}
+  .home24-trust-head{display:block}
+  .home24-trust-head h2{margin-top:20px}
+  .home24-trust-head p{margin-top:22px}
+  .home24-trust-ledger{margin-top:56px}
+  .home24-trust-ledger>div{grid-template-columns:38px 1fr;gap:14px 18px;padding:22px 0}
+  .home24-trust-ledger p{grid-column:2}
+  .home24-participate{padding:78px 0 90px}
+  .home24-participate-head{display:block;margin-bottom:48px}
+  .home24-participate-head h2{font-size:44px;margin-top:20px}
+  .home24-participate-row{grid-template-columns:1fr 20px;gap:8px 16px;padding:20px 0}
+  .home24-participate-row>span{grid-column:1}
+  .home24-participate-row>p{grid-column:1;font-size:12px}
+  .home24-participate-row>svg{grid-column:2;grid-row:1/3}
+}
+@media(max-width:390px){
+  .home24-shell{width:calc(100% - 24px)}
+  .home24-hero-copy h1{font-size:49px}
+  .home24-world-copy h2,.home24-trust-head h2{font-size:40px}
+  .home24-object-stage{min-height:390px}
+  .home24-place-stage{min-height:400px}
+  .home24-participate-head h2{font-size:39px}
+}
+@media(prefers-reduced-motion:reduce){
+  .home24-index-row,.home24-participate-row>svg{transition:none}
 }
 </style>
